@@ -1,48 +1,80 @@
 # Delnyx
 
-Delnyx est une plateforme vitrine pour mon activité freelance, développée avec Symfony 7, conteneurisée via Docker, et auto-hébergée sur une VM locale (Freebox Delta).
+Delnyx est une plateforme freelance développée avec Symfony et Docker. Elle servira de vitrine professionnelle, de portfolio, et à terme de back-office pour la gestion client et de devis/factures.
 
-## 🔧 Stack technique
+---
 
-- PHP 8.3 (FPM)
-- Symfony 7.3
-- Nginx (reverse proxy)
-- PostgreSQL 15
-- Docker / Docker Compose
-- Certbot (Let's Encrypt)
-- GitHub Actions (CI/CD – à venir)
+## ✅ Stack actuelle
 
-## 🚀 Objectifs
+- PHP 8.3 / Symfony 7.3
+- Twig (moteur de templates)
+- PostgreSQL (via Docker)
+- Docker + Docker Compose
+- Tailwind CSS (via `symfonycasts/tailwind-bundle` + AssetMapper)
 
-- Vitrine de mes projets freelance (ex: Aqualize, Fish Tracker…)
-- Gestion simplifiée des clients, devis, factures
-- Admin minimal et design sobre
+---
 
-## 📦 Lancer le projet
+## 🚀 Installation & Lancement
+
+### 1. Cloner le projet
+
+```bash
+git clone https://github.com/ton-utilisateur/delnyx.git
+cd delnyx
+```
+
+### 2. Lancer les conteneurs
 
 ```bash
 docker-compose up -d --build
 ```
 
-Le projet Symfony sera accessible sur :  
-👉 http://localhost
+### 3. Installer les dépendances PHP
 
-## 📁 Arborescence
-
-```
-delnyx/
-├── app/             # Code Symfony
-├── nginx/           # Configuration Nginx
-├── certbot/         # Pour Let's Encrypt
-├── Dockerfile       # Image PHP personnalisée
-├── docker-compose.yml
-└── README.md
+```bash
+docker exec -it delnyx-app composer install
 ```
 
-## 🗺️ Roadmap (prochaine étape)
+### 4. Installer Tailwind CSS (via le bundle)
 
-- [ ] Créer un contrôleur `HomeController`
-- [ ] Ajouter Twig et afficher un template statique
-- [ ] Intégrer un premier design Lovable pour la page d’accueil
-- [ ] Ajouter API Platform
-- [ ] Mettre en place la CI/CD (GitHub Actions)
+```bash
+php bin/console tailwind:install
+```
+
+### 5. Lancer le watcher Tailwind (dans un autre terminal)
+
+```bash
+php bin/console tailwind:build --watch
+```
+
+---
+
+## 🧪 Environnement
+
+- Site accessible via : `http://localhost`
+- Fichier CSS généré dans : `public/build/tailwind.css`
+- Les vues Twig sont dans `templates/`
+
+---
+
+## 🛠️ À faire
+
+- [ ] Créer le layout global avec Tailwind
+- [ ] Intégrer la page statique générée avec Lovable
+- [ ] Ajouter une CI/CD via GitHub Actions
+- [ ] Ajouter une interface d’administration (back-office Symfony)
+
+---
+
+## 📦 Commandes utiles
+
+```bash
+# Lancer les conteneurs
+docker-compose up -d
+
+# Arrêter les conteneurs
+docker-compose down
+
+# Recompiler les assets Tailwind à la volée
+php bin/console tailwind:build --watch
+```
