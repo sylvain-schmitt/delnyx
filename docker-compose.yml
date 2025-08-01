@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: delnyx_app
+    volumes:
+      - ./app:/var/www/html
+    depends_on:
+      - db
+    networks:
+      - delnyx_net
+
+  web:
+    image: nginx:alpine
+    container_name: delnyx_web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - ./app:/var/www/html
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    depends_on:
+      - app
+    networks:
+      - delnyx_net
+
+  db:
+    image: postgres:15
+    container_name: delnyx_db
+    restart: always
+    environment:
+      POSTGRES_DB: delnyx
+      POSTGRES_USER: symfony
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - delnyx_db_data:/var/lib/postgresql/data
+    networks:
+      - delnyx_net
+
+  certbot:
+    image: certbot/certbot
+    container_name: delnyx_certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 1 & wait $${!}; done'"
+    networks:
+      - delnyx_net
+
+volumes:
+  delnyx_db_data:
+
+networks:
+  delnyx_net:

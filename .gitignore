@@ -1,0 +1,8 @@
+# Docker volumes
+certbot/conf/
+certbot/www/
+
+# IDE & système
+.idea/
+.vscode/
+.DS_Store
