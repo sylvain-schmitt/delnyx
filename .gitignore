@@ -6,3 +6,11 @@ certbot/www/
 .idea/
 .vscode/
 .DS_Store
+
+# Ignorer la clé de déploiement
+.ssh/
+
+# Déploiement serveur
+docker-compose.yml
+Dockerfile
+nginx/
