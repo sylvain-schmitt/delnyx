@@ -3,35 +3,35 @@ name: Deploy to Delnyx server
 on:
   push:
     branches:
-      - main  # adapte selon ta branche par défaut
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up SSH key
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan -H delnyx.fr >> ~/.ssh/known_hosts
-      shell: bash
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H delnyx.fr >> ~/.ssh/known_hosts
+        shell: bash
 
-    - name: Sync files to server with rsync
-      run: |
-        rsync -avz --delete --exclude='.git' --exclude='.github' --exclude='node_modules' ./ delnyx@delnyx.fr:/home/delnyx/docker/delnyx/app
-      env:
-        RSYNC_RSH: "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
+      - name: Pull and deploy latest code
+        run: |
+          ssh -i ~/.ssh/id_ed25519 delnyx@delnyx.fr << 'EOF'
+            cd ~/docker/delnyx/app
+            git reset --hard
+            git clean -fd
+            git pull origin main
 
-    - name: Deploy on server
-      run: |
-        ssh -i ~/.ssh/id_ed25519 delnyx@delnyx.fr << 'EOF'
-          cd ~/docker/delnyx
-          docker compose build app
-          docker compose up -d
-        EOF
-      shell: bash
+            cd ..
+            docker compose exec -T app composer install --no-interaction --prefer-dist --optimize-autoloader
+            docker compose exec -T app php bin/console cache:clear
+            docker compose exec -T app php bin/console doctrine:migrations:migrate --no-interaction
+          EOF
+        shell: bash
