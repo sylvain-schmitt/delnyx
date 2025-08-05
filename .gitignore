@@ -1,16 +1,26 @@
-# Docker volumes
-certbot/conf/
-certbot/www/
 
-# IDE & système
-.idea/
-.vscode/
-.DS_Store
+###> symfony/framework-bundle ###
+/.env.local
+/.env.local.php
+/.env.*.local
+/config/secrets/prod/prod.decrypt.private.php
+/public/bundles/
+/var/
+/vendor/
+###< symfony/framework-bundle ###
 
-# Ignorer la clé de déploiement
-.ssh/
+###> symfony/asset-mapper ###
+/public/assets/
+/assets/vendor/
+###< symfony/asset-mapper ###
 
-# Déploiement serveur
+###<docker-compose>###
 docker-compose.yml
 Dockerfile
-nginx/
+/nginx
+/.ssh
+###</docker-compose>###
+
+### Ignore GitHub Actions workflows for deployment
+/.github/workflows/deploy.yml
+###</git>###
