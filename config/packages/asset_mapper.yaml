@@ -8,4 +8,5 @@ framework:
 when@prod:
     framework:
         asset_mapper:
+            public_prefix: /assets
             missing_import_mode: warn
