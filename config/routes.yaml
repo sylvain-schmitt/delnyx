@@ -3,3 +3,20 @@ controllers:
         path: ../src/Controller/
         namespace: App\Controller
     type: attribute
+
+app_about:
+    path: /about
+    controller: App\Controller\DefaultController::dummy
+
+app_services:
+    path: /services
+    controller: App\Controller\DefaultController::dummy
+
+app_portfolio:
+    path: /portfolio
+    controller: App\Controller\DefaultController::dummy
+
+app_contact:
+    path: /contact
+    controller: App\Controller\DefaultController::dummy
+

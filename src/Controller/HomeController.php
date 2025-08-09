@@ -13,4 +13,10 @@ final class HomeController extends AbstractController
     {
         return $this->render('home/index.html.twig');
     }
+
+     public function dummy(): Response
+    {
+        // Pour l’instant une page vide ou un redirect vers home
+        return $this->redirectToRoute('app_home');
+    }
 }

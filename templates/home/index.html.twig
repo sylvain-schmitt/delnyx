@@ -1,15 +1,8 @@
 {% extends 'layout/base.html.twig' %}
 
-{% block title %}Accueil - Delnyx{% endblock %}
+{% block title %}Accueil | {{ parent() }}{% endblock %}
 
 {% block body %}
-    <h1 class="text-4xl font-bold mb-6">Bienvenue sur Delnyx</h1>
-    <p class="mb-4">Plateforme freelance - ton portfolio et vitrine professionnelle.</p>
-    <p class="mt-8 text-center text-xl text-blue-600 font-semibold">
-        Déploiement automatique et Tailwind fonctionnent correctement 🚀
-    </p>
-    <p class="mt-4 px-6 py-3 bg-gray-100 text-gray-900 rounded shadow hover:bg-gray-200 transition duration-300 ease-in-out text-center">
-        Ce paragraphe est généré après un nouveau push pour tester le comportement de Tailwind CSS 🚧
-    </p>
-
+    <h1 class="text-4xl font-bold mt-8 mb-6 text-center">Bienvenue sur Delnyx</h1>
+    <p class="mb-4 text-center">Plateforme freelance - ton portfolio et vitrine professionnelle.</p>
 {% endblock %}
