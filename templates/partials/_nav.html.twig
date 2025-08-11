@@ -15,10 +15,10 @@
 				<a href="{{ path('app_home') }}" class="nav-link px-3 py-2 hover:text-blue-500 transition {{ app.request.attributes.get('_route') == 'app_home' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-foreground' }}">
 					Accueil
 				</a>
-				<a href="{{ path('app_about') }}" class="nav-link px-3 py-2 hover:text-blue-500 transition {{ app.request.attributes.get('_route') == 'app_about' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-foreground' }}">
+				<a href="{{ path('app_home_about') }}" class="nav-link px-3 py-2 hover:text-blue-500 transition {{ app.request.attributes.get('_route') == 'app_home_about' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-foreground' }}">
 					À propos
 				</a>
-				<a href="{{ path('app_services') }}" class="nav-link px-3 py-2 hover:text-blue-500 transition {{ app.request.attributes.get('_route') == 'app_services' ? 'border-b-2  border-blue-500 text-blue-600' : 'text-foreground' }}">
+				<a href="{{ path('app_home_services') }}" class="nav-link px-3 py-2 hover:text-blue-500 transition {{ app.request.attributes.get('_route') == 'app_home_services' ? 'border-b-2  border-blue-500 text-blue-600' : 'text-foreground' }}">
 					Services
 				</a>
 				<a href="{{ path('app_portfolio') }}" class="nav-link px-3 py-2 hover:text-blue-500 transition {{ app.request.attributes.get('_route') == 'app_portfolio' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-foreground' }}">
@@ -54,12 +54,12 @@
 					           {{ app.request.attributes.get('_route') == 'app_home' ? ' text-blue-600' : 'text-foreground' }}">
 				Accueil
 			</a>
-			<a href="{{ path('app_about') }}" class="block px-3 py-2 transition-colors duration-300 text-center hover:text-blue-500
-					           {{ app.request.attributes.get('_route') == 'app_about' ? ' text-blue-600' : 'text-foreground' }}">
+			<a href="{{ path('app_home_about') }}" class="block px-3 py-2 transition-colors duration-300 text-center hover:text-blue-500
+					           {{ app.request.attributes.get('_route') == 'app_home_about' ? ' text-blue-600' : 'text-foreground' }}">
 				À propos
 			</a>
-			<a href="{{ path('app_services') }}" class="block px-3 py-2 transition-colors duration-300 text-center hover:text-blue-500
-					           {{ app.request.attributes.get('_route') == 'app_services' ? ' text-blue-600' : 'text-foreground' }}">
+			<a href="{{ path('app_home_services') }}" class="block px-3 py-2 transition-colors duration-300 text-center hover:text-blue-500
+					           {{ app.request.attributes.get('_route') == 'app_home_services' ? ' text-blue-600' : 'text-foreground' }}">
 				Services
 			</a>
 			<a href="{{ path('app_portfolio') }}" class="block px-3 py-2 transition-colors duration-300 text-center hover:text-blue-500
