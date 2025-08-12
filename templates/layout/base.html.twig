@@ -13,11 +13,11 @@
             {% block importmap %}{{ importmap('app') }}{% endblock %}
         {% endblock %}
     </head>
-    <body class="flex flex-col min-h-screen' bg-gray-100 text-gray-900 mt-16">
+    <body >
     
     {% include 'partials/_nav.html.twig' %}
 
-    <main class="container mx-auto p-4">
+    <main >
         {% block body %}{% endblock %}
     </main>
     {% include 'partials/_footer.html.twig' %}

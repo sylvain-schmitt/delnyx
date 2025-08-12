@@ -5,3 +5,6 @@
  * which should already be in your base.html.twig.
  */
 import './components/navigation.js';
+import './components/particles.js';
+import './components/typingLetter.js';
+import './components/three.js';

@@ -1,0 +1,68 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block title %}Accueil |{{ parent() }}
+{% endblock %}
+
+{% block body %}
+	<section
+		id="accueil" class="relative min-h-screen flex items-center justify-center overflow-hidden">
+		{# Background #}
+		 <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" style="background-image: url('{{ asset('images/hero-bg.jpg') }}');"> 
+			<div class="absolute inset-0 bg-gradient-hero opacity-90"></div>
+		</div>
+
+		{# Floating elements #}
+		<div
+			class="absolute top-20 left-10 animate-float text-blue-500">
+			{# Ici tu peux intégrer un SVG inline ou un icône via une bibliothèque #}
+			<svg
+				xmlns="http://www.w3.org/2000/svg" class="text-sky-blue w-8 h-8 opacity-60" fill="none" viewbox="0 0 24 24" stroke="currentColor">
+				<!-- Exemple icône Code (simplifié) -->
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+			</svg>
+		</div>
+
+		<div class="absolute top-40 right-20 animate-float text-blue-500" style="animation-delay: 2s;">
+			<svg
+				xmlns="http://www.w3.org/2000/svg" class="text-primary-glow w-6 h-6 opacity-60" fill="none" viewbox="0 0 24 24" stroke="currentColor">
+				<!-- Exemple icône Zap (simplifié) -->
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+			</svg>
+		</div>
+
+		{# Content #}
+		<div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+			<div class="animate-fade-in">
+				<h1 class="text-4xl md:text-6xl lg:text-7xl font-bold text-gray-100 mb-6 leading-tight">
+					Développeur
+					<span class="block text-sky-400">Full-Stack Symfony</span>
+				</h1>
+
+				<p class="text-xl md:text-2xl text-gray-100 mb-8 max-w-3xl mx-auto leading-relaxed">
+					Je transforme vos idées en applications web performantes et évolutives
+				</p>
+
+				<div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+					<a href="{{ path('app_contact') }}" class="btn-hero group inline-flex items-center px-6 py-3 text-lg font-semibold rounded-md bg-sky-600 text-white hover:bg-sky-700 transition">
+						Discutons de votre projet
+						<svg xmlns="http://www.w3.org/2000/svg" class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewbox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+						</svg>
+					</a>
+
+					<a href="{{ path('app_portfolio') }}" class="btn-outline inline-flex items-center px-6 py-3 text-lg font-semibold rounded-md border border-gray-400 text-gray-800 hover:bg-gray-800 hover:text-white transition backdrop-blur-sm">
+						Voir mes réalisations
+					</a>
+				</div>
+			</div>
+		</div>
+
+  {# Scroll indicator #}
+  <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce text-gray-500">
+    <div class="w-6 h-10 border-2 border-b-gray-500 rounded-full flex justify-center">
+      <div class="w-1 h-3 bg-gray-600 rounded-full mt-2"></div>
+    </div>
+  </div>
+
+	</section>
+{% endblock %}
