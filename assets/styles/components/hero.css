@@ -1,0 +1,51 @@
+.content-grid {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: calc(100vh - 120px); /* Laisse de l'espace pour l'indicateur de scroll */
+    gap: 2rem;
+    align-items: center;
+}
+
+.title-section {
+    align-self: start;
+    padding-top: 2rem;
+	margin-top: 2rem;
+}
+
+.paragraph-section {
+    align-self: center;
+}
+
+.cta-section {
+    align-self: end;
+    padding-bottom: 4rem;
+}
+
+/* Zones Particles.js */
+#particles-cyan,
+#particles-purple,
+#particles-center {
+    position: absolute;
+    z-index: 10;
+}
+#particles-cyan {
+    top: 8%;
+    left: 0;
+    width: 50vw;
+    height: 55vh;
+}
+#particles-purple {
+    bottom: 0;
+    right: 0;
+    width: 50vw;
+    height: 55vh;
+}
+
+#particles-cyan canvas {
+    filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.8))
+            drop-shadow(0 0 25px rgba(59, 130, 246, 0.4));
+}
+#particles-purple canvas {
+    filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.8))
+            drop-shadow(0 0 25px rgba(139, 92, 246, 0.4));
+}

@@ -1,0 +1,36 @@
+/* Boutons */
+.btn-primary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem 2rem;
+	background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+	color: white;
+	font-weight: 600;
+	border-radius: 9999px;
+	box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+	transition: all 0.3s ease;
+}
+.btn-primary:hover {
+	transform: translateY(-3px) rotateX(5deg);
+	box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem 2rem;
+	background: rgba(255, 255, 255, 0.1);
+	backdrop-filter: blur(15px);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	color: white;
+	font-weight: 600;
+	border-radius: 9999px;
+	transition: all 0.3s ease;
+}
+.btn-secondary:hover {
+	background: rgba(255, 255, 255, 0.15);
+	transform: translateY(-3px) rotateX(5deg);
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+}
