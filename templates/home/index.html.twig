@@ -11,17 +11,17 @@
     <div id="particles-purple"></div>
     <div id="particles-center"></div>
 
-    {# Lumière bleue #}
-    <div class="absolute top-1/3 left-[20%] w-[300px] h-[300px] rounded-full animate-pulse z-20"
-         style="background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 70%);"></div>
-
     {# Lumière violette #}
     <div class="absolute bottom-[20%] right-[15%] w-[200px] h-[200px] rounded-full animate-pulse z-20"
-         style="background: radial-gradient(circle, rgba(59,130,246,0.25) 0%, transparent 70%);"></div>
+         style="background: radial-gradient(circle, rgba(59,130,246,0.25) 0%, transparent 50%);"></div>
+
+    {# Lumière bleue #}
+    <div class="absolute top-1/3 left-[20%] w-[300px] h-[300px] rounded-full animate-pulse z-20"
+         style="background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 50%);"></div>
 
     {# Contenu principal #}
     <div class="relative z-30 text-center px-6 content-grid w-full max-w-7xl">
-        <div class="title-section">
+        <div class="title-section animate-fade-up animate-delay-100">
             <div class="min-h-[120px] sm:min-h-[140px] lg:min-h-[180px] flex items-center justify-center">
                 <h1 class="text-3xl sm:text-4xl lg:text-6xl font-bold">
                     <span id="typing" class="bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-500 bg-clip-text text-transparent"></span>
@@ -30,14 +30,14 @@
             </div>
         </div>
 
-        <div class="paragraph-section">
+        <div class="paragraph-section animate-fade-up animate-delay-200">
             <p class="text-2xl sm:text-3xl lg:text-4xl text-gray-300 max-w-5xl mx-auto">
                 Je transforme vos idées en applications web performantes,<br class="hidden sm:block">
                 élégantes et évolutives avec les technologies modernes
             </p>
         </div>
 
-        <div class="cta-section">
+        <div class="cta-section animate-fade-up animate-delay-300">
             <div class="flex flex-col sm:flex-row gap-6 justify-center items-center">
                 <a href="{{ path('app_contact') }}" class="btn-primary w-full sm:w-auto min-w-[150px] text-center">
                     Discutons de votre projet
@@ -63,6 +63,135 @@
                   d="M19 9l-7 7-7-7"/>
         </svg>
         <div class="text-slate-500 text-xs uppercase tracking-wider font-medium mt-1">Scroll</div>
+    </div>
+</section>
+
+<section id="services" class="relative py-24 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700">
+
+     {# Lumière bleue #}
+    <div class="absolute top-1/4 left-[3%] w-[300px] h-[300px] rounded-full animate-pulse z-20"
+         style="background: radial-gradient(circle, rgba(59,130,246,0.25) 0%, transparent 70%);"></div>
+
+    {# Lumière violette #}
+    <div class="absolute bottom-[20%] right-[5%] w-[200px] h-[200px] rounded-full animate-pulse z-20"
+         style="background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 70%);"></div>
+
+    <div class="container mx-auto px-6 relative z-10">
+        {# Titre de section #}
+        <div class="text-center mb-16 scroll-animate animate-delay-100">
+            <h2 class="text-4xl lg:text-5xl font-bold mb-6">
+                <span class="gradient-text">Mes Services</span>
+            </h2>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+                Des solutions web sur-mesure pour donner vie à vos projets et développer votre activité
+            </p>
+        </div>
+        
+        {# Grid des services #}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-7xl mx-auto">
+            
+            {# Service 1: Sites Vitrine #}
+            <div class="glass-card rounded-2xl p-8 scroll-animate animate-delay-100 group">
+                <div class="flex items-start space-x-6">
+                    <div class="flex-shrink-0">
+                        <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 p-4 icon-glow">
+                            {{ ux_icon('lucide:monitor', {class: 'w-full h-full text-white'}) }}
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-semibold text-white mb-4 group-hover:text-blue-400 transition-colors">
+                            Sites Vitrine
+                        </h3>
+                        <p class="text-gray-300 leading-relaxed text-lg">
+                            Création de sites web professionnels pour présenter votre activité : 
+                            <span class="text-cyan-400">site de restaurant avec carte en ligne</span>, 
+                            <span class="text-blue-400">portfolio d'artisan avec galerie photos</span>, 
+                            <span class="text-purple-400">site de cabinet médical avec informations pratiques</span>...
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            {# Service 2: Prise de Rendez-vous #}
+            <div class="glass-card rounded-2xl p-8 scroll-animate animate-delay-200 group">
+                <div class="flex items-start space-x-6">
+                    <div class="flex-shrink-0">
+                        <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-400 p-4 icon-glow">
+                            {{ ux_icon('lucide:calendar-check', {class: 'w-full h-full text-white'}) }}
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-semibold text-white mb-4 group-hover:text-cyan-400 transition-colors">
+                            Prise de Rendez-vous
+                        </h3>
+                        <p class="text-gray-300 leading-relaxed text-lg">
+                            Systèmes de réservation automatisés : 
+                            <span class="text-cyan-400">planning en ligne pour coiffeur</span>, 
+                            <span class="text-blue-400">réservation de créneaux pour consultant</span>, 
+                            <span class="text-purple-400">gestion d'agenda pour thérapeute avec confirmations par email</span>...
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            {# Service 3: Applications de Gestion #}
+            <div class="glass-card rounded-2xl p-8 scroll-animate animate-delay-300 group">
+                <div class="flex items-start space-x-6">
+                    <div class="flex-shrink-0">
+                        <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-blue-400 p-4 icon-glow">
+                            {{ ux_icon('lucide:database', {class: 'w-full h-full text-white'}) }}
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-semibold text-white mb-4 group-hover:text-purple-400 transition-colors">
+                            Applications de Gestion
+                        </h3>
+                        <p class="text-gray-300 leading-relaxed text-lg">
+                            Outils sur-mesure pour votre activité : 
+                            <span class="text-cyan-400">suivi de stock pour petit commerce</span>, 
+                            <span class="text-blue-400">facturation simplifiée pour auto-entrepreneur</span>, 
+                            <span class="text-purple-400">CRM basique pour gérer vos clients</span>...
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            {# Service 4: Maintenance & Support #}
+            <div class="glass-card rounded-2xl p-8 scroll-animate animate-delay-400 group">
+                <div class="flex items-start space-x-6">
+                    <div class="flex-shrink-0">
+                        <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-purple-400 p-4 icon-glow">
+                            {{ ux_icon('lucide:shield-check', {class: 'w-full h-full text-white'}) }}
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-semibold text-white mb-4 group-hover:text-blue-400 transition-colors">
+                            Maintenance & Support
+                        </h3>
+                        <p class="text-gray-300 leading-relaxed text-lg">
+                            Accompagnement technique continu : 
+                            <span class="text-cyan-400">mises à jour de sécurité</span>, 
+                            <span class="text-blue-400">sauvegardes automatiques</span>, 
+                            <span class="text-purple-400">modifications de contenu, support technique réactif</span>...
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        {# CTA Section #}
+        <div class="text-center mt-16 scroll-animate animate-delay-400">
+            <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+                Un projet en tête ? Discutons ensemble de vos besoins et trouvons la solution qui vous correspond.
+            </p>
+            <a href="{{ path('app_contact') }}" class="btn-primary">
+                Parlons de votre projet
+                <svg class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+        </div>
     </div>
 </section>
 {% endblock %}
