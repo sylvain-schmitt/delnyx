@@ -16,5 +16,4 @@ return [
         'path' => './assets/app.js',
         'entrypoint' => true,
     ],
-
 ];

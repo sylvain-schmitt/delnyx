@@ -6,3 +6,4 @@
  */
 import './components/navigation.js';
 import './components/typingLetter.js';
+import './components/particles-config.js'

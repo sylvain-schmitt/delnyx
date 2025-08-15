@@ -1,33 +1,40 @@
 document.addEventListener("DOMContentLoaded", function () {
-const phrases = ["Développeur Full-Stack Symfony", "Créateur de solutions sur-mesure"];
-const typingElement = document.getElementById("typing");
-let phraseIndex = 0;
-let letterIndex = 0;
-let deleting = false;
+    const typingElement = document.getElementById("typing");
+    if (!typingElement) return; // <-- ajoute cette vérification
 
-function typeLoop() {
-const currentPhrase = phrases[phraseIndex];
+    const phrases = [
+        "Développeur Full-Stack Symfony", 
+        "Créateur de solutions sur-mesure"
+    ];
 
-if (! deleting) {
-typingElement.textContent = currentPhrase.substring(0, letterIndex + 1);
-letterIndex++;
+    let phraseIndex = 0;
+    let letterIndex = 0;
+    let deleting = false;
 
-if (letterIndex === currentPhrase.length) {
-deleting = true;
-setTimeout(typeLoop, 1500); // Pause avant suppression
-return;
-}
-} else {
-typingElement.textContent = currentPhrase.substring(0, letterIndex - 1);
-letterIndex--;
+    function typeLoop() {
+        const currentPhrase = phrases[phraseIndex];
 
-if (letterIndex === 0) {
-deleting = false;
-phraseIndex = (phraseIndex + 1) % phrases.length;
-}
-}
-setTimeout(typeLoop, deleting ? 50 : 80);
-}
+        if (!deleting) {
+            typingElement.textContent = currentPhrase.substring(0, letterIndex + 1);
+            letterIndex++;
 
-typeLoop();
+            if (letterIndex === currentPhrase.length) {
+                deleting = true;
+                setTimeout(typeLoop, 1500); // Pause avant suppression
+                return;
+            }
+        } else {
+            typingElement.textContent = currentPhrase.substring(0, letterIndex - 1);
+            letterIndex--;
+
+            if (letterIndex === 0) {
+                deleting = false;
+                phraseIndex = (phraseIndex + 1) % phrases.length;
+            }
+        }
+
+        setTimeout(typeLoop, deleting ? 50 : 80);
+    }
+
+    typeLoop();
 });
