@@ -6,5 +6,20 @@
 @import "./components/hero.css";
 @import "./components/services.css";
 
+/* === Protection contre le scroll horizontal === */
+html,
+body {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
 
+/* Assure que tous les éléments en position absolue restent dans le viewport */
+section {
+    position: relative;
+    overflow-x: hidden;
+}
 
+/* Protection spécifique pour les éléments de décoration */
+.light-ambient {
+    max-width: calc(100vw - 20px);
+}

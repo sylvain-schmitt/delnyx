@@ -1,4 +1,130 @@
+<footer
+	class="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 border-t border-white/10">
+	{# Lumière d'ambiance subtile - responsive #}
+	<div class="absolute top-0 left-1/2 w-[200px] h-[100px] sm:w-[400px] sm:h-[200px] rounded-full light-ambient opacity-30 z-10" style="background: radial-gradient(circle, rgba(96, 165, 250, 0.15) 0%, transparent 70%); transform: translateX(-50%);"></div>
 
-    <footer class="bottom-0 min-w-full text-center py-4 text-sm text-gray-500">
-        &copy; {{ "now"|date("Y") }} Delnyx - Tous droits réservés
-    </footer>
+	<div
+		class="relative z-20 max-w-7xl mx-auto px-6 sm:px-8 py-16 lg:py-20">
+		{# Grid principale du footer #}
+		<div
+			class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+
+			{# Colonne 1: À propos + Logo #}
+			<div class="space-y-6">
+				<div class="flex items-center space-x-3">
+					<img src="{{ asset('images/logo-delnyx.svg') }}" alt="Logo Delnyx" class="h-8 w-auto">
+					<span class="text-xl font-bold text-white">Delnyx</span>
+				</div>
+				<p class="text-gray-300 leading-relaxed">
+					Développeur web freelance spécialisé en
+					<span class="text-blue-400">Symfony</span>
+					et technologies modernes. 
+																																																		                    Je transforme vos idées en applications web performantes et évolutives.
+				</p>
+				<div class="flex items-center space-x-2 text-sm text-gray-400">
+					<svg class="w-4 h-4 text-orange-400" fill="currentColor" viewbox="0 0 20 20">
+						<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+					</svg>
+					<span>Plus de 10 ans d'expertise Linux</span>
+				</div>
+			</div>
+
+			{# Colonne 2: Navigation #}
+			<div class="space-y-6">
+				<h3 class="text-lg font-semibold text-white lg:text-center">Navigation</h3>
+				<nav class="space-y-3 lg:text-center lg:mt-8">
+					<a href="{{ path('app_home') }}" class="block text-gray-300 hover:text-white transition-colors duration-300 {{ app.request.attributes.get('_route') == 'app_home' ? 'text-blue-400' : '' }}">
+						Accueil
+					</a>
+					<a href="{{ path('app_services') }}" class="block text-gray-300 hover:text-white transition-colors duration-300 {{ app.request.attributes.get('_route') == 'app_services' ? 'text-blue-400' : '' }}">
+						Services
+					</a>
+					<a href="{{ path('app_portfolio') }}" class="block text-gray-300 hover:text-white transition-colors duration-300 {{ app.request.attributes.get('_route') == 'app_portfolio' ? 'text-blue-400' : '' }}">
+						Portfolio
+					</a>
+					<a href="{{ path('app_about') }}" class="block text-gray-300 hover:text-white transition-colors duration-300">
+						À propos
+					</a>
+					<a href="{{ path('app_contact') }}" class="block text-gray-300 hover:text-white transition-colors duration-300 {{ app.request.attributes.get('_route') == 'app_contact' ? 'text-blue-400' : '' }}">
+						Contact
+					</a>
+				</nav>
+			</div>
+
+			{# Colonne 3: Services #}
+			<div class="space-y-6">
+				<h3 class="text-lg font-semibold text-white">Services</h3>
+				<div class="space-y-3 text-gray-300">
+					<div class="flex items-start space-x-2">
+						<div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mt-2 flex-shrink-0"></div>
+						<span>Sites vitrine professionnels</span>
+					</div>
+					<div class="flex items-start space-x-2">
+						<div class="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+						<span>Applications web sur-mesure</span>
+					</div>
+					<div class="flex items-start space-x-2">
+						<div class="w-1.5 h-1.5 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
+						<span>Systèmes de réservation</span>
+					</div>
+					<div class="flex items-start space-x-2">
+						<div class="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+						<span>Maintenance & support</span>
+					</div>
+				</div>
+			</div>
+
+			{# Colonne 4: Contact + CTA #}
+			<div class="space-y-6">
+				<h3 class="text-lg font-semibold text-white">Démarrons votre projet</h3>
+				<p class="text-gray-300 text-sm">
+					Prêt à donner vie à votre projet web ? Discutons de vos besoins et trouvons la solution idéale.
+				</p>
+				<a href="{{ path('app_contact') }}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-300 transform hover:-translate-y-0.5">
+					Commencer un projet
+					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+					</svg>
+				</a>
+
+				{# Technologies en vedette #}
+				<div class="pt-4">
+					<p class="text-xs text-gray-400 mb-2">Technologies principales</p>
+					<div class="flex flex-wrap gap-2">
+						<span class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 text-blue-300 rounded text-xs">Symfony</span>
+						<span class="px-2 py-1 bg-purple-500/20 border border-purple-400/30 text-purple-300 rounded text-xs">PHP</span>
+						<span class="px-2 py-1 bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 rounded text-xs">React</span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		{# Séparateur glassmorphique #}
+		<div class="border-t border-white/10 mt-12 pt-8">
+			<div
+				class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+				{# Copyright et mentions légales #}
+				<div class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-6 text-sm text-gray-400">
+					<span>&copy;
+						{{ "now"|date("Y") }}
+						Delnyx - Tous droits réservés</span>
+					<div class="flex space-x-4">
+						<a href="#" class="hover:text-white transition-colors duration-300">Mentions légales</a>
+						<a href="#" class="hover:text-white transition-colors duration-300">Politique de confidentialité</a>
+						<a href="#" class="hover:text-white transition-colors duration-300">CGV</a>
+					</div>
+				</div>
+
+				{# Badges/Certifications #}
+				<div class="flex items-center space-x-3">
+					<div class="flex items-center space-x-2 text-xs text-gray-400">
+						<svg class="w-4 h-4 text-green-400" fill="currentColor" viewbox="0 0 20 20">
+							<path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+						</svg>
+						<span>Développeur certifié</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</footer>
