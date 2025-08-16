@@ -24,3 +24,6 @@ Dockerfile
 ### Ignore GitHub Actions workflows for deployment
 /.github/workflows/deploy.yml
 ###</git>###
+
+### Ignore Cursor
+.cursor
