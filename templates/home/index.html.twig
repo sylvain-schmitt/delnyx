@@ -1,7 +1,23 @@
 {% extends 'layout/base.html.twig' %}
 
-{% block title %}Accueil |
-	{{ parent() }}
+{% block title %}Développeur Web Freelance Symfony & PHP | Solutions Sur-Mesure - Delnyx
+{% endblock %}
+
+{% block meta_description %}
+	<meta name="description" content="Développeur web freelance spécialisé Symfony & PHP. Création de sites vitrine, applications de gestion, systèmes de RDV. Expertise technique, approche personnalisée, garanties incluses.">
+{% endblock %}
+
+{% block meta_keywords %}
+	<meta name="keywords" content="développeur web freelance, Symfony, PHP, création site web, application web, développement sur-mesure, PostgreSQL, React, Tailwind CSS">
+{% endblock %}
+
+{% block og_tags %}
+	<meta property="og:title" content="Développeur Web Freelance Symfony & PHP | Solutions Sur-Mesure - Delnyx">
+	<meta property="og:description" content="Développeur web freelance spécialisé Symfony & PHP. Création de sites vitrine, applications de gestion, systèmes de RDV. Expertise technique, approche personnalisée, garanties incluses.">
+	<meta property="og:type" content="website">
+	<meta property="og:image" content="{{ asset('images/logo-delnyx.svg') }}">
+	<meta property="og:url" content="{{ url('app_home') }}">
+	<meta name="twitter:card" content="summary_large_image">
 {% endblock %}
 
 {% block body %}
@@ -41,9 +57,7 @@
 				<div class="flex flex-col sm:flex-row gap-6 justify-center items-center">
 					<a href="{{ path('app_contact') }}" class="btn-primary w-full sm:w-auto min-w-[150px] text-center group" aria-label="Contactez Delnyx pour discuter de votre projet de développement web">
 						Discutons de votre projet
-						<svg class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewbox="0 0 24 24" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-						</svg>
+						{{ ux_icon('lucide:arrow-right', {class:'ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300', 'aria-hidden': 'true'}) }}
 					</a>
 
 					<a href="{{ path('app_portfolio') }}" class="btn-secondary w-full sm:w-auto min-w-[150px] text-center" aria-label="Découvrez le portfolio de Delnyx avec des projets web réalisés">
@@ -55,9 +69,7 @@
 
 		{# Indicateur de scroll #}
 		<div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-40">
-			<svg class="w-6 h-6 text-slate-400 animate-bounce-slow" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-			</svg>
+			{{ ux_icon('lucide:chevron-down', {class:'w-6 h-6 text-slate-400 animate-bounce-slow'}) }}
 			<div class="text-slate-500 text-xs uppercase tracking-wider font-medium mt-1">Scroll</div>
 		</div>
 	</section>
@@ -90,89 +102,97 @@
 				class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-7xl mx-auto">
 
 				{# Service 1: Sites Vitrine #}
-				<div class="glass-card optimized-blur rounded-2xl p-8 scroll-animate animate-delay-200 group">
-					<div class="flex items-start space-x-6">
-						<div class="flex-shrink-0">
-							<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-400 p-4 icon-glow">
-								{{ ux_icon('lucide:monitor', {class: 'w-full h-full text-white'}) }}
+				<div class="scroll-animate animate-delay-200 group">
+					<div class="glass-card backdrop-blur optimized-blur p-8 lg:p-10">
+						<div class="flex items-start space-x-6">
+							<div class="flex-shrink-0">
+								<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 p-4 icon-glow mx-auto mb-4">
+									{{ ux_icon('lucide:monitor', {class: 'w-8 h-8 text-blue-400'}) }}
+								</div>
 							</div>
-						</div>
-						<div class="flex-1">
-							<h3 class="text-2xl font-semibold text-white mb-4 group-hover:text-blue-400 transition-colors">
-								Sites Vitrine
-							</h3>
-							<p class="text-gray-300 leading-relaxed text-lg">
-								Création de sites web professionnels pour présenter votre activité :
-								<span class="text-cyan-400">site de restaurant avec carte en ligne</span>,
-								<span class="text-blue-400">portfolio d'artisan avec galerie photos</span>,
-								<span class="text-purple-400">site de cabinet médical avec informations pratiques</span>...
-							</p>
+							<div class="flex-1">
+								<h3 class="text-2xl font-semibold text-white mb-4 group-hover:text-blue-400 transition-colors">
+									Sites Vitrine
+								</h3>
+								<p class="text-gray-300 leading-relaxed text-lg">
+									Création de sites web professionnels pour présenter votre activité :
+									<span class="text-cyan-400">site de restaurant avec carte en ligne</span>,
+									<span class="text-blue-400">portfolio d'artisan avec galerie photos</span>,
+									<span class="text-purple-400">site de cabinet médical avec informations pratiques</span>...
+								</p>
+							</div>
 						</div>
 					</div>
 				</div>
 
 				{# Service 2: Prise de Rendez-vous #}
-				<div class="glass-card optimized-blur rounded-2xl p-8 scroll-animate animate-delay-200 group">
-					<div class="flex items-start space-x-6">
-						<div class="flex-shrink-0">
-							<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-400 p-4 icon-glow">
-								{{ ux_icon('lucide:calendar-check', {class: 'w-full h-full text-white'}) }}
+				<div class="scroll-animate animate-delay-200 group">
+					<div class="glass-card backdrop-blur optimized-blur p-8 lg:p-10">
+						<div class="flex items-start space-x-6">
+							<div class="flex-shrink-0">
+								<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 p-4 icon-glow">
+									{{ ux_icon('lucide:calendar-check', {class: 'w-8 h-8 text-cyan-400'}) }}
+								</div>
 							</div>
-						</div>
-						<div class="flex-1">
-							<h3 class="text-2xl font-semibold text-white mb-4 group-hover:text-cyan-400 transition-colors">
-								Prise de Rendez-vous
-							</h3>
-							<p class="text-gray-300 leading-relaxed text-lg">
-								Systèmes de réservation automatisés :
-								<span class="text-cyan-400">planning en ligne pour coiffeur</span>,
-								<span class="text-blue-400">réservation de créneaux pour consultant</span>,
-								<span class="text-purple-400">gestion d'agenda pour thérapeute avec confirmations par email</span>...
-							</p>
+							<div class="flex-1">
+								<h3 class="text-2xl font-semibold text-white mb-4 group-hover:text-cyan-400 transition-colors">
+									Prise de Rendez-vous
+								</h3>
+								<p class="text-gray-300 leading-relaxed text-lg">
+									Systèmes de réservation automatisés :
+									<span class="text-cyan-400">planning en ligne pour coiffeur</span>,
+									<span class="text-blue-400">réservation de créneaux pour consultant</span>,
+									<span class="text-purple-400">gestion d'agenda pour thérapeute avec confirmations par email</span>...
+								</p>
+							</div>
 						</div>
 					</div>
 				</div>
 
 				{# Service 3: Applications de Gestion #}
-				<div class="glass-card optimized-blur rounded-2xl p-8 scroll-animate animate-delay-300 group">
-					<div class="flex items-start space-x-6">
-						<div class="flex-shrink-0">
-							<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-blue-400 p-4 icon-glow">
-								{{ ux_icon('lucide:database', {class: 'w-full h-full text-white'}) }}
+				<div class="scroll-animate animate-delay-300 group">
+					<div class="glass-card backdrop-blur optimized-blur p-8 lg:p-10">
+						<div class="flex items-start space-x-6">
+							<div class="flex-shrink-0">
+								<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/20 p-4 icon-glow">
+									{{ ux_icon('lucide:database', {class: 'w-8 h-8 text-purple-400'}) }}
+								</div>
 							</div>
-						</div>
-						<div class="flex-1">
-							<h3 class="text-2xl font-semibold text-white mb-4 group-hover:text-purple-400 transition-colors">
-								Applications de Gestion
-							</h3>
-							<p class="text-gray-300 leading-relaxed text-lg">
-								Outils sur-mesure pour votre activité :
-								<span class="text-cyan-400">suivi de stock pour petit commerce</span>,
-								<span class="text-blue-400">facturation simplifiée pour auto-entrepreneur</span>,
-								<span class="text-purple-400">CRM basique pour gérer vos clients</span>...
-							</p>
+							<div class="flex-1">
+								<h3 class="text-2xl font-semibold text-white mb-4 group-hover:text-purple-400 transition-colors">
+									Applications de Gestion
+								</h3>
+								<p class="text-gray-300 leading-relaxed text-lg">
+									Outils sur-mesure pour votre activité :
+									<span class="text-cyan-400">suivi de stock pour petit commerce</span>,
+									<span class="text-blue-400">facturation simplifiée pour auto-entrepreneur</span>,
+									<span class="text-purple-400">CRM basique pour gérer vos clients</span>...
+								</p>
+							</div>
 						</div>
 					</div>
 				</div>
 
 				{# Service 4: Maintenance & Support #}
-				<div class="glass-card optimized-blur rounded-2xl p-8 scroll-animate animate-delay-300 group">
-					<div class="flex items-start space-x-6">
-						<div class="flex-shrink-0">
-							<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-purple-400 p-4 icon-glow">
-								{{ ux_icon('lucide:shield-check', {class: 'w-full h-full text-white'}) }}
+				<div class="scroll-animate animate-delay-300 group">
+					<div class="glass-card backdrop-blur optimized-blur p-8 lg:p-10">
+						<div class="flex items-start space-x-6">
+							<div class="flex-shrink-0">
+								<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 p-4 icon-glow">
+									{{ ux_icon('lucide:shield-check', {class: 'w-8 h-8 text-emerald-400'}) }}
+								</div>
 							</div>
-						</div>
-						<div class="flex-1">
-							<h3 class="text-2xl font-semibold text-white mb-4 group-hover:text-blue-400 transition-colors">
-								Maintenance & Support
-							</h3>
-							<p class="text-gray-300 leading-relaxed text-lg">
-								Accompagnement technique continu :
-								<span class="text-cyan-400">mises à jour de sécurité</span>,
-								<span class="text-blue-400">sauvegardes automatiques</span>,
-								<span class="text-purple-400">modifications de contenu, support technique réactif</span>...
-							</p>
+							<div class="flex-1">
+								<h3 class="text-2xl font-semibold text-white mb-4 group-hover:text-emerald-400 transition-colors">
+									Maintenance & Support
+								</h3>
+								<p class="text-gray-300 leading-relaxed text-lg">
+									Accompagnement technique continu :
+									<span class="text-cyan-400">mises à jour de sécurité</span>,
+									<span class="text-blue-400">sauvegardes automatiques</span>,
+									<span class="text-purple-400">modifications de contenu, support technique réactif</span>...
+								</p>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -186,9 +206,7 @@
 				</p>
 				<a href="{{ path('app_contact') }}" class="btn-primary group" aria-label="Contactez Delnyx pour démarrer votre projet web">
 					Parlons de votre projet
-					<svg class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewbox="0 0 24 24" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-					</svg>
+					{{ ux_icon('lucide:arrow-right', {class:'ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300', 'aria-hidden': 'true'}) }}
 				</a>
 			</div>
 		</div>
@@ -231,13 +249,12 @@
 				<div
 					class="group relative scroll-animate animate-delay-200">
 					{# Effet de glow au hover #}
-					<div class="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
 					<div
-						class="relative bg-white/8 backdrop-blur-xl border border-white/20 rounded-2xl p-8 hover:bg-white/12 transition-all duration-300 transform hover:-translate-y-2">
+						class="glass-card optimized-blur">
 						{# Icône avec effet #}
 						<div class="flex justify-center mb-6">
-							<div class="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-blue-400/30">
+							<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 p-4 icon-glow">
 								{{ ux_icon('lucide:graduation-cap', {class: 'w-8 h-8 text-blue-400'}) }}
 							</div>
 						</div>
@@ -249,7 +266,7 @@
 						<p class="text-gray-300 text-center leading-relaxed mb-6">
 							<strong class="text-blue-400">Formation certifiante</strong>
 							Développeur Web avec spécialisation Symfony. 
-																																										                        Montée en compétences continue sur React/Next.js pour vous offrir les technologies les plus actuelles.
+																																																																																																																							                        Montée en compétences continue sur React/Next.js pour vous offrir les technologies les plus actuelles.
 						</p>
 
 						{# Badge technique #}
@@ -265,12 +282,10 @@
 				</div>
 
 				{# Card 2: Approche Transparente #}
-				<div class="group relative scroll-animate animate-delay-200">
-					<div class="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-					<div class="relative bg-white/8 backdrop-blur-xl border border-white/20 rounded-2xl p-8 hover:bg-white/12 transition-all duration-300 transform hover:-translate-y-2">
+				<div class="group relative scroll-animate animate-delay-300">
+					<div class="glass-card optimized-blur">
 						<div class="flex justify-center mb-6">
-							<div class="w-16 h-16 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-cyan-400/30">
+							<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 p-4 icon-glow">
 								{{ ux_icon('lucide:eye', {class: 'w-8 h-8 text-cyan-400'}) }}
 							</div>
 						</div>
@@ -282,7 +297,7 @@
 						<p class="text-gray-300 text-center leading-relaxed mb-6">
 							<strong class="text-cyan-400">Suivi en temps réel</strong>
 							de votre projet avec communication régulière. 
-																																										                        Validation à chaque étape clé pour vous garantir un résultat qui correspond exactement à vos attentes.
+																																																																																																																							                        Validation à chaque étape clé pour vous garantir un résultat qui correspond exactement à vos attentes.
 						</p>
 
 						<div class="flex justify-center space-x-2">
@@ -297,12 +312,10 @@
 				</div>
 
 				{# Card 3: Réactivité & Écoute #}
-				<div class="group relative scroll-animate animate-delay-200">
-					<div class="absolute -inset-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-					<div class="relative bg-white/8 backdrop-blur-xl border border-white/20 rounded-2xl p-8 hover:bg-white/12 transition-all duration-300 transform hover:-translate-y-2">
+				<div class="group relative scroll-animate animate-delay-400">
+					<div class="glass-card optimized-blur">
 						<div class="flex justify-center mb-6">
-							<div class="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-purple-400/30">
+							<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/20 p-4 icon-glow">
 								{{ ux_icon('lucide:zap', {class: 'w-8 h-8 text-purple-400'}) }}
 							</div>
 						</div>
@@ -314,7 +327,7 @@
 						<p class="text-gray-300 text-center leading-relaxed mb-6">
 							<strong class="text-purple-400">Réponse rapide</strong>
 							à vos demandes avec une écoute attentive de vos besoins spécifiques. 
-																																										                        Conseil personnalisé selon votre activité pour des solutions vraiment adaptées.
+																																																																																																																							                        Conseil personnalisé selon votre activité pour des solutions vraiment adaptées.
 						</p>
 
 						<div class="flex justify-center space-x-2">
@@ -376,8 +389,8 @@
 				<div class="tech-category scroll-animate animate-delay-100">
 					<div class="bg-white/8 backdrop-blur-xl border border-white/20 rounded-2xl p-8 hover:bg-white/12 transition-all duration-500 group">
 						<div class="text-center mb-8">
-							<div class="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-								{{ ux_icon('lucide:server', {class: 'w-8 h-8 text-blue-400'}) }}
+							<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 icon-glow mx-auto mb-4">
+								{{ ux_icon('lucide:server', {class: 'w-full h-full text-white'}) }}
 							</div>
 							<h3 class="text-xl font-bold text-white mb-2">Backend & Infrastructure</h3>
 							<p class="text-gray-400 text-sm">Serveur et données</p>
@@ -386,7 +399,7 @@
 						<div
 							class="space-y-4">
 							{# Symfony - Principal #}
-							<div class="tech-item bg-blue-500/10 border border-blue-400/30 rounded-xl p-4 hover:bg-blue-500/15 transition-all duration-300">
+							<div class="tech-item">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center space-x-3">
 										<div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
@@ -402,7 +415,7 @@
 							</div>
 
 							{# PHP #}
-							<div class="tech-item bg-purple-500/10 border border-purple-400/30 rounded-xl p-4 hover:bg-purple-500/15 transition-all duration-300">
+							<div class="tech-item ">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center space-x-3">
 										<div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
@@ -418,7 +431,7 @@
 							</div>
 
 							{# PostgreSQL #}
-							<div class="tech-item bg-cyan-500/10 border border-cyan-400/30 rounded-xl p-4 hover:bg-cyan-500/15 transition-all duration-300">
+							<div class="tech-item ">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center space-x-3">
 										<div class="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
@@ -434,7 +447,7 @@
 							</div>
 
 							{# Linux Ubuntu - Highlight spécial #}
-							<div class="tech-item bg-orange-500/10 border border-orange-400/30 rounded-xl p-4 hover:bg-orange-500/15 transition-all duration-300 relative overflow-hidden">
+							<div class="tech-item  relative overflow-hidden">
 								<div class="absolute top-2 right-2">
 									<div class="bg-orange-500/20 text-orange-300 px-2 py-1 rounded-full text-xs font-bold light-ambient">
 										10+ ans
@@ -458,8 +471,8 @@
 				<div class="tech-category scroll-animate animate-delay-200">
 					<div class="bg-white/8 backdrop-blur-xl border border-white/20 rounded-2xl p-8 hover:bg-white/12 transition-all duration-500 group">
 						<div class="text-center mb-8">
-							<div class="w-16 h-16 bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-								{{ ux_icon('lucide:palette', {class: 'w-8 h-8 text-cyan-400'}) }}
+							<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 p-4 icon-glow mx-auto mb-4">
+								{{ ux_icon('lucide:palette', {class: 'w-full h-full text-white'}) }}
 							</div>
 							<h3 class="text-xl font-bold text-white mb-2">Frontend & UI</h3>
 							<p class="text-gray-400 text-sm">Interface utilisateur</p>
@@ -468,7 +481,7 @@
 						<div
 							class="space-y-4">
 							{# HTML/CSS #}
-							<div class="tech-item bg-red-500/10 border border-red-400/30 rounded-xl p-4 hover:bg-red-500/15 transition-all duration-300">
+							<div class="tech-item ">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center space-x-3">
 										<div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
@@ -484,7 +497,7 @@
 							</div>
 
 							{# JavaScript #}
-							<div class="tech-item bg-yellow-500/10 border border-yellow-400/30 rounded-xl p-4 hover:bg-yellow-500/15 transition-all duration-300">
+							<div class="tech-item ">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center space-x-3">
 										<div class="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
@@ -500,7 +513,7 @@
 							</div>
 
 							{# Tailwind CSS #}
-							<div class="tech-item bg-teal-500/10 border border-teal-400/30 rounded-xl p-4 hover:bg-teal-500/15 transition-all duration-300">
+							<div class="tech-item ">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center space-x-3">
 										<div class="w-10 h-10 bg-teal-500/20 rounded-lg flex items-center justify-center">
@@ -516,7 +529,7 @@
 							</div>
 
 							{# React - En apprentissage #}
-							<div class="tech-item bg-blue-500/10 border border-blue-400/30 rounded-xl p-4 hover:bg-blue-500/15 transition-all duration-300">
+							<div class="tech-item">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center space-x-3">
 										<div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
@@ -538,8 +551,8 @@
 				<div class="tech-category scroll-animate animate-delay-300">
 					<div class="bg-white/8 backdrop-blur-xl border border-white/20 rounded-2xl p-8 hover:bg-white/12 transition-all duration-500 group">
 						<div class="text-center mb-8">
-							<div class="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-								{{ ux_icon('lucide:settings', {class: 'w-8 h-8 text-purple-400'}) }}
+							<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 p-4 icon-glow mx-auto mb-4">
+								{{ ux_icon('lucide:settings', {class: 'w-full h-full text-white'}) }}
 							</div>
 							<h3 class="text-xl font-bold text-white mb-2">DevOps & Outils</h3>
 							<p class="text-gray-400 text-sm">Déploiement & workflow</p>
@@ -548,7 +561,7 @@
 						<div
 							class="space-y-4">
 							{# Docker #}
-							<div class="tech-item bg-blue-600/10 border border-blue-500/30 rounded-xl p-4 hover:bg-blue-600/15 transition-all duration-300">
+							<div class="tech-item ">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center space-x-3">
 										<div class="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
@@ -564,7 +577,7 @@
 							</div>
 
 							{# Git/GitHub #}
-							<div class="tech-item bg-gray-600/10 border border-gray-500/30 rounded-xl p-4 hover:bg-gray-600/15 transition-all duration-300">
+							<div class="tech-item ">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center space-x-3">
 										<div class="w-10 h-10 bg-gray-600/20 rounded-lg flex items-center justify-center">
@@ -580,7 +593,7 @@
 							</div>
 
 							{# CI/CD #}
-							<div class="tech-item bg-green-600/10 border border-green-500/30 rounded-xl p-4 hover:bg-green-600/15 transition-all duration-300">
+							<div class="tech-item ">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center space-x-3">
 										<div class="w-10 h-10 bg-green-600/20 rounded-lg flex items-center justify-center">
@@ -596,7 +609,7 @@
 							</div>
 
 							{# Nginx #}
-							<div class="tech-item bg-emerald-600/10 border border-emerald-500/30 rounded-xl p-4 hover:bg-emerald-600/15 transition-all duration-300">
+							<div class="tech-item ">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center space-x-3">
 										<div class="w-10 h-10 bg-emerald-600/20 rounded-lg flex items-center justify-center">
@@ -644,10 +657,7 @@
 					<div class="text-center">
 						<a href="{{ path('app_portfolio') }}" class="btn-secondary group" aria-label="Découvrez mes projets réalisés avec ces technologies">
 							Voir ces technologies en action
-							<svg class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewbox="0 0 24 24" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-							</svg>
+							{{ ux_icon('lucide:eye', {class:'ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300', 'aria-hidden': 'true'}) }}
 						</a>
 					</div>
 				</div>

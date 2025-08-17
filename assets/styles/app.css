@@ -4,7 +4,7 @@
 @import "./components/animate.css";
 @import "./components/nav.css";
 @import "./components/hero.css";
-@import "./components/services.css";
+@import "./components/card.css";
 
 /* === Protection contre le scroll horizontal === */
 html,
