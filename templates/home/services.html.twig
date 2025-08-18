@@ -62,8 +62,8 @@
 						{# Description #}
 						<p class="text-gray-300 mb-6 leading-relaxed">
 							Créez une présence web professionnelle qui inspire confiance à vos clients. Que vous soyez artisan, 
-																																																																																																									                        commerçant, profession libérale ou association, je conçois des sites modernes qui reflètent votre 
-																																																																																																									                        expertise et génèrent des contacts qualifiés.
+																																																																																																																																																			                        commerçant, profession libérale ou association, je conçois des sites modernes qui reflètent votre 
+																																																																																																																																																			                        expertise et génèrent des contacts qualifiés.
 						</p>
 
 						{# Idéal pour #}
@@ -125,7 +125,7 @@
 
 						<p class="text-gray-300 mb-6 leading-relaxed">
 							Automatisez votre planning avec un système de réservation intelligent. Vos clients réservent 24h/24, 
-																																																																																																									                        reçoivent des confirmations automatiques, et vous gagnez un temps précieux.
+																																																																																																																																																			                        reçoivent des confirmations automatiques, et vous gagnez un temps précieux.
 						</p>
 
 						<div class="mb-6">
@@ -187,7 +187,7 @@
 
 						<p class="text-gray-300 mb-6 leading-relaxed">
 							Je développe des applications web personnalisées qui s'adaptent à vos processus métier. 
-																																																																																																									                        Fini les logiciels inadaptés : place à un outil qui vous ressemble !
+																																																																																																																																																			                        Fini les logiciels inadaptés : place à un outil qui vous ressemble !
 						</p>
 
 						<div class="mb-6">
@@ -243,8 +243,8 @@
 
 						<p class="text-gray-300 mb-6 leading-relaxed">
 							Possibilité d'établir un contrat de maintenance et d'accompagnement technique personnalisé. 
-																												            Je vous accompagne dans la durée pour que vous puissiez vous concentrer sur votre cœur de métier 
-																												            en toute sérénité.
+																																																																						            Je vous accompagne dans la durée pour que vous puissiez vous concentrer sur votre cœur de métier 
+																																																																						            en toute sérénité.
 						</p>
 
 						<div class="mb-6">
@@ -300,7 +300,7 @@
 							</div>
 							<p class="text-gray-300 text-sm">
 								Fréquence et niveau de service adaptés à vos besoins spécifiques. 
-																																                Chaque contrat est personnalisé selon votre activité et vos exigences.
+																																																																																                Chaque contrat est personnalisé selon votre activité et vos exigences.
 							</p>
 						</div>
 					</div>
@@ -339,16 +339,26 @@
 					<div
 						class="space-y-12 md:space-y-24">
 						{# Étape 1: Analyse & Découverte #}
-						<div class="flex flex-col md:flex-row items-center scroll-animate animate-delay-200">
-							<div class="md:w-1/2 md:pr-12 mb-8 md:mb-0">
-								<div class="glass-card optimized-blur p-6 md:p-8 ">
-									<div class="flex items-center mb-4">
-										<div class="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center mr-4 icon-glow">
-											{{ ux_icon('lucide:search', {class: 'w-6 h-6 text-blue-400'}) }}
-										</div>
-										<h3 class="text-xl font-bold text-white">1. 🤝 Analyse & Découverte</h3>
+						<div
+							class="scroll-animate animate-delay-200">
+							{# Version Mobile uniquement (< 768px) #}
+							<div
+								class="md:hidden mb-6">
+								{# Numéro centré en haut #}
+								<div class="flex justify-center mb-4">
+									<div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/25">
+										<span class="text-white font-bold text-lg">1</span>
 									</div>
-									<ul class="text-gray-300 space-y-2">
+								</div>
+								{# Contenu en dessous #}
+								<div class="glass-card optimized-blur p-6">
+									<div class="flex items-center justify-center mb-4">
+										<div class="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center mr-3 icon-glow">
+											{{ ux_icon('lucide:search', {class: 'w-5 h-5 text-blue-400'}) }}
+										</div>
+										<h3 class="text-lg font-bold text-white">🤝 Analyse & Découverte</h3>
+									</div>
+									<ul class="text-gray-300 space-y-2 text-sm">
 										<li>•
 											<strong class="text-blue-300">Rendez-vous découverte</strong>
 											(présentiel, visio ou téléphone)</li>
@@ -365,24 +375,62 @@
 								</div>
 							</div>
 
-							<div class="md:w-1/2 md:pl-12">
-								<div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto md:mx-0 mb-4 md:mb-0 shadow-lg shadow-blue-500/25">
-									<span class="text-white font-bold text-xl">1</span>
+							{# Version Desktop (≥ 768px) #}
+							<div class="hidden md:flex md:flex-col md:flex-row items-center">
+								<div class="md:w-1/2 md:pr-12 mb-8 md:mb-0">
+									<div class="glass-card optimized-blur p-6 md:p-8">
+										<div class="flex items-center mb-4">
+											<div class="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center mr-4 icon-glow">
+												{{ ux_icon('lucide:search', {class: 'w-6 h-6 text-blue-400'}) }}
+											</div>
+											<h3 class="text-xl font-bold text-white">1. 🤝 Analyse & Découverte</h3>
+										</div>
+										<ul class="text-gray-300 space-y-2">
+											<li>•
+												<strong class="text-blue-300">Rendez-vous découverte</strong>
+												(présentiel, visio ou téléphone)</li>
+											<li>•
+												<strong class="text-blue-300">Analyse de vos besoins</strong>
+												et objectifs</li>
+											<li>•
+												<strong class="text-blue-300">Définition du cahier des charges</strong>
+												détaillé</li>
+											<li>•
+												<strong class="text-blue-300">Proposition de devis</strong>
+												personnalisé</li>
+										</ul>
+									</div>
+								</div>
+
+								<div class="md:w-1/2 md:pl-12">
+									<div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto md:mx-0 mb-4 md:mb-0 shadow-lg shadow-blue-500/25">
+										<span class="text-white font-bold text-xl">1</span>
+									</div>
 								</div>
 							</div>
 						</div>
 
 						{# Étape 2: Conception & Validation #}
-						<div class="flex flex-col md:flex-row-reverse items-center scroll-animate animate-delay-200" style="animation-delay: 0.2s;">
-							<div class="md:w-1/2 md:pl-12 mb-8 md:mb-0">
-								<div class="glass-card optimized-blur p-6 md:p-8 ">
-									<div class="flex items-center mb-4">
-										<div class="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 rounded-xl flex items-center justify-center mr-4 icon-glow">
-											{{ ux_icon('lucide:layout', {class: 'w-6 h-6 text-cyan-400'}) }}
-										</div>
-										<h3 class="text-xl font-bold text-white">2. 🎨 Conception & Validation</h3>
+						<div
+							class="scroll-animate animate-delay-300">
+							{# Version Mobile uniquement (< 768px) #}
+							<div
+								class="md:hidden mb-6">
+								{# Numéro centré en haut #}
+								<div class="flex justify-center mb-4">
+									<div class="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-full flex items-center justify-center shadow-lg shadow-cyan-500/25">
+										<span class="text-white font-bold text-lg">2</span>
 									</div>
-									<ul class="text-gray-300 space-y-2">
+								</div>
+								{# Contenu en dessous #}
+								<div class="glass-card optimized-blur p-6">
+									<div class="flex items-center justify-center mb-4">
+										<div class="w-10 h-10 bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 rounded-xl flex items-center justify-center mr-3 icon-glow">
+											{{ ux_icon('lucide:layout', {class: 'w-5 h-5 text-cyan-400'}) }}
+										</div>
+										<h3 class="text-lg font-bold text-white">🎨 Conception & Validation</h3>
+									</div>
+									<ul class="text-gray-300 space-y-2 text-sm">
 										<li>•
 											<strong class="text-cyan-300">Création de maquettes</strong>
 											professionnelles</li>
@@ -399,24 +447,62 @@
 								</div>
 							</div>
 
-							<div class="md:w-1/2 md:pr-12">
-								<div class="w-16 h-16 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-full flex items-center justify-center mx-auto md:mx-0 mb-4 md:mb-0 shadow-lg shadow-cyan-500/25">
-									<span class="text-white font-bold text-xl">2</span>
+							{# Version Desktop (≥ 768px) #}
+							<div class="hidden md:flex md:flex-col md:flex-row-reverse items-center">
+								<div class="md:w-1/2 md:pl-12 mb-8 md:mb-0">
+									<div class="glass-card optimized-blur p-6 md:p-8">
+										<div class="flex items-center mb-4">
+											<div class="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 rounded-xl flex items-center justify-center mr-4 icon-glow">
+												{{ ux_icon('lucide:layout', {class: 'w-6 h-6 text-cyan-400'}) }}
+											</div>
+											<h3 class="text-xl font-bold text-white">2. 🎨 Conception & Validation</h3>
+										</div>
+										<ul class="text-gray-300 space-y-2">
+											<li>•
+												<strong class="text-cyan-300">Création de maquettes</strong>
+												professionnelles</li>
+											<li>•
+												<strong class="text-cyan-300">Présentation du design</strong>
+												et des fonctionnalités</li>
+											<li>•
+												<strong class="text-cyan-300">Ajustements</strong>
+												selon vos retours</li>
+											<li>•
+												<strong class="text-cyan-300">Validation finale</strong>
+												avant développement</li>
+										</ul>
+									</div>
+								</div>
+
+								<div class="md:w-1/2 md:pr-12">
+									<div class="w-16 h-16 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-full flex items-center justify-center mx-auto md:mx-0 mb-4 md:mb-0 shadow-lg shadow-cyan-500/25">
+										<span class="text-white font-bold text-xl">2</span>
+									</div>
 								</div>
 							</div>
 						</div>
 
 						{# Étape 3: Développement & Tests #}
-						<div class="flex flex-col md:flex-row items-center scroll-animate animate-delay-200" style="animation-delay: 0.4s;">
-							<div class="md:w-1/2 md:pr-12 mb-8 md:mb-0">
-								<div class="glass-card optimized-blur p-6 md:p-8 ">
-									<div class="flex items-center mb-4">
-										<div class="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl flex items-center justify-center mr-4 icon-glow">
-											{{ ux_icon('lucide:code', {class: 'w-6 h-6 text-purple-400'}) }}
-										</div>
-										<h3 class="text-xl font-bold text-white">3. ⚙️ Développement & Tests</h3>
+						<div
+							class="scroll-animate animate-delay-400">
+							{# Version Mobile uniquement (< 768px) #}
+							<div
+								class="md:hidden mb-6">
+								{# Numéro centré en haut #}
+								<div class="flex justify-center mb-4">
+									<div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/25">
+										<span class="text-white font-bold text-lg">3</span>
 									</div>
-									<ul class="text-gray-300 space-y-2">
+								</div>
+								{# Contenu en dessous #}
+								<div class="glass-card optimized-blur p-6">
+									<div class="flex items-center justify-center mb-4">
+										<div class="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl flex items-center justify-center mr-3 icon-glow">
+											{{ ux_icon('lucide:code', {class: 'w-5 h-5 text-purple-400'}) }}
+										</div>
+										<h3 class="text-lg font-bold text-white">⚙️ Développement & Tests</h3>
+									</div>
+									<ul class="text-gray-300 space-y-2 text-sm">
 										<li>•
 											<strong class="text-purple-300">Développement</strong>
 											avec technologies adaptées à vos besoins</li>
@@ -435,24 +521,64 @@
 								</div>
 							</div>
 
-							<div class="md:w-1/2 md:pl-12">
-								<div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto md:mx-0 mb-4 md:mb-0 shadow-lg shadow-purple-500/25">
-									<span class="text-white font-bold text-xl">3</span>
+							{# Version Desktop (≥ 768px) #}
+							<div class="hidden md:flex md:flex-col md:flex-row items-center">
+								<div class="md:w-1/2 md:pr-12 mb-8 md:mb-0">
+									<div class="glass-card optimized-blur p-6 md:p-8">
+										<div class="flex items-center mb-4">
+											<div class="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl flex items-center justify-center mr-4 icon-glow">
+												{{ ux_icon('lucide:code', {class: 'w-6 h-6 text-purple-400'}) }}
+											</div>
+											<h3 class="text-xl font-bold text-white">3. ⚙️ Développement & Tests</h3>
+										</div>
+										<ul class="text-gray-300 space-y-2">
+											<li>•
+												<strong class="text-purple-300">Développement</strong>
+												avec technologies adaptées à vos besoins</li>
+											<li>•
+												<strong class="text-purple-300">Tests fonctionnels</strong>
+												réguliers en cours de projet</li>
+											<li>•
+												<strong class="text-purple-300">Points d'avancement</strong>
+												et
+												<strong class="text-purple-300">validation des étapes clés</strong>
+											</li>
+											<li>•
+												<strong class="text-purple-300">Optimisation</strong>
+												performance et sécurité</li>
+										</ul>
+									</div>
+								</div>
+
+								<div class="md:w-1/2 md:pl-12">
+									<div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto md:mx-0 mb-4 md:mb-0 shadow-lg shadow-purple-500/25">
+										<span class="text-white font-bold text-xl">3</span>
+									</div>
 								</div>
 							</div>
 						</div>
 
 						{# Étape 4: Livraison & Formation #}
-						<div class="flex flex-col md:flex-row-reverse items-center scroll-animate animate-delay-200" style="animation-delay: 0.6s;">
-							<div class="md:w-1/2 md:pl-12 mb-8 md:mb-0">
-								<div class="glass-card optimized-blur p-6 md:p-8 ">
-									<div class="flex items-center mb-4">
-										<div class="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center mr-4 icon-glow">
-											{{ ux_icon('lucide:rocket', {class: 'w-6 h-6 text-emerald-400'}) }}
-										</div>
-										<h3 class="text-xl font-bold text-white">4. 🚀 Livraison & Formation</h3>
+						<div
+							class="scroll-animate animate-delay-500">
+							{# Version Mobile uniquement (< 768px) #}
+							<div
+								class="md:hidden mb-6">
+								{# Numéro centré en haut #}
+								<div class="flex justify-center mb-4">
+									<div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/25">
+										<span class="text-white font-bold text-lg">4</span>
 									</div>
-									<ul class="text-gray-300 space-y-2">
+								</div>
+								{# Contenu en dessous #}
+								<div class="glass-card optimized-blur p-6">
+									<div class="flex items-center justify-center mb-4">
+										<div class="w-10 h-10 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center mr-3 icon-glow">
+											{{ ux_icon('lucide:rocket', {class: 'w-5 h-5 text-emerald-400'}) }}
+										</div>
+										<h3 class="text-lg font-bold text-white">🚀 Livraison & Formation</h3>
+									</div>
+									<ul class="text-gray-300 space-y-2 text-sm">
 										<li>•
 											<strong class="text-emerald-300">Mise en ligne</strong>
 											sur l'environnement de production</li>
@@ -469,9 +595,37 @@
 								</div>
 							</div>
 
-							<div class="md:w-1/2 md:pr-12">
-								<div class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto md:mx-0 mb-4 md:mb-0 shadow-lg shadow-emerald-500/25">
-									<span class="text-white font-bold text-xl">4</span>
+							{# Version Desktop (≥ 768px) #}
+							<div class="hidden md:flex md:flex-col md:flex-row-reverse items-center">
+								<div class="md:w-1/2 md:pl-12 mb-8 md:mb-0">
+									<div class="glass-card optimized-blur p-6 md:p-8">
+										<div class="flex items-center mb-4">
+											<div class="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center mr-4 icon-glow">
+												{{ ux_icon('lucide:rocket', {class: 'w-6 h-6 text-emerald-400'}) }}
+											</div>
+											<h3 class="text-xl font-bold text-white">4. 🚀 Livraison & Formation</h3>
+										</div>
+										<ul class="text-gray-300 space-y-2">
+											<li>•
+												<strong class="text-emerald-300">Mise en ligne</strong>
+												sur l'environnement de production</li>
+											<li>•
+												<strong class="text-emerald-300">Formation</strong>
+												à l'utilisation des outils développés</li>
+											<li>•
+												<strong class="text-emerald-300">Documentation</strong>
+												utilisateur personnalisée</li>
+											<li>•
+												<strong class="text-emerald-300">Accompagnement</strong>
+												post-livraison</li>
+										</ul>
+									</div>
+								</div>
+
+								<div class="md:w-1/2 md:pr-12">
+									<div class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto md:mx-0 mb-4 md:mb-0 shadow-lg shadow-emerald-500/25">
+										<span class="text-white font-bold text-xl">4</span>
+									</div>
 								</div>
 							</div>
 						</div>
