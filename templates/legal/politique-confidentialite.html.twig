@@ -1,0 +1,457 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block title %}Politique de Confidentialité |
+	{{ parent() }}
+{% endblock %}
+
+{% block meta_description %}Politique de confidentialité Delnyx : protection des données personnelles, droits RGPD, cookies et traitement des informations selon la réglementation européenne.
+{% endblock %}
+
+{% block meta_keywords %}politique confidentialité, RGPD, données personnelles, cookies, protection, droits utilisateur
+{% endblock %}
+
+{% block robots %}noindex, follow
+{% endblock %}
+
+{% block body %}
+	{# Hero Section avec fond animé #}
+	<section
+		class="relative bg-gradient-to-br from-slate-800 via-slate-900 to-purple-900 overflow-hidden section-transition py-20 lg:py-32" loading="lazy">
+		{# Effets de lumière d'ambiance #}
+		<div class="light-ambient light-1 opacity-25 animate-pulse" style="animation-delay: 0.3s;"></div>
+		<div class="light-ambient light-2 opacity-20 animate-pulse" style="animation-delay: 0.9s;"></div>
+
+		{# Motifs d'arrière-plan #}
+		<div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+
+		<div class="relative z-10 flex items-center justify-center px-6 sm:px-8">
+			<div
+				class="max-w-4xl mx-auto text-center">
+				{# Titre principal #}
+				<div class="scroll-animate">
+					<h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+						Politique de
+						<span class="text-purple-400">Confidentialité</span>
+					</h1>
+					<p class="text-xl sm:text-2xl text-gray-300 mb-12 leading-relaxed max-w-3xl mx-auto">
+						Protection et traitement de vos données personnelles selon le RGPD
+					</p>
+				</div>
+
+				{# Breadcrumb stylisé #}
+				<div class="scroll-animate animate-delay-100">
+					<nav class="glass-card optimized-blur px-6 py-4 rounded-2xl inline-flex items-center space-x-2 text-sm">
+						<a href="{{ path('app_home') }}" class="text-purple-400 hover:text-purple-300 transition-colors duration-300">Accueil</a>
+						<span class="text-gray-500">/</span>
+						<span class="text-gray-300">Politique de Confidentialité</span>
+					</nav>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	{# Contenu principal #}
+	<section
+		class="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-20 section-transition" loading="lazy">
+		{# Effets de lumière #}
+		<div class="light-ambient light-3 opacity-15 animate-pulse" style="animation-delay: 1.5s;"></div>
+
+		<div
+			class="relative z-10 max-w-4xl mx-auto px-6 sm:px-8">
+
+			{# Introduction RGPD #}
+			<div class="scroll-animate mb-16">
+				<div class="glass-card optimized-blur p-8 border-l-4 border-purple-500 hover:bg-white/5 transition-all duration-500">
+					<div class="flex items-center space-x-4 mb-6">
+						<div class="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl flex items-center justify-center icon-glow">
+							{{ ux_icon('lucide:shield-check', {'class': 'w-6 h-6 text-purple-400'}) }}
+						</div>
+						<h2 class="text-2xl sm:text-3xl font-bold text-white">Engagement RGPD</h2>
+					</div>
+					<div class="text-gray-300 leading-relaxed space-y-4">
+						<p>Delnyx s'engage à respecter le Règlement Général sur la Protection des Données (RGPD) et garantit la protection, la confidentialité et la sécurité des données personnelles des utilisateurs de son site web, conformément au règlement UE 2016/679 du 27 avril 2016.</p>
+						<p>Cette politique vous informe sur la façon dont nous collectons, utilisons et protégeons vos informations personnelles.</p>
+					</div>
+				</div>
+			</div>
+
+			<div
+				class="space-y-12">
+
+				{# 1. Responsable de traitement #}
+				<div class="scroll-animate animate-delay-100">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:user-check', {'class': 'w-6 h-6 text-blue-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Responsable de traitement</h2>
+						</div>
+						<div class="space-y-4 text-gray-300 leading-relaxed">
+							<p>
+								<strong class="text-white">Identité :</strong>
+								[Votre prénom et nom] - Delnyx</p>
+							<p>
+								<strong class="text-white">Statut :</strong>
+								Auto-entrepreneur</p>
+							<p>
+								<strong class="text-white">Adresse :</strong>
+								[Votre adresse professionnelle]</p>
+							<p>
+								<strong class="text-white">Email :</strong>
+								contact@delnyx.fr</p>
+							<p>
+								<strong class="text-white">Téléphone :</strong>
+								[Votre téléphone]</p>
+						</div>
+					</div>
+				</div>
+
+				{# 2. Données collectées #}
+				<div class="scroll-animate animate-delay-200">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:database', {'class': 'w-6 h-6 text-emerald-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Données collectées</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-6">
+							<div>
+								<h3 class="text-lg font-semibold text-white mb-3">📧 Formulaire de contact :</h3>
+								<ul class="space-y-2 ml-4">
+									<li class="flex items-center space-x-2">
+										<span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
+										<span>Prénom et nom</span>
+									</li>
+									<li class="flex items-center space-x-2">
+										<span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
+										<span>Adresse email</span>
+									</li>
+									<li class="flex items-center space-x-2">
+										<span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
+										<span>Numéro de téléphone (optionnel)</span>
+									</li>
+									<li class="flex items-center space-x-2">
+										<span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
+										<span>Message et informations sur votre projet</span>
+									</li>
+								</ul>
+							</div>
+							<div>
+								<h3 class="text-lg font-semibold text-white mb-3">📊 Données techniques automatiques :</h3>
+								<ul class="space-y-2 ml-4">
+									<li class="flex items-center space-x-2">
+										<span class="w-2 h-2 bg-blue-400 rounded-full"></span>
+										<span>Adresse IP (anonymisée)</span>
+									</li>
+									<li class="flex items-center space-x-2">
+										<span class="w-2 h-2 bg-blue-400 rounded-full"></span>
+										<span>Type de navigateur et version</span>
+									</li>
+									<li class="flex items-center space-x-2">
+										<span class="w-2 h-2 bg-blue-400 rounded-full"></span>
+										<span>Pages visitées et temps de visite</span>
+									</li>
+									<li class="flex items-center space-x-2">
+										<span class="w-2 h-2 bg-blue-400 rounded-full"></span>
+										<span>Date et heure de connexion</span>
+									</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{# 3. Finalités du traitement #}
+				<div class="scroll-animate animate-delay-300">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:target', {'class': 'w-6 h-6 text-orange-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Finalités du traitement</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-6">
+							<div class="grid md:grid-cols-2 gap-6">
+								<div class="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 p-4 rounded-xl border border-blue-500/20">
+									<h3 class="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+										{{ ux_icon('lucide:mail', {'class': 'w-5 h-5 text-blue-400'}) }}
+										<span>Communication</span>
+									</h3>
+									<p>Répondre à vos demandes de contact et questions sur nos services</p>
+								</div>
+								<div class="bg-gradient-to-r from-emerald-500/10 to-green-500/10 p-4 rounded-xl border border-emerald-500/20">
+									<h3 class="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+										{{ ux_icon('lucide:briefcase', {'class': 'w-5 h-5 text-emerald-400'}) }}
+										<span>Devis & Projets</span>
+									</h3>
+									<p>Établir des devis personnalisés et gérer vos projets de développement</p>
+								</div>
+								<div class="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4 rounded-xl border border-purple-500/20">
+									<h3 class="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+										{{ ux_icon('lucide:bar-chart', {'class': 'w-5 h-5 text-purple-400'}) }}
+										<span>Analytics</span>
+									</h3>
+									<p>Améliorer l'expérience utilisateur et l'efficacité du site web</p>
+								</div>
+								<div class="bg-gradient-to-r from-orange-500/10 to-red-500/10 p-4 rounded-xl border border-orange-500/20">
+									<h3 class="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+										{{ ux_icon('lucide:shield', {'class': 'w-5 h-5 text-orange-400'}) }}
+										<span>Sécurité</span>
+									</h3>
+									<p>Prévenir les abus et sécuriser l'accès au site</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{# 4. Base légale #}
+				<div class="scroll-animate animate-delay-400">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:scale', {'class': 'w-6 h-6 text-cyan-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Base légale du traitement</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-4">
+							<p>
+								<strong class="text-white">Consentement (Art. 6.1.a RGPD) :</strong>
+								Pour l'envoi de communications commerciales et newsletters (avec opt-in explicite)</p>
+							<p>
+								<strong class="text-white">Intérêt légitime (Art. 6.1.f RGPD) :</strong>
+								Pour l'amélioration du site, les statistiques de visite anonymisées et la sécurité</p>
+							<p>
+								<strong class="text-white">Exécution d'un contrat (Art. 6.1.b RGPD) :</strong>
+								Pour la gestion des devis, contrats et projets de développement</p>
+						</div>
+					</div>
+				</div>
+
+				{# 5. Conservation des données #}
+				<div class="scroll-animate animate-delay-500">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-pink-500/20 to-pink-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:clock', {'class': 'w-6 h-6 text-pink-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Durée de conservation</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-4">
+							<div class="grid md:grid-cols-3 gap-4">
+								<div class="text-center p-4 bg-gradient-to-r from-blue-500/10 to-blue-600/10 rounded-xl border border-blue-500/20">
+									<div class="text-2xl font-bold text-blue-400 mb-2">3 ans</div>
+									<div class="text-sm">Demandes de contact et devis</div>
+								</div>
+								<div class="text-center p-4 bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 rounded-xl border border-emerald-500/20">
+									<div class="text-2xl font-bold text-emerald-400 mb-2">10 ans</div>
+									<div class="text-sm">Documents comptables et fiscaux</div>
+								</div>
+								<div class="text-center p-4 bg-gradient-to-r from-purple-500/10 to-purple-600/10 rounded-xl border border-purple-500/20">
+									<div class="text-2xl font-bold text-purple-400 mb-2">25 mois</div>
+									<div class="text-sm">Cookies et données analytics</div>
+								</div>
+							</div>
+							<p class="mt-6">Les données sont supprimées automatiquement à l'expiration de ces délais, sauf obligation légale contraire.</p>
+						</div>
+					</div>
+				</div>
+
+				{# 6. Vos droits RGPD #}
+				<div class="scroll-animate animate-delay-600">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500 border-l-4 border-emerald-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:key', {'class': 'w-6 h-6 text-emerald-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Vos droits RGPD</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-6">
+							<p class="text-white font-medium">Conformément au RGPD, vous disposez des droits suivants :</p>
+
+							<div class="grid md:grid-cols-2 gap-4">
+								<div class="flex items-start space-x-3">
+									<div class="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center mt-1">
+										{{ ux_icon('lucide:eye', {'class': 'w-4 h-4 text-blue-400'}) }}
+									</div>
+									<div>
+										<h4 class="font-semibold text-white mb-1">Droit d'accès</h4>
+										<p class="text-sm">Connaître les données détenues vous concernant</p>
+									</div>
+								</div>
+
+								<div class="flex items-start space-x-3">
+									<div class="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center mt-1">
+										{{ ux_icon('lucide:edit', {'class': 'w-4 h-4 text-emerald-400'}) }}
+									</div>
+									<div>
+										<h4 class="font-semibold text-white mb-1">Droit de rectification</h4>
+										<p class="text-sm">Corriger des données inexactes ou incomplètes</p>
+									</div>
+								</div>
+
+								<div class="flex items-start space-x-3">
+									<div class="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center mt-1">
+										{{ ux_icon('lucide:trash-2', {'class': 'w-4 h-4 text-red-400'}) }}
+									</div>
+									<div>
+										<h4 class="font-semibold text-white mb-1">Droit d'effacement</h4>
+										<p class="text-sm">Demander la suppression de vos données</p>
+									</div>
+								</div>
+
+								<div class="flex items-start space-x-3">
+									<div class="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center mt-1">
+										{{ ux_icon('lucide:download', {'class': 'w-4 h-4 text-purple-400'}) }}
+									</div>
+									<div>
+										<h4 class="font-semibold text-white mb-1">Droit à la portabilité</h4>
+										<p class="text-sm">Récupérer vos données dans un format lisible</p>
+									</div>
+								</div>
+
+								<div class="flex items-start space-x-3">
+									<div class="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center mt-1">
+										{{ ux_icon('lucide:pause', {'class': 'w-4 h-4 text-orange-400'}) }}
+									</div>
+									<div>
+										<h4 class="font-semibold text-white mb-1">Droit de limitation</h4>
+										<p class="text-sm">Limiter le traitement de vos données</p>
+									</div>
+								</div>
+
+								<div class="flex items-start space-x-3">
+									<div class="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center mt-1">
+										{{ ux_icon('lucide:x-circle', {'class': 'w-4 h-4 text-cyan-400'}) }}
+									</div>
+									<div>
+										<h4 class="font-semibold text-white mb-1">Droit d'opposition</h4>
+										<p class="text-sm">S'opposer au traitement de vos données</p>
+									</div>
+								</div>
+							</div>
+
+							<div class="mt-8 p-4 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-xl border border-emerald-500/20">
+								<h4 class="font-semibold text-white mb-2">📧 Comment exercer vos droits ?</h4>
+								<p>Contactez-nous à
+									<strong class="text-emerald-400">contact@delnyx.fr</strong>
+									en précisant votre demande.</p>
+								<p class="text-sm mt-2 text-gray-400">Réponse sous 1 mois maximum • Gratuitement • Avec justificatif d'identité</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{# 7. Cookies #}
+				<div class="scroll-animate animate-delay-700">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:cookie', {'class': 'w-6 h-6 text-yellow-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Cookies et traceurs</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-4">
+							<p>Ce site utilise des cookies pour améliorer votre expérience de navigation et analyser l'audience.</p>
+
+							<div class="grid md:grid-cols-2 gap-6">
+								<div class="space-y-4">
+									<h3 class="text-lg font-semibold text-white">✅ Cookies essentiels</h3>
+									<ul class="space-y-2 text-sm">
+										<li>• Session de navigation</li>
+										<li>• Préférences utilisateur</li>
+										<li>• Sécurité (CSRF)</li>
+									</ul>
+									<p class="text-sm text-gray-400">Ces cookies sont nécessaires au fonctionnement du site.</p>
+								</div>
+
+								<div class="space-y-4">
+									<h3 class="text-lg font-semibold text-white">📊 Cookies analytics</h3>
+									<ul class="space-y-2 text-sm">
+										<li>• Google Analytics (anonymisé)</li>
+										<li>• Statistiques de visite</li>
+										<li>• Optimisation UX</li>
+									</ul>
+									<p class="text-sm text-gray-400">Vous pouvez les refuser dans les paramètres.</p>
+								</div>
+							</div>
+
+							<div class="mt-6 p-4 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-xl border border-blue-500/20">
+								<p class="text-sm">
+									<strong>💡 Bon à savoir :</strong>
+									Vous pouvez configurer votre navigateur pour refuser les cookies ou être alerté de leur dépôt.</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{# 8. Contact et réclamations #}
+				<div class="scroll-animate animate-delay-800">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500 border-l-4 border-blue-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:help-circle', {'class': 'w-6 h-6 text-blue-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Contact & Réclamations</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-6">
+							<div class="grid md:grid-cols-2 gap-6">
+								<div>
+									<h3 class="text-lg font-semibold text-white mb-3">📧 Délégué à la Protection des Données</h3>
+									<p class="space-y-1 text-sm">
+										<strong class="text-white">Email :</strong>
+										contact@delnyx.fr<br>
+										<strong class="text-white">Objet :</strong>
+										[RGPD] Votre demande<br>
+										<strong class="text-white">Réponse :</strong>
+										Sous 1 mois maximum
+									</p>
+								</div>
+
+								<div>
+									<h3 class="text-lg font-semibold text-white mb-3">⚖️ Autorité de contrôle</h3>
+									<p class="space-y-1 text-sm">
+										<strong class="text-white">CNIL</strong><br>
+										3 Place de Fontenoy - TSA 80715<br>
+										75334 PARIS CEDEX 07<br>
+										<a href="https://www.cnil.fr" class="text-blue-400 hover:text-blue-300 transition-colors duration-300">www.cnil.fr</a>
+									</p>
+								</div>
+							</div>
+
+							<div class="mt-6 p-4 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-xl border border-emerald-500/20">
+								<p class="text-sm">
+									<strong>✉️ Modèle de demande :</strong>
+									"Je souhaite exercer mon droit [accès/rectification/effacement...] concernant les données personnelles me concernant. Ci-joint une copie de ma pièce d'identité."</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+			</div>
+
+			{# Footer de la politique #}
+			<div class="mt-16 text-center scroll-animate animate-delay-900">
+				<div class="glass-card optimized-blur p-6 rounded-2xl">
+					<p class="text-gray-400 text-sm mb-4">
+						<strong class="text-purple-400">Dernière mise à jour :</strong>
+						{{ "now"|date("d/m/Y") }}
+					</p>
+					<div class="flex justify-center space-x-6 text-sm">
+						<a href="{{ path('app_legal_mentions') }}" class="text-purple-400 hover:text-purple-300 transition-colors duration-300 underline">
+							Mentions légales
+						</a>
+						<a href="{{ path('app_legal_cgv') }}" class="text-purple-400 hover:text-purple-300 transition-colors duration-300 underline">
+							Conditions générales de vente
+						</a>
+						<a href="{{ path('app_contact') }}" class="text-purple-400 hover:text-purple-300 transition-colors duration-300 underline">
+							Nous contacter
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+{% endblock %}

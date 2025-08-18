@@ -109,9 +109,9 @@
 						{{ "now"|date("Y") }}
 						Delnyx - Tous droits réservés</span>
 					<div class="flex space-x-4">
-						<a href="#" class="hover:text-white transition-colors duration-300">Mentions légales</a>
-						<a href="#" class="hover:text-white transition-colors duration-300">Politique de confidentialité</a>
-						<a href="#" class="hover:text-white transition-colors duration-300">CGV</a>
+						<a href="{{ path('app_legal_mentions') }}" class="hover:text-white transition-colors duration-300">Mentions légales</a>
+						<a href="{{ path('app_legal_privacy') }}" class="hover:text-white transition-colors duration-300">Politique de confidentialité</a>
+						<a href="{{ path('app_legal_cgv') }}" class="hover:text-white transition-colors duration-300">CGV</a>
 					</div>
 				</div>
 

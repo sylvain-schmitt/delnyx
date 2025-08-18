@@ -1,0 +1,215 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block title %}Mentions Légales |
+	{{ parent() }}
+{% endblock %}
+
+{% block meta_description %}Mentions légales du site Delnyx : informations sur l'éditeur, hébergeur, propriété intellectuelle et protection des données personnelles (RGPD).
+{% endblock %}
+
+{% block meta_keywords %}mentions légales, éditeur, hébergeur, RGPD, données personnelles, Delnyx
+{% endblock %}
+
+{% block robots %}noindex, follow
+{% endblock %}
+
+{% block body %}
+	{# Hero Section avec fond animé #}
+	<section
+		class="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden section-transition py-20 lg:py-32" loading="lazy">
+		{# Effets de lumière d'ambiance #}
+		<div class="light-ambient light-1 opacity-20 animate-pulse" style="animation-delay: 0.5s;"></div>
+		<div class="light-ambient light-2 opacity-15 animate-pulse" style="animation-delay: 1.2s;"></div>
+
+		{# Motifs d'arrière-plan #}
+		<div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+
+		<div class="relative z-10 flex items-center justify-center px-6 sm:px-8">
+			<div
+				class="max-w-4xl mx-auto text-center">
+				{# Titre principal #}
+				<div class="scroll-animate">
+					<h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+						Mentions
+						<span class="text-blue-400">Légales</span>
+					</h1>
+					<p class="text-xl sm:text-2xl text-gray-300 mb-12 leading-relaxed max-w-3xl mx-auto">
+						Informations légales et réglementaires concernant le site Delnyx
+					</p>
+				</div>
+
+				{# Breadcrumb stylisé #}
+				<div class="scroll-animate animate-delay-100">
+					<nav class="glass-card optimized-blur px-6 py-4 rounded-2xl inline-flex items-center space-x-2 text-sm">
+						<a href="{{ path('app_home') }}" class="text-blue-400 hover:text-blue-300 transition-colors duration-300">Accueil</a>
+						<span class="text-gray-500">/</span>
+						<span class="text-gray-300">Mentions Légales</span>
+					</nav>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	{# Contenu principal #}
+	<section
+		class="relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 py-20 section-transition" loading="lazy">
+		{# Effets de lumière #}
+		<div class="light-ambient light-3 opacity-10 animate-pulse" style="animation-delay: 0.8s;"></div>
+
+		<div class="relative z-10 max-w-4xl mx-auto px-6 sm:px-8">
+			<div
+				class="space-y-12">
+
+				{# 1. Informations sur l'éditeur #}
+				<div class="scroll-animate">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:user-circle', {'class': 'w-6 h-6 text-blue-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Éditeur du site</h2>
+						</div>
+						<div class="space-y-4 text-gray-300 leading-relaxed">
+							<p>
+								<strong class="text-white">Nom :</strong>
+								[Votre prénom et nom]</p>
+							<p>
+								<strong class="text-white">Statut :</strong>
+								Auto-entrepreneur / Micro-entreprise</p>
+							<p>
+								<strong class="text-white">SIRET :</strong>
+								[Votre numéro SIRET]</p>
+							<p>
+								<strong class="text-white">Adresse :</strong>
+								[Votre adresse professionnelle]</p>
+							<p>
+								<strong class="text-white">Téléphone :</strong>
+								[Votre téléphone]</p>
+							<p>
+								<strong class="text-white">Email :</strong>
+								contact@delnyx.fr</p>
+							<p>
+								<strong class="text-white">Site web :</strong>
+								https://delnyx.fr</p>
+						</div>
+					</div>
+				</div>
+
+				{# 2. Hébergement #}
+				<div class="scroll-animate animate-delay-100">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:server', {'class': 'w-6 h-6 text-purple-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Hébergeur</h2>
+						</div>
+						<div class="space-y-4 text-gray-300 leading-relaxed">
+							<p>
+								<strong class="text-white">Hébergeur :</strong>
+								[Nom de votre hébergeur]</p>
+							<p>
+								<strong class="text-white">Adresse :</strong>
+								[Adresse de l'hébergeur]</p>
+							<p>
+								<strong class="text-white">Téléphone :</strong>
+								[Téléphone de l'hébergeur]</p>
+							<p>
+								<strong class="text-white">Site web :</strong>
+								[Site de l'hébergeur]</p>
+						</div>
+					</div>
+				</div>
+
+				{# 3. Propriété intellectuelle #}
+				<div class="scroll-animate animate-delay-200">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:copyright', {'class': 'w-6 h-6 text-emerald-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Propriété intellectuelle</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-4">
+							<p>L'ensemble de ce site relève de la législation française et internationale sur le droit d'auteur et la propriété intellectuelle.</p>
+							<p>Tous les droits de reproduction sont réservés, y compris pour les documents téléchargeables et les représentations iconographiques et photographiques.</p>
+							<p>La reproduction de tout ou partie de ce site sur un support électronique quel qu'il soit est formellement interdite sauf autorisation expresse du directeur de la publication.</p>
+							<p>Les marques citées sur ce site sont déposées par les sociétés qui en sont propriétaires.</p>
+						</div>
+					</div>
+				</div>
+
+				{# 4. Responsabilité #}
+				<div class="scroll-animate animate-delay-300">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:shield-alert', {'class': 'w-6 h-6 text-orange-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Responsabilité</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-4">
+							<p>Les informations contenues sur ce site sont aussi précises que possible et le site remis à jour à différentes périodes de l'année, mais peut toutefois contenir des inexactitudes ou des omissions.</p>
+							<p>Si vous constatez une lacune, erreur ou ce qui paraît être un dysfonctionnement, merci de bien vouloir le signaler par email en décrivant le problème de la manière la plus précise possible.</p>
+							<p>Delnyx ne pourra être tenu responsable des dommages directs et indirects causés au matériel de l'utilisateur, lors de l'accès au site, et résultant soit de l'utilisation d'un matériel ne répondant pas aux spécifications indiquées, soit de l'apparition d'un bug ou d'une incompatibilité.</p>
+						</div>
+					</div>
+				</div>
+
+				{# 5. Liens hypertextes #}
+				<div class="scroll-animate animate-delay-400">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:link', {'class': 'w-6 h-6 text-cyan-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Liens hypertextes</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-4">
+							<p>Le site peut contenir des liens hypertextes vers d'autres sites présents sur le réseau Internet. Les liens vers ces autres ressources vous font quitter le site.</p>
+							<p>Il est possible qu'à partir de nos pages, par liens hypertextes, vous puissiez accéder à d'autres sites créés par des tiers, sur lesquels nous ne pouvons exercer aucun contrôle.</p>
+							<p>En conséquence, nous ne pouvons pas être tenus responsables du contenu, de la publicité, des produits, des services ou de tout autre matériel disponible sur ou à partir de ces sites ou ressources externes.</p>
+						</div>
+					</div>
+				</div>
+
+				{# 6. RGPD #}
+				<div class="scroll-animate animate-delay-500">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500 border-l-4 border-blue-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:shield-check', {'class': 'w-6 h-6 text-blue-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">Protection des données personnelles</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-4">
+							<p>Conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi "Informatique et Libertés", vous disposez d'un droit d'accès, de rectification, d'effacement et d'opposition aux données personnelles vous concernant.</p>
+							<p>Pour exercer ces droits ou pour toute question sur le traitement de vos données, vous pouvez nous contacter à l'adresse : contact@delnyx.fr</p>
+							<p>Pour plus d'informations, consultez notre
+								<a href="{{ path('app_legal_privacy') }}" class="text-blue-400 hover:text-blue-300 transition-colors duration-300 underline">Politique de Confidentialité</a>.</p>
+						</div>
+					</div>
+				</div>
+
+			</div>
+
+			{# Footer des mentions légales #}
+			<div class="mt-16 text-center scroll-animate animate-delay-600">
+				<div class="glass-card optimized-blur p-6 rounded-2xl">
+					<p class="text-gray-400 text-sm">
+						<strong class="text-emerald-400">Dernière mise à jour :</strong>
+						{{ "now"|date("d/m/Y") }}
+					</p>
+					<div class="mt-4 flex justify-center space-x-6">
+						<a href="{{ path('app_legal_privacy') }}" class="text-blue-400 hover:text-blue-300 transition-colors duration-300 text-sm underline">
+							Politique de confidentialité
+						</a>
+						<a href="{{ path('app_legal_cgv') }}" class="text-blue-400 hover:text-blue-300 transition-colors duration-300 text-sm underline">
+							Conditions générales de vente
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+{% endblock %}

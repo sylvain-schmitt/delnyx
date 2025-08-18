@@ -2,11 +2,42 @@
 <html lang="fr">
 	<head>
 		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta
+		name="viewport" content="width=device-width, initial-scale=1.0">
+
+		{# SEO Meta Tags #}
 		<title>
-			{% block title %}Delnyx
+			{% block title %}Delnyx - Développeur Web Freelance Symfony
 			{% endblock %}
 		</title>
+
+		<meta name="description" content="{% block meta_description %}Développeur web freelance spécialisé en Symfony. Création de sites vitrine, applications web sur-mesure et maintenance. Solutions professionnelles adaptées aux TPE/PME.{% endblock %}">
+
+		<meta name="keywords" content="{% block meta_keywords %}développeur web freelance, Symfony, PHP, React, sites vitrine, applications web, maintenance, TPE, PME{% endblock %}">
+
+		<meta
+		name="author" content="{% block meta_author %}Delnyx - Développeur Web Freelance{% endblock %}">
+
+		{# Open Graph / Facebook #}
+		<meta property="og:type" content="{% block og_type %}website{% endblock %}">
+		<meta property="og:title" content="{% block og_title %}{{ block('title') }}{% endblock %}">
+		<meta property="og:description" content="{% block og_description %}{{ block('meta_description') }}{% endblock %}">
+		<meta property="og:url" content="{% block og_url %}{{ app.request.uri }}{% endblock %}">
+		<meta property="og:site_name" content="Delnyx">
+		<meta
+		property="og:image" content="{% block og_image %}{{ absolute_url(asset('images/logo-delnyx.svg')) }}{% endblock %}">
+
+		{# Twitter Card #}
+		<meta name="twitter:card" content="summary_large_image">
+		<meta name="twitter:title" content="{% block twitter_title %}{{ block('title') }}{% endblock %}">
+		<meta name="twitter:description" content="{% block twitter_description %}{{ block('meta_description') }}{% endblock %}">
+		<meta
+		name="twitter:image" content="{% block twitter_image %}{{ block('og_image') }}{% endblock %}">
+
+		{# Additional SEO #}
+		<meta name="robots" content="{% block robots %}index, follow{% endblock %}">
+		<link rel="canonical" href="{% block canonical %}{{ app.request.uri }}{% endblock %}">
+
 		<link rel="icon" href="{{ asset('images/favicon.ico') }}">
 		{% block stylesheets %}
 			<link rel="stylesheet" href="{{ asset('styles/app.css') }}">

@@ -1,0 +1,591 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block title %}Conditions Générales de Vente |
+	{{ parent() }}
+{% endblock %}
+
+{% block meta_description %}Conditions générales de vente Delnyx : tarifs, modalités de paiement, délais de livraison, garanties et responsabilités pour les services de développement web freelance.
+{% endblock %}
+
+{% block meta_keywords %}conditions générales vente, tarifs, développement web, freelance, modalités paiement, garanties
+{% endblock %}
+
+{% block robots %}noindex, follow
+{% endblock %}
+
+{% block body %}
+	{# Hero Section avec fond animé #}
+	<section
+		class="relative bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-800 overflow-hidden section-transition py-20 lg:py-32" loading="lazy">
+		{# Effets de lumière d'ambiance #}
+		<div class="light-ambient light-1 opacity-30 animate-pulse" style="animation-delay: 0.2s;"></div>
+		<div class="light-ambient light-2 opacity-25 animate-pulse" style="animation-delay: 1.1s;"></div>
+
+		{# Motifs d'arrière-plan #}
+		<div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+
+		<div class="relative z-10 flex items-center justify-center px-6 sm:px-8">
+			<div
+				class="max-w-4xl mx-auto text-center">
+				{# Titre principal #}
+				<div class="scroll-animate">
+					<h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+						Conditions Générales
+						<span class="text-emerald-400">de Vente</span>
+					</h1>
+					<p class="text-xl sm:text-2xl text-gray-300 mb-12 leading-relaxed max-w-3xl mx-auto">
+						Cadre contractuel pour les prestations de développement web freelance
+					</p>
+				</div>
+
+				{# Breadcrumb stylisé #}
+				<div class="scroll-animate animate-delay-100">
+					<nav class="glass-card optimized-blur px-6 py-4 rounded-2xl inline-flex items-center space-x-2 text-sm">
+						<a href="{{ path('app_home') }}" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-300">Accueil</a>
+						<span class="text-gray-500">/</span>
+						<span class="text-gray-300">Conditions Générales de Vente</span>
+					</nav>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	{# Contenu principal #}
+	<section
+		class="relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 py-20 section-transition" loading="lazy">
+		{# Effets de lumière #}
+		<div class="light-ambient light-3 opacity-20 animate-pulse" style="animation-delay: 1.8s;"></div>
+
+		<div
+			class="relative z-10 max-w-4xl mx-auto px-6 sm:px-8">
+
+			{# Introduction #}
+			<div class="scroll-animate mb-16">
+				<div class="glass-card optimized-blur p-8 border-l-4 border-emerald-500 hover:bg-white/5 transition-all duration-500">
+					<div class="flex items-center space-x-4 mb-6">
+						<div class="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center icon-glow">
+							{{ ux_icon('lucide:file-text', {'class': 'w-6 h-6 text-emerald-400'}) }}
+						</div>
+						<h2 class="text-2xl sm:text-3xl font-bold text-white">Préambule</h2>
+					</div>
+					<div class="text-gray-300 leading-relaxed space-y-4">
+						<p>Les présentes Conditions Générales de Vente (CGV) s'appliquent à toutes les prestations de services de développement web et d'applications fournies par Delnyx.</p>
+						<p>Elles définissent les droits et obligations de Delnyx et du Client dans le cadre de la vente des prestations proposées.</p>
+						<p>
+							<strong class="text-emerald-400">Date d'entrée en vigueur :</strong>
+							{{ "now"|date("d/m/Y") }}</p>
+					</div>
+				</div>
+			</div>
+
+			<div
+				class="space-y-12">
+
+				{# 1. Informations générales #}
+				<div class="scroll-animate animate-delay-100">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:info', {'class': 'w-6 h-6 text-blue-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">1. Informations générales</h2>
+						</div>
+						<div class="space-y-4 text-gray-300 leading-relaxed">
+							<p>
+								<strong class="text-white">Prestataire :</strong>
+								[Votre prénom et nom] - Delnyx</p>
+							<p>
+								<strong class="text-white">Statut :</strong>
+								Auto-entrepreneur (Micro-entreprise)</p>
+							<p>
+								<strong class="text-white">SIRET :</strong>
+								[Votre numéro SIRET]</p>
+							<p>
+								<strong class="text-white">Code APE :</strong>
+								6201Z - Programmation informatique</p>
+							<p>
+								<strong class="text-white">Adresse :</strong>
+								[Votre adresse professionnelle]</p>
+							<p>
+								<strong class="text-white">Email :</strong>
+								contact@delnyx.fr</p>
+							<p>
+								<strong class="text-white">Site web :</strong>
+								https://delnyx.fr</p>
+						</div>
+					</div>
+				</div>
+
+				{# 2. Services proposés #}
+				<div class="scroll-animate animate-delay-200">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:laptop-minimal-check', {'class': 'w-6 h-6 text-purple-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">2. Services proposés</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-6">
+							<p>Delnyx propose les prestations de développement web suivantes :</p>
+
+							<div class="grid md:grid-cols-2 gap-6">
+								<div class="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 p-4 rounded-xl border border-blue-500/20">
+									<h3 class="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+										{{ ux_icon('lucide:globe', {'class': 'w-5 h-5 text-blue-400'}) }}
+										<span>Sites Web</span>
+									</h3>
+									<ul class="space-y-1 text-sm">
+										<li>• Sites vitrine et institutionnels</li>
+										<li>• Sites e-commerce</li>
+										<li>• Blogs et portfolios</li>
+										<li>• Landing pages</li>
+									</ul>
+								</div>
+
+								<div class="bg-gradient-to-r from-emerald-500/10 to-green-500/10 p-4 rounded-xl border border-emerald-500/20">
+									<h3 class="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+										{{ ux_icon('lucide:smartphone', {'class': 'w-5 h-5 text-emerald-400'}) }}
+										<span>Applications</span>
+									</h3>
+									<ul class="space-y-1 text-sm">
+										<li>• Applications web (SPA/PWA)</li>
+										<li>• Interfaces d'administration</li>
+										<li>• APIs et services web</li>
+										<li>• Intégrations tiers</li>
+									</ul>
+								</div>
+
+								<div class="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4 rounded-xl border border-purple-500/20">
+									<h3 class="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+										{{ ux_icon('lucide:settings', {'class': 'w-5 h-5 text-purple-400'}) }}
+										<span>Maintenance</span>
+									</h3>
+									<ul class="space-y-1 text-sm">
+										<li>• Mises à jour sécurité</li>
+										<li>• Corrections de bugs</li>
+										<li>• Optimisations performances</li>
+										<li>• Support technique</li>
+									</ul>
+								</div>
+
+								<div class="bg-gradient-to-r from-orange-500/10 to-red-500/10 p-4 rounded-xl border border-orange-500/20">
+									<h3 class="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+										{{ ux_icon('lucide:users', {'class': 'w-5 h-5 text-orange-400'}) }}
+										<span>Conseil</span>
+									</h3>
+									<ul class="space-y-1 text-sm">
+										<li>• Audit technique</li>
+										<li>• Stratégie digitale</li>
+										<li>• Formation utilisateur</li>
+										<li>• Accompagnement projet</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{# 3. Processus de commande #}
+				<div class="scroll-animate animate-delay-300">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:clipboard-list', {'class': 'w-6 h-6 text-cyan-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">3. Processus de commande</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-6">
+							<div class="grid md:grid-cols-4 gap-4">
+								<div class="text-center">
+									<div class="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+										<span class="text-2xl font-bold text-blue-400">1</span>
+									</div>
+									<h4 class="font-semibold text-white mb-2">Contact</h4>
+									<p class="text-sm">Prise de contact et analyse de vos besoins</p>
+								</div>
+
+								<div class="text-center">
+									<div class="w-16 h-16 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+										<span class="text-2xl font-bold text-emerald-400">2</span>
+									</div>
+									<h4 class="font-semibold text-white mb-2">Devis</h4>
+									<p class="text-sm">Proposition commerciale détaillée et gratuite</p>
+								</div>
+
+								<div class="text-center">
+									<div class="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+										<span class="text-2xl font-bold text-purple-400">3</span>
+									</div>
+									<h4 class="font-semibold text-white mb-2">Validation</h4>
+									<p class="text-sm">Signature du devis et acompte</p>
+								</div>
+
+								<div class="text-center">
+									<div class="w-16 h-16 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+										<span class="text-2xl font-bold text-orange-400">4</span>
+									</div>
+									<h4 class="font-semibold text-white mb-2">Réalisation</h4>
+									<p class="text-sm">Développement et livraison du projet</p>
+								</div>
+							</div>
+
+							<div class="mt-8 p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-xl border border-cyan-500/20">
+								<h4 class="font-semibold text-white mb-2">📋 Acceptation de commande</h4>
+								<p>Toute commande est réputée acceptée par le Client dès :</p>
+								<ul class="mt-2 space-y-1 ml-4">
+									<li>• Signature électronique ou physique du devis</li>
+									<li>• Réception de l'acompte de 30% à 50% selon le projet</li>
+									<li>• Retour du bon de commande signé</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{# 4. Prix et modalités de paiement #}
+				<div class="scroll-animate animate-delay-400">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:euro', {'class': 'w-6 h-6 text-green-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">4. Prix et modalités de paiement</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-6">
+							<div class="grid md:grid-cols-2 gap-6">
+								<div>
+									<h3 class="text-lg font-semibold text-white mb-3">💰 Tarification</h3>
+									<ul class="space-y-2">
+										<li>•
+											<strong class="text-white">Prix fixe :</strong>
+											Devis forfaitaire pour les projets définis</li>
+										<li>•
+											<strong class="text-white">Régie :</strong>
+											Facturation horaire (sur demande)</li>
+										<li>•
+											<strong class="text-white">Abonnement :</strong>
+											Maintenance mensuelle ou annuelle</li>
+									</ul>
+									<p class="text-sm text-gray-400 mt-3">Tous les prix sont indiqués en euros HT (micro-entrepreneur non assujetti à la TVA).</p>
+								</div>
+
+								<div>
+									<h3 class="text-lg font-semibold text-white mb-3">📅 Échéances</h3>
+									<ul class="space-y-2">
+										<li>•
+											<strong class="text-emerald-400">30-50%</strong>
+											à la commande</li>
+										<li>•
+											<strong class="text-blue-400">30%</strong>
+											à mi-parcours (projets > 3 semaines)</li>
+										<li>•
+											<strong class="text-purple-400">Solde</strong>
+											à la livraison</li>
+									</ul>
+									<p class="text-sm text-gray-400 mt-3">Paiement par virement bancaire, PayPal ou Stripe.</p>
+								</div>
+							</div>
+
+							<div class="grid md:grid-cols-3 gap-4 mt-8">
+								<div class="text-center p-4 bg-gradient-to-r from-red-500/10 to-red-600/10 rounded-xl border border-red-500/20">
+									<div class="text-2xl font-bold text-red-400 mb-2">30 jours</div>
+									<div class="text-sm">Délai de paiement</div>
+								</div>
+								<div class="text-center p-4 bg-gradient-to-r from-orange-500/10 to-orange-600/10 rounded-xl border border-orange-500/20">
+									<div class="text-2xl font-bold text-orange-400 mb-2">3%</div>
+									<div class="text-sm">Pénalités de retard (par mois)</div>
+								</div>
+								<div class="text-center p-4 bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 rounded-xl border border-yellow-500/20">
+									<div class="text-2xl font-bold text-yellow-400 mb-2">40€</div>
+									<div class="text-sm">Indemnité forfaitaire de recouvrement</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{# 5. Délais et livraison #}
+				<div class="scroll-animate animate-delay-500">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:clock', {'class': 'w-6 h-6 text-blue-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">5. Délais et livraison</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-6">
+							<div class="grid md:grid-cols-2 gap-6">
+								<div>
+									<h3 class="text-lg font-semibold text-white mb-3">⏱️ Délais indicatifs</h3>
+									<div class="space-y-3">
+										<div class="flex justify-between items-center p-2 bg-blue-500/10 rounded">
+											<span>Site vitrine (5-10 pages)</span>
+											<span class="text-blue-400 font-medium">2-4 semaines</span>
+										</div>
+										<div class="flex justify-between items-center p-2 bg-emerald-500/10 rounded">
+											<span>Site e-commerce</span>
+											<span class="text-emerald-400 font-medium">4-8 semaines</span>
+										</div>
+										<div class="flex justify-between items-center p-2 bg-purple-500/10 rounded">
+											<span>Application web</span>
+											<span class="text-purple-400 font-medium">6-12 semaines</span>
+										</div>
+									</div>
+									<p class="text-sm text-gray-400 mt-3">*Délais indicatifs, variables selon la complexité</p>
+								</div>
+
+								<div>
+									<h3 class="text-lg font-semibold text-white mb-3">📦 Modalités de livraison</h3>
+									<ul class="space-y-2">
+										<li class="flex items-start space-x-2">
+											<span class="w-2 h-2 bg-emerald-400 rounded-full mt-2"></span>
+											<span>Livraison par étapes avec validations</span>
+										</li>
+										<li class="flex items-start space-x-2">
+											<span class="w-2 h-2 bg-blue-400 rounded-full mt-2"></span>
+											<span>Recette client sur environnement de test</span>
+										</li>
+										<li class="flex items-start space-x-2">
+											<span class="w-2 h-2 bg-purple-400 rounded-full mt-2"></span>
+											<span>Mise en production après validation finale</span>
+										</li>
+										<li class="flex items-start space-x-2">
+											<span class="w-2 h-2 bg-orange-400 rounded-full mt-2"></span>
+											<span>Documentation technique fournie</span>
+										</li>
+									</ul>
+								</div>
+							</div>
+
+							<div class="mt-6 p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl border border-yellow-500/20">
+								<h4 class="font-semibold text-white mb-2">⚠️ Cas de force majeure</h4>
+								<p class="text-sm">Les délais peuvent être prolongés en cas de force majeure, de retard du Client dans la fourniture des éléments nécessaires, ou de modifications substantielles du cahier des charges en cours de projet.</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{# 6. Propriété intellectuelle #}
+				<div class="scroll-animate animate-delay-600">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:copyright', {'class': 'w-6 h-6 text-purple-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">6. Propriété intellectuelle</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-6">
+							<div class="grid md:grid-cols-2 gap-6">
+								<div class="bg-gradient-to-r from-emerald-500/10 to-green-500/10 p-6 rounded-xl border border-emerald-500/20">
+									<h3 class="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+										{{ ux_icon('lucide:user-check', {'class': 'w-5 h-5 text-emerald-400'}) }}
+										<span>Droits du Client</span>
+									</h3>
+									<ul class="space-y-2 text-sm">
+										<li>• Propriété du code source spécifique</li>
+										<li>• Droits sur le contenu fourni</li>
+										<li>• Utilisation libre après paiement intégral</li>
+										<li>• Droits de modification et diffusion</li>
+									</ul>
+								</div>
+
+								<div class="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 p-6 rounded-xl border border-blue-500/20">
+									<h3 class="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+										{{ ux_icon('lucide:code', {'class': 'w-5 h-5 text-blue-400'}) }}
+										<span>Droits de Delnyx</span>
+									</h3>
+									<ul class="space-y-2 text-sm">
+										<li>• Droit de signature développeur</li>
+										<li>• Utilisation en portfolio/références</li>
+										<li>• Propriété des outils développés</li>
+										<li>• Frameworks et librairies utilisées</li>
+									</ul>
+								</div>
+							</div>
+
+							<div class="p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl border border-purple-500/20">
+								<h4 class="font-semibold text-white mb-2">📝 Licences tiers</h4>
+								<p class="text-sm">Le Client s'engage à respecter les licences des composants open-source utilisés. Delnyx fournit la liste des dépendances et leurs licences respectives.</p>
+							</div>
+
+							<div class="p-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-xl border border-orange-500/20">
+								<h4 class="font-semibold text-white mb-2">🛡️ Protection</h4>
+								<p class="text-sm">Le Client s'interdit de décompiler, désassembler ou tenter de découvrir le code source des outils propriétaires de Delnyx intégrés dans la solution.</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{# 7. Garanties et responsabilités #}
+				<div class="scroll-animate animate-delay-700">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:shield', {'class': 'w-6 h-6 text-orange-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">7. Garanties et responsabilités</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-6">
+							<div class="grid md:grid-cols-2 gap-6">
+								<div>
+									<h3 class="text-lg font-semibold text-white mb-4">✅ Garanties</h3>
+									<div class="space-y-3">
+										<div class="flex items-center space-x-3 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+											<div class="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center">
+												<span class="text-emerald-400 font-bold text-sm">3M</span>
+											</div>
+											<div>
+												<h4 class="text-white font-medium">Garantie bugs</h4>
+												<p class="text-xs text-gray-400">Correction gratuite des dysfonctionnements</p>
+											</div>
+										</div>
+
+										<div class="flex items-center space-x-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+											<div class="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+												<span class="text-blue-400 font-bold text-sm">1A</span>
+											</div>
+											<div>
+												<h4 class="text-white font-medium">Support technique</h4>
+												<p class="text-xs text-gray-400">Assistance par email incluse</p>
+											</div>
+										</div>
+
+										<div class="flex items-center space-x-3 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+											<div class="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center">
+												{{ ux_icon('lucide:infinity', {'class': 'w-4 h-4 text-purple-400'}) }}
+											</div>
+											<div>
+												<h4 class="text-white font-medium">Code source</h4>
+												<p class="text-xs text-gray-400">Accès garanti et documenté</p>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div>
+									<h3 class="text-lg font-semibold text-white mb-4">⚠️ Limitations</h3>
+									<ul class="space-y-2 text-sm">
+										<li class="flex items-start space-x-2">
+											<span class="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></span>
+											<span>Responsabilité limitée au montant de la prestation</span>
+										</li>
+										<li class="flex items-start space-x-2">
+											<span class="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0"></span>
+											<span>Exclusion des dommages indirects</span>
+										</li>
+										<li class="flex items-start space-x-2">
+											<span class="w-2 h-2 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></span>
+											<span>Maintenance non incluse sauf contrat spécifique</span>
+										</li>
+										<li class="flex items-start space-x-2">
+											<span class="w-2 h-2 bg-cyan-400 rounded-full mt-2 flex-shrink-0"></span>
+											<span>Performances liées à l'hébergement client</span>
+										</li>
+									</ul>
+
+									<div class="mt-4 p-3 bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-lg border border-red-500/20">
+										<h4 class="text-white font-medium text-sm mb-1">🔒 Assurance</h4>
+										<p class="text-xs text-gray-400">Delnyx est couvert par une assurance responsabilité civile professionnelle.</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{# 8. Résiliation et litige #}
+				<div class="scroll-animate animate-delay-800">
+					<div class="glass-card optimized-blur p-8 hover:bg-white/5 transition-all duration-500 border-l-4 border-red-500">
+						<div class="flex items-center space-x-4 mb-6">
+							<div class="w-12 h-12 bg-gradient-to-br from-red-500/20 to-red-600/20 rounded-xl flex items-center justify-center icon-glow">
+								{{ ux_icon('lucide:alert-triangle', {'class': 'w-6 h-6 text-red-400'}) }}
+							</div>
+							<h2 class="text-2xl sm:text-3xl font-bold text-white">8. Résiliation et litiges</h2>
+						</div>
+						<div class="text-gray-300 leading-relaxed space-y-6">
+							<div class="grid md:grid-cols-2 gap-6">
+								<div>
+									<h3 class="text-lg font-semibold text-white mb-3">🚫 Résiliation</h3>
+									<ul class="space-y-2 text-sm">
+										<li>
+											<strong class="text-white">Par le Client :</strong>
+											Possible à tout moment avec paiement des prestations réalisées</li>
+										<li>
+											<strong class="text-white">Par Delnyx :</strong>
+											En cas de non-paiement ou manquement grave du Client</li>
+										<li>
+											<strong class="text-white">Délai :</strong>
+											15 jours de préavis par lettre recommandée</li>
+									</ul>
+
+									<div class="mt-4 p-3 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-lg border border-orange-500/20">
+										<h4 class="text-white font-medium text-sm mb-1">💰 Conséquences</h4>
+										<p class="text-xs text-gray-400">En cas de résiliation, les sommes dues restent acquises à Delnyx et les livrables partiels sont facturés au prorata.</p>
+									</div>
+								</div>
+
+								<div>
+									<h3 class="text-lg font-semibold text-white mb-3">⚖️ Résolution des litiges</h3>
+									<div class="space-y-3">
+										<div class="flex items-center space-x-3 p-2 bg-blue-500/10 rounded">
+											<span class="text-blue-400 font-bold text-sm">1.</span>
+											<span class="text-sm">Tentative de résolution amiable</span>
+										</div>
+										<div class="flex items-center space-x-3 p-2 bg-emerald-500/10 rounded">
+											<span class="text-emerald-400 font-bold text-sm">2.</span>
+											<span class="text-sm">Médiation conventionnelle</span>
+										</div>
+										<div class="flex items-center space-x-3 p-2 bg-purple-500/10 rounded">
+											<span class="text-purple-400 font-bold text-sm">3.</span>
+											<span class="text-sm">Compétence tribunaux français</span>
+										</div>
+									</div>
+
+									<p class="text-xs text-gray-400 mt-4">
+										<strong>Droit applicable :</strong>
+										Français<br>
+										<strong>Tribunal compétent :</strong>
+										[Votre juridiction]
+									</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+			</div>
+
+			{# Footer des CGV #}
+			<div class="mt-16 text-center scroll-animate animate-delay-900">
+				<div class="glass-card optimized-blur p-6 rounded-2xl">
+					<div class="flex items-center justify-center space-x-4 mb-4">
+						<div class="w-8 h-8 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-lg flex items-center justify-center">
+							{{ ux_icon('lucide:check-circle', {'class': 'w-4 h-4 text-emerald-400'}) }}
+						</div>
+						<p class="text-gray-400">
+							<strong class="text-emerald-400">Version :</strong>
+							1.0 - Dernière mise à jour :
+							{{ "now"|date("d/m/Y") }}
+						</p>
+					</div>
+
+					<div class="flex justify-center space-x-6 text-sm">
+						<a href="{{ path('app_legal_mentions') }}" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-300 underline">
+							Mentions légales
+						</a>
+						<a href="{{ path('app_legal_privacy') }}" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-300 underline">
+							Politique de confidentialité
+						</a>
+						<a href="{{ path('app_contact') }}" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-300 underline">
+							Nous contacter
+						</a>
+					</div>
+
+					<p class="text-xs text-gray-500 mt-4">
+						L'acceptation de nos services implique l'acceptation pleine et entière des présentes CGV.
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+{% endblock %}
