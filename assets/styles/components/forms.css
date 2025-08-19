@@ -1,0 +1,116 @@
+/* Styles pour les formulaires - Design System Delnyx */
+
+.form-group {
+    @apply space-y-2;
+}
+
+.form-label {
+    @apply block text-sm font-semibold text-white mb-2;
+}
+
+.form-input {
+    @apply w-full px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/15;
+}
+
+.form-select {
+    @apply w-full px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/15 appearance-none bg-no-repeat bg-right bg-[length:20px] cursor-pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+}
+
+/* Styles pour les options des select */
+.form-select option {
+    @apply bg-slate-800 text-white py-2 px-4;
+    color: white !important;
+    background-color: rgb(30 41 59) !important;
+    /* slate-800 */
+}
+
+.form-select option:hover,
+.form-select option:focus {
+    @apply bg-slate-700;
+    background-color: rgb(51 65 85) !important;
+    /* slate-700 */
+}
+
+.form-select option:checked {
+    @apply bg-blue-600 text-white;
+    background-color: rgb(37 99 235) !important;
+    /* blue-600 */
+}
+
+/* Option par défaut (placeholder) */
+.form-select option[value=""] {
+    @apply text-gray-400;
+    color: rgb(156 163 175) !important;
+    /* gray-400 */
+}
+
+.form-textarea {
+    @apply w-full px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/15 resize-none min-h-[120px];
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    @apply shadow-lg shadow-blue-500/25;
+}
+
+.form-error {
+    @apply text-red-400 text-sm mt-1 flex items-center;
+}
+
+.form-error::before {
+    content: "⚠ ";
+    @apply mr-1;
+}
+
+/* Styles pour les erreurs Symfony */
+.form-group ul {
+    @apply list-none p-0 m-0;
+}
+
+.form-group li {
+    @apply text-red-400 text-sm mt-1 flex items-center;
+}
+
+.form-group li::before {
+    content: "⚠ ";
+    @apply mr-1;
+}
+
+/* Masquer les erreurs par défaut si on utilise la validation JS */
+.form-group .invalid-feedback {
+    @apply text-red-400 text-sm mt-1 flex items-center;
+}
+
+/* États des champs */
+.form-input.is-valid,
+.form-select.is-valid,
+.form-textarea.is-valid {
+    @apply border-emerald-400/50 focus:ring-emerald-500/50;
+}
+
+.form-input.is-invalid,
+.form-select.is-invalid,
+.form-textarea.is-invalid {
+    @apply border-red-400/50 focus:ring-red-500/50;
+}
+
+/* Animation de chargement pour le bouton submit */
+.btn-loading {
+    @apply relative overflow-hidden;
+}
+
+.btn-loading::after {
+    content: "";
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent;
+    transform: translateX(-100%);
+    animation: loading-shimmer 1.5s infinite;
+}
+
+@keyframes loading-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}

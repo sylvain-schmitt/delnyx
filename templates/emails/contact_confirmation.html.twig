@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmation de réception - Delnyx</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center; }
+        .logo { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+        .highlight-box { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
+        .info-box { background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #3b82f6; margin: 15px 0; }
+        .contact-info { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 20px; }
+        .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 14px; }
+        .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px 0; }
+        .button:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🚀 DELNYX</div>
+            <h1>Merci pour votre demande !</h1>
+            <p>Votre message a bien été reçu</p>
+        </div>
+        
+        <div class="content">
+            <div class="highlight-box">
+                <h2 style="margin: 0 0 10px 0;">✅ Confirmation de réception</h2>
+                <p style="margin: 0; font-size: 18px;">
+                    Bonjour {{ data.prenom }},<br>
+                    Je vous confirme avoir bien reçu votre demande concernant : <strong>{{ data.sujet }}</strong>
+                </p>
+            </div>
+            
+            <div class="info-box">
+                <h3 style="margin-top: 0; color: #1e293b;">📞 Prochaines étapes</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li><strong>Analyse de votre demande</strong> dans les prochaines heures</li>
+                    <li><strong>Réponse personnalisée</strong> sous 24h maximum</li>
+                    <li><strong>Échange téléphonique</strong> si nécessaire pour affiner vos besoins</li>
+                    <li><strong>Devis gratuit et détaillé</strong> dans les 48h</li>
+                </ul>
+            </div>
+            
+            <div class="info-box">
+                <h3 style="margin-top: 0; color: #1e293b;">🎯 Votre demande en résumé</h3>
+                <p><strong>Sujet :</strong> 
+                    {% set sujets = {
+                        'devis': '💼 Demande de devis',
+                        'site-vitrine': '🌐 Site vitrine',
+                        'e-commerce': '🛒 Site e-commerce',
+                        'rdv': '📅 Système de prise de RDV',
+                        'application': '⚙️ Application sur-mesure',
+                        'maintenance': '🔧 Maintenance / Support',
+                        'contact': '📞 Prise de contact',
+                        'autre': '❓ Autre demande'
+                    } %}
+                    {{ sujets[data.sujet] ?? data.sujet }}
+                </p>
+                
+                {% if data.budget %}
+                <p><strong>Budget approximatif :</strong> 
+                    {% set budgets = {
+                        'moins-1000': 'Moins de 1 000€',
+                        '1000-3000': '1 000€ - 3 000€',
+                        '3000-5000': '3 000€ - 5 000€',
+                        '5000-10000': '5 000€ - 10 000€',
+                        'plus-10000': 'Plus de 10 000€',
+                        'discuter': 'À discuter'
+                    } %}
+                    {{ budgets[data.budget] ?? data.budget }}
+                </p>
+                {% endif %}
+                
+                <p><strong>Message :</strong><br>
+                <em style="color: #64748b;">"{{ data.message|slice(0, 150) }}{% if data.message|length > 150 %}...{% endif %}"</em></p>
+            </div>
+            
+            <div class="contact-info">
+                <h3 style="margin-top: 0; color: #1e293b;">📧 Besoin de me joindre rapidement ?</h3>
+                <p style="margin-bottom: 15px;">N'hésitez pas à me contacter directement :</p>
+                
+                <p style="margin: 5px 0;">
+                    <strong>📧 Email :</strong> 
+                    <a href="mailto:contact@delnyx.fr" style="color: #3b82f6;">contact@delnyx.fr</a>
+                </p>
+                
+                <p style="margin: 5px 0;">
+                    <strong>🌐 Site web :</strong> 
+                    <a href="https://delnyx.fr" style="color: #3b82f6;">https://delnyx.fr</a>
+                </p>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="https://delnyx.fr/services" class="button">🔍 Découvrir mes services</a>
+                </div>
+            </div>
+            
+            <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin-top: 20px;">
+                <h3 style="margin-top: 0; color: #1e293b;">💡 Le saviez-vous ?</h3>
+                <p style="margin-bottom: 0; color: #475569;">
+                    Je travaille exclusivement avec des <strong>technologies modernes</strong> (Symfony, React, PostgreSQL) 
+                    et je garantis un <strong>code propre et maintenable</strong>. 
+                    Chaque projet bénéficie d'une <strong>garantie de 3 mois</strong> et d'un <strong>support technique</strong> inclus.
+                </p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>
+                Cet email de confirmation a été envoyé automatiquement le {{ "now"|date("d/m/Y à H:i") }}.<br>
+                <strong>Delnyx</strong> - Développeur Web Freelance spécialisé Symfony<br>
+                <a href="https://delnyx.fr" style="color: #3b82f6;">delnyx.fr</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Nouvelle demande de contact - Delnyx</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+        .content { background: #f8fafc; padding: 20px; border-radius: 0 0 8px 8px; }
+        .field { margin-bottom: 15px; padding: 10px; background: white; border-radius: 5px; border-left: 4px solid #3b82f6; }
+        .field-label { font-weight: bold; color: #1e293b; margin-bottom: 5px; }
+        .field-value { color: #475569; }
+        .message-box { background: white; padding: 15px; border-radius: 5px; border-left: 4px solid #10b981; }
+        .meta { font-size: 12px; color: #64748b; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔔 Nouvelle demande de contact</h1>
+            <p>Une nouvelle demande vient d'être soumise sur votre site Delnyx</p>
+        </div>
+        
+        <div class="content">
+            <div class="field">
+                <div class="field-label">👤 Contact</div>
+                <div class="field-value">{{ data.prenom }} {{ data.nom }}</div>
+            </div>
+            
+            <div class="field">
+                <div class="field-label">📧 Email</div>
+                <div class="field-value">
+                    <a href="mailto:{{ data.email }}">{{ data.email }}</a>
+                </div>
+            </div>
+            
+            {% if data.telephone %}
+            <div class="field">
+                <div class="field-label">📞 Téléphone</div>
+                <div class="field-value">
+                    <a href="tel:{{ data.telephone }}">{{ data.telephone }}</a>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="field">
+                <div class="field-label">📋 Sujet</div>
+                <div class="field-value">
+                    {% set sujets = {
+                        'devis': '💼 Demande de devis',
+                        'site-vitrine': '🌐 Site vitrine',
+                        'e-commerce': '🛒 Site e-commerce',
+                        'rdv': '📅 Système de prise de RDV',
+                        'application': '⚙️ Application sur-mesure',
+                        'maintenance': '🔧 Maintenance / Support',
+                        'contact': '📞 Prise de contact',
+                        'autre': '❓ Autre demande'
+                    } %}
+                    {{ sujets[data.sujet] ?? data.sujet }}
+                </div>
+            </div>
+            
+            {% if data.budget %}
+            <div class="field">
+                <div class="field-label">💰 Budget</div>
+                <div class="field-value">
+                    {% set budgets = {
+                        'moins-1000': 'Moins de 1 000€',
+                        '1000-3000': '1 000€ - 3 000€',
+                        '3000-5000': '3 000€ - 5 000€',
+                        '5000-10000': '5 000€ - 10 000€',
+                        'plus-10000': 'Plus de 10 000€',
+                        'discuter': 'À discuter'
+                    } %}
+                    {{ budgets[data.budget] ?? data.budget }}
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="message-box">
+                <div class="field-label">💬 Message</div>
+                <div class="field-value">{{ data.message|nl2br }}</div>
+            </div>
+            
+            <div class="meta">
+                <strong>Informations techniques :</strong><br>
+                📅 Date : {{ "now"|date("d/m/Y à H:i") }}<br>
+                🌐 IP : {{ ip }}<br>
+                🖥️ Navigateur : {{ userAgent }}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

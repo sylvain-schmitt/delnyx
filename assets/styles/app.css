@@ -5,6 +5,7 @@
 @import "./components/nav.css";
 @import "./components/hero.css";
 @import "./components/card.css";
+@import "./components/forms.css";
 
 /* === Protection contre le scroll horizontal === */
 html,

@@ -1,8 +1,135 @@
 {% extends 'layout/base.html.twig' %}
 
-{% block title %}Contact | {{ parent() }}{% endblock %}
+{% block title %}Contact - Parlons de votre projet | {{ parent() }}{% endblock %}
+
+{% block meta_description %}Contactez Delnyx pour votre projet de développement web. Devis gratuit sous 24h, échange personnalisé et accompagnement sur-mesure.{% endblock %}
 
 {% block body %}
-    <h1 class="text-4xl font-bold mt-8 mb-6 text-center">Contact</h1>
-    <p class="mb-4 text-center">Pour toute demande, n'hésitez pas à nous contacter.</p>
+	{# Hero Section #}
+	<section class="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 section-transition" loading="lazy">
+		<div class="absolute top-1/4 left-[2%] w-[120px] h-[120px] sm:w-[200px] sm:h-[200px] sm:left-[15%] rounded-full light-ambient opacity-20 z-20" style="background: radial-gradient(circle, rgba(59,130,246,0.25) 0%, transparent 70%);"></div>
+		<div class="absolute bottom-1/4 right-[2%] w-[100px] h-[100px] sm:w-[150px] sm:h-[150px] sm:right-[15%] rounded-full light-ambient opacity-20 z-20" style="background: radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%); animation-delay: 1s;"></div>
+
+		<div class="relative z-10 max-w-7xl mx-auto px-6 sm:px-8">
+			<div class="text-center scroll-animate">
+				<h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+					Parlons de votre
+					<span class="bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-500 bg-clip-text text-transparent">Projet</span>
+				</h1>
+				<p class="text-xl sm:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+					Transformons ensemble vos idées en solutions web performantes et sur-mesure
+				</p>
+			</div>
+		</div>
+	</section>
+
+	{# Section Formulaire #}
+	<section class="relative py-20 lg:py-32 overflow-hidden section-transition" loading="lazy">
+		<div class="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900"></div>
+		
+		<div class="relative z-10 max-w-4xl mx-auto px-6 sm:px-8">
+			
+			{# Messages Flash #}
+			{% for type, messages in app.flashes %}
+				{% for message in messages %}
+					<div class="mb-8 scroll-animate">
+						<div class="glass-card optimized-blur p-4 border-l-4 {% if type == 'success' %}border-emerald-500{% else %}border-red-500{% endif %}">
+							<div class="flex items-center">
+								<div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 {% if type == 'success' %}bg-emerald-500/20{% else %}bg-red-500/20{% endif %}">
+									{% if type == 'success' %}
+										{{ ux_icon('lucide:check-circle', {class: 'w-5 h-5 text-emerald-400'}) }}
+									{% else %}
+										{{ ux_icon('lucide:alert-circle', {class: 'w-5 h-5 text-red-400'}) }}
+									{% endif %}
+								</div>
+								<p class="{% if type == 'success' %}text-emerald-300{% else %}text-red-300{% endif %} font-medium">{{ message|raw }}</p>
+							</div>
+						</div>
+					</div>
+				{% endfor %}
+			{% endfor %}
+
+			<div class="scroll-animate animate-delay-200">
+				<div class="glass-card optimized-blur p-8 lg:p-10" data-controller="contact">
+					<div class="mb-8">
+						<h2 class="text-2xl sm:text-3xl font-bold text-white mb-4 flex items-center">
+							<div class="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center mr-4 icon-glow">
+								{{ ux_icon('lucide:send', {class: 'w-5 h-5 text-blue-400'}) }}
+							</div>
+							Décrivez-nous votre projet
+						</h2>
+						<p class="text-gray-300 leading-relaxed">
+							Remplissez ce formulaire pour recevoir un <strong class="text-blue-400">devis gratuit sous 24h</strong>. 
+						</p>
+					</div>
+
+					{{ form_start(contactForm, {'attr': {'class': 'space-y-6', 'data-contact-target': 'form'}}) }}
+						
+						{# Ligne Prénom / Nom #}
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+							<div class="form-group">
+								{{ form_label(contactForm.prenom, null, {'label_attr': {'class': 'form-label'}}) }}
+								{{ form_widget(contactForm.prenom) }}
+								{{ form_errors(contactForm.prenom) }}
+							</div>
+							<div class="form-group">
+								{{ form_label(contactForm.nom, null, {'label_attr': {'class': 'form-label'}}) }}
+								{{ form_widget(contactForm.nom) }}
+								{{ form_errors(contactForm.nom) }}
+							</div>
+						</div>
+
+						{# Ligne Email / Téléphone #}
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+							<div class="form-group">
+								{{ form_label(contactForm.email, null, {'label_attr': {'class': 'form-label'}}) }}
+								{{ form_widget(contactForm.email) }}
+								{{ form_errors(contactForm.email) }}
+							</div>
+							<div class="form-group">
+								{{ form_label(contactForm.telephone, null, {'label_attr': {'class': 'form-label'}}) }}
+								{{ form_widget(contactForm.telephone) }}
+								{{ form_errors(contactForm.telephone) }}
+							</div>
+						</div>
+
+						{# Ligne Sujet / Budget #}
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+							<div class="form-group">
+								{{ form_label(contactForm.sujet, null, {'label_attr': {'class': 'form-label'}}) }}
+								{{ form_widget(contactForm.sujet) }}
+								{{ form_errors(contactForm.sujet) }}
+							</div>
+							<div class="form-group">
+								{{ form_label(contactForm.budget, null, {'label_attr': {'class': 'form-label'}}) }}
+								{{ form_widget(contactForm.budget) }}
+								{{ form_errors(contactForm.budget) }}
+							</div>
+						</div>
+
+						{# Message #}
+						<div class="form-group">
+							{{ form_label(contactForm.message, null, {'label_attr': {'class': 'form-label'}}) }}
+							{{ form_widget(contactForm.message) }}
+							{{ form_errors(contactForm.message) }}
+							<div class="mt-2 text-xs text-gray-400 flex items-center">
+								{{ ux_icon('lucide:info', {class: 'w-3 h-3 mr-1'}) }}
+								<span data-contact-target="counter">0</span>/2000 caractères
+							</div>
+						</div>
+
+						{# Bouton d'envoi #}
+						<div class="pt-4">
+							{{ form_widget(contactForm.envoyer) }}
+							<div class="flex items-center justify-center mt-4 text-sm text-gray-400">
+								{{ ux_icon('lucide:shield-check', {class: 'w-4 h-4 mr-2'}) }}
+								Vos données sont protégées et ne seront jamais partagées
+							</div>
+						</div>
+
+					{{ form_end(contactForm) }}
+				</div>
+			</div>
+		</div>
+	</section>
 {% endblock %}
