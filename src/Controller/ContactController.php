@@ -25,7 +25,7 @@ final class ContactController extends AbstractController
                 // Email de notification pour vous
                 $notificationEmail = (new Email())
                     ->from(new Address('contact@delnyx.fr', 'Site Delnyx'))
-                    ->to('sylvain.schmitt70@gmail.com')
+                    ->to('contact@delnyx.fr')
                     ->subject('Nouvelle demande de contact - ' . ($data['sujet'] ?: 'Sans sujet'))
                     ->html($this->renderView('emails/contact_notification.html.twig', [
                         'data' => $data,
