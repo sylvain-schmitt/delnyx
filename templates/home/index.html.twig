@@ -21,8 +21,14 @@
 		id="accueil" class="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700">
 
 		{# === Zones Particles.js === #}
-		<div id="particles-cyan"></div>
-		<div id="particles-purple"></div>
+		<div id="particles-cyan" 
+			 data-controller="particles" 
+			 data-particles-id-value="particles-cyan"
+			 data-particles-config-value="particles-cyan"></div>
+		<div id="particles-purple" 
+			 data-controller="particles" 
+			 data-particles-id-value="particles-purple"
+			 data-particles-config-value="particles-purple"></div>
 		<div id="particles-center"></div>
 
 		{# Lumière bleue - responsive #}
@@ -36,8 +42,11 @@
 			<div class="title-section animate-fade-up animate-delay-100">
 				<div class="min-h-[120px] sm:min-h-[140px] lg:min-h-[180px] flex items-center justify-center">
 					<h1 class="text-3xl sm:text-4xl lg:text-6xl font-bold">
-
-						<span id="typing" class="bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-500 bg-clip-text text-transparent"></span>
+						<span 
+						data-controller="typing" 
+						data-typing-phrases-value='["Développeur Full-Stack Symfony", "Créateur de solutions sur-mesure"]'
+						class="bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-500 bg-clip-text text-transparent">
+						</span>
 						<span class="border-r-2 border-white ml-1 animate-blink"></span>
 					</h1>
 				</div>
