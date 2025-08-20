@@ -23,6 +23,9 @@
 				padding: 20px;
 				border-radius: 8px 8px 0 0;
 			}
+			.header * {
+				color: #ffffff !important;
+			}
 			.logo {
 				font-size: 24px;
 				font-weight: bold;
@@ -41,6 +44,9 @@
 				border-radius: 8px;
 				text-align: center;
 				margin: 20px 0;
+			}
+			.highlight-box * {
+				color: #ffffff !important;
 			}
 			.info-box {
 				background-color: #ffffff;
@@ -164,24 +170,43 @@
 					color: #e2e8f0 !important;
 				}
 			}
+
+			/* Règles spécifiques pour Gmail */
+			u + .body .header,
+			u + .body .header *,
+			u + .body .highlight-box,
+			u + .body .highlight-box * {
+				color: #ffffff !important;
+			}
+
+			/* Force pour tous les clients mail */
+			.header h1,
+			.header p,
+			.header div,
+			.highlight-box h2,
+			.highlight-box p,
+			.highlight-box strong {
+				color: #ffffff !important;
+				mso-line-height-rule: exactly;
+			}
 		</style>
 	</head>
 	<body>
 		<div class="container">
-			<div class="header">
-				<div class="logo">🚀 DELNYX</div>
-				<h1 style="color:#ffffff !important;">Merci pour votre demande !</h1>
-				<p style="color:#ffffff !important;">Votre message a bien été reçu</p>
+			<div class="header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: #ffffff !important;">
+				<div class="logo" style="color: #ffffff !important; font-size: 24px; font-weight: bold; margin-bottom: 10px;">🚀 DELNYX</div>
+				<h1 style="color:#ffffff !important; margin: 0; font-size: 22px;">Merci pour votre demande !</h1>
+				<p style="color:#ffffff !important; margin: 10px 0 0;">Votre message a bien été reçu</p>
 			</div>
 
 			<div class="content">
-				<div class="highlight-box">
+				<div class="highlight-box" style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff !important; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
 					<h2 style="margin:0 0 10px 0; color:#ffffff !important;">✅ Confirmation de réception</h2>
 					<p style="margin:0; font-size:18px; color:#ffffff !important;">
 						Bonjour
 						{{ data.prenom }},<br>
 						Je vous confirme avoir bien reçu votre demande concernant :
-						<strong>{{ data.sujet }}</strong>
+						<strong style="color:#ffffff !important;">{{ data.sujet }}</strong>
 					</p>
 				</div>
 
@@ -238,9 +263,9 @@
 						Je travaille exclusivement avec des
 						<strong>technologies modernes</strong>
 						(Symfony, React, PostgreSQL) 
-												          et je garantis un
+																		          et je garantis un
 						<strong>code propre et maintenable</strong>. 
-														          Chaque projet bénéficie d'une
+																					          Chaque projet bénéficie d'une
 						<strong>garantie de 3 mois</strong>
 						et d'un
 						<strong>support technique</strong>
