@@ -27,3 +27,15 @@ Dockerfile
 
 ### Ignore Cursor
 .cursor
+
+### Ignore uploaded files
+/public/uploads/projects/*.jpg
+/public/uploads/projects/*.jpeg
+/public/uploads/projects/*.png
+/public/uploads/projects/*.gif
+/public/uploads/projects/*.webp
+/public/uploads/projects/thumbnails/*.jpg
+/public/uploads/projects/thumbnails/*.jpeg
+/public/uploads/projects/thumbnails/*.png
+/public/uploads/projects/thumbnails/*.gif
+/public/uploads/projects/thumbnails/*.webp

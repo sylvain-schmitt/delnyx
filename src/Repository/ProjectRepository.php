@@ -116,4 +116,86 @@ class ProjectRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Trouve les projets publiés avec pagination
+     *
+     * @return array{projects: Project[], total: int}
+     */
+    public function findPublishedWithPagination(int $page = 1, int $limit = 6): array
+    {
+        $offset = ($page - 1) * $limit;
+
+        // Requête pour compter le total
+        $totalQuery = $this->createQueryBuilder('p')
+            ->select('COUNT(p.id)')
+            ->andWhere('p.statut = :statut')
+            ->setParameter('statut', Project::STATUT_PUBLIE);
+
+        $total = $totalQuery->getQuery()->getSingleScalarResult();
+
+        // Requête pour récupérer les projets (sans JOINs pour éviter les problèmes DISTINCT)
+        $projectsQuery = $this->createQueryBuilder('p')
+            ->andWhere('p.statut = :statut')
+            ->setParameter('statut', Project::STATUT_PUBLIE)
+            ->orderBy('p.dateCreation', 'DESC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit);
+
+        $projects = $projectsQuery->getQuery()->getResult();
+
+        // Charger les relations séparément pour éviter les problèmes de DISTINCT
+        foreach ($projects as $project) {
+            $this->getEntityManager()->refresh($project);
+        }
+
+        return [
+            'projects' => $projects,
+            'total' => $total
+        ];
+    }
+
+    /**
+     * Trouve les projets par technologie avec pagination
+     *
+     * @return array{projects: Project[], total: int}
+     */
+    public function findByTechnologyWithPagination(Technology $technology, int $page = 1, int $limit = 6): array
+    {
+        $offset = ($page - 1) * $limit;
+
+        // Requête pour compter le total
+        $totalQuery = $this->createQueryBuilder('p')
+            ->select('COUNT(p.id)')
+            ->innerJoin('p.technologies', 't')
+            ->andWhere('t = :technology')
+            ->andWhere('p.statut = :statut')
+            ->setParameter('technology', $technology)
+            ->setParameter('statut', Project::STATUT_PUBLIE);
+
+        $total = $totalQuery->getQuery()->getSingleScalarResult();
+
+        // Requête pour récupérer les projets (sans JOINs pour éviter les problèmes DISTINCT)
+        $projectsQuery = $this->createQueryBuilder('p')
+            ->innerJoin('p.technologies', 't')
+            ->andWhere('t = :technology')
+            ->andWhere('p.statut = :statut')
+            ->setParameter('technology', $technology)
+            ->setParameter('statut', Project::STATUT_PUBLIE)
+            ->orderBy('p.dateCreation', 'DESC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit);
+
+        $projects = $projectsQuery->getQuery()->getResult();
+
+        // Charger les relations séparément pour éviter les problèmes de DISTINCT
+        foreach ($projects as $project) {
+            $this->getEntityManager()->refresh($project);
+        }
+
+        return [
+            'projects' => $projects,
+            'total' => $total
+        ];
+    }
 }
