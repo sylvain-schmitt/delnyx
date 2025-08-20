@@ -1,216 +1,263 @@
 <!DOCTYPE html>
 <html>
-<head>
-	<meta charset="UTF-8">
-	<title>Confirmation de réception - Delnyx</title>
-	<style>
-		/* Styles de base */
-		body {
-			font-family: Arial, sans-serif;
-			line-height: 1.6;
-			color: #333333;
-			background-color: #ffffff;
-		}
-		.container {
-			max-width: 600px;
-			margin: 0 auto;
-			padding: 20px;
-			background-color: #ffffff;
-		}
-		.header {
-			background: linear-gradient(135deg, #1e293b, #0f172a);
-			color: #ffffff !important;
-			padding: 30px;
-			border-radius: 8px 8px 0 0;
-			text-align: center;
-		}
-		.logo {
-			font-size: 24px;
-			font-weight: bold;
-			margin-bottom: 10px;
-			color: #ffffff !important;
-		}
-		.content {
-			background-color: #f8fafc;
-			padding: 30px;
-			border-radius: 0 0 8px 8px;
-		}
-		.highlight-box {
-			background: linear-gradient(135deg, #10b981, #059669);
-			color: #ffffff !important;
-			padding: 20px;
-			border-radius: 8px;
-			text-align: center;
-			margin: 20px 0;
-		}
-		.info-box {
-			background-color: #ffffff;
-			padding: 20px;
-			border-radius: 8px;
-			border-left: 4px solid #3b82f6;
-			margin: 15px 0;
-			color: #333333 !important;
-		}
-		.contact-info {
-			background-color: #ffffff;
-			padding: 20px;
-			border-radius: 8px;
-			border: 1px solid #e2e8f0;
-			margin-top: 20px;
-			color: #333333 !important;
-		}
-		.footer {
-			text-align: center;
-			margin-top: 30px;
-			padding-top: 20px;
-			border-top: 1px solid #e2e8f0;
-			color: #64748b !important;
-			font-size: 14px;
-		}
-		.button {
-			display: inline-block;
-			background: #3b82f6;
-			color: #ffffff !important;
-			padding: 12px 24px;
-			text-decoration: none;
-			border-radius: 6px;
-			font-weight: bold;
-			margin: 10px 0;
-		}
-		.button:hover {
-			background: #2563eb;
-		}
-
-		/* Support du mode sombre */
-		@media(prefers-color-scheme: dark) {
+	<head>
+		<meta charset="UTF-8">
+		<title>Confirmation de réception - Delnyx</title>
+		<style>
+			/* Styles de base */
 			body {
-				background-color: #1a202c !important;
-				color: #e2e8f0 !important;
+				font-family: Arial, sans-serif;
+				line-height: 1.6;
+				color: #333333;
+				background-color: #ffffff;
 			}
 			.container {
-				background-color: #1a202c !important;
+				max-width: 600px;
+				margin: 0 auto;
+				padding: 20px;
+				background-color: #ffffff;
+			}
+			.header {
+				background: linear-gradient(135deg, #1e293b, #0f172a);
+				color: #ffffff !important;
+				padding: 20px;
+				border-radius: 8px 8px 0 0;
+			}
+			.logo {
+				font-size: 24px;
+				font-weight: bold;
+				margin-bottom: 10px;
+				color: #ffffff !important;
 			}
 			.content {
-				background-color: #2d3748 !important;
+				background-color: #f8fafc;
+				padding: 20px;
+				border-radius: 0 0 8px 8px;
+			}
+			.highlight-box {
+				background: linear-gradient(135deg, #10b981, #059669);
+				color: #ffffff !important;
+				padding: 20px;
+				border-radius: 8px;
+				text-align: center;
+				margin: 20px 0;
 			}
 			.info-box {
-				background-color: #4a5568 !important;
-				color: #e2e8f0 !important;
+				background-color: #ffffff;
+				padding: 15px;
+				border-radius: 5px;
+				border-left: 4px solid #3b82f6;
+				margin-bottom: 15px;
+			}
+			.info-box h3 {
+				font-weight: bold;
+				color: #1e293b !important;
+				margin-bottom: 10px;
+				margin-top: 0;
+			}
+			.info-box p,
+			.info-box ul,
+			.info-box li {
+				color: #475569 !important;
 			}
 			.contact-info {
-				background-color: #4a5568 !important;
-				color: #e2e8f0 !important;
-				border-color: #4a5568 !important;
+				background-color: #ffffff;
+				padding: 15px;
+				border-radius: 5px;
+				border-left: 4px solid #10b981;
+				margin-bottom: 15px;
+			}
+			.contact-info h3 {
+				font-weight: bold;
+				color: #1e293b !important;
+				margin-bottom: 10px;
+				margin-top: 0;
+			}
+			.contact-info p {
+				color: #475569 !important;
+			}
+			.tip-box {
+				background-color: #ffffff;
+				padding: 15px;
+				border-radius: 5px;
+				border-left: 4px solid #f59e0b;
+				margin-bottom: 15px;
+			}
+			.tip-box h3 {
+				font-weight: bold;
+				color: #1e293b !important;
+				margin-bottom: 10px;
+				margin-top: 0;
+			}
+			.tip-box p {
+				color: #475569 !important;
 			}
 			.footer {
-				color: #a0aec0 !important;
-				border-top-color: #4a5568 !important;
+				font-size: 12px;
+				color: #64748b !important;
+				margin-top: 20px;
+				padding-top: 15px;
+				border-top: 1px solid #e2e8f0;
+				text-align: center;
 			}
-		}
+			.button {
+				display: inline-block;
+				background: #3b82f6;
+				color: #ffffff !important;
+				padding: 12px 24px;
+				text-decoration: none;
+				border-radius: 6px;
+				font-weight: bold;
+				margin: 10px 0;
+			}
+			.button:hover {
+				background: #2563eb;
+			}
 
-		/* Force les couleurs pour les clients mail récalcitrants */
-		[data-ogsc] body,
-		[data-ogsc] .container {
-			background-color: #ffffff !important;
-			color: #333333 !important;
-		}
+			/* Support du mode sombre */
+			@media(prefers-color-scheme: dark) {
+				body {
+					background-color: #1a202c !important;
+					color: #e2e8f0 !important;
+				}
+				.container {
+					background-color: #1a202c !important;
+				}
+				.content {
+					background-color: #2d3748 !important;
+				}
+				.info-box,
+				.contact-info,
+				.tip-box {
+					background-color: #4a5568 !important;
+				}
+				.info-box h3,
+				.contact-info h3,
+				.tip-box h3 {
+					color: #e2e8f0 !important;
+				}
+				.info-box p,
+				.info-box ul,
+				.info-box li,
+				.contact-info p,
+				.tip-box p {
+					color: #cbd5e0 !important;
+				}
+				.footer {
+					color: #a0aec0 !important;
+					border-top-color: #4a5568 !important;
+				}
+			}
 
-		/* Mode sombre forcé pour certains clients */
-		@media(prefers-color-scheme: dark) {
+			/* Force les couleurs pour les clients mail récalcitrants */
 			[data-ogsc] body,
 			[data-ogsc] .container {
-				background-color: #1a202c !important;
-				color: #e2e8f0 !important;
+				background-color: #ffffff !important;
+				color: #333333 !important;
 			}
-		}
-	</style>
-</head>
-<body>
-	<div class="container">
-		<div class="header">
-			<div class="logo">🚀 DELNYX</div>
-			<h1>Merci pour votre demande !</h1>
-			<p>Votre message a bien été reçu ✅</p>
-		</div>
 
-		<div class="content">
-			<div class="highlight-box">
-				<h2 style="margin: 0 0 10px 0;">Confirmation de réception</h2>
-				<p style="margin: 0; font-size: 18px;">
-					Bonjour <strong>{{ data.prenom }}</strong>,<br>
-					Je vous confirme avoir bien reçu votre demande concernant :<br>
-					<strong>{{ sujets[data.sujet] ?? data.sujet }}</strong>
-				</p>
+			/* Mode sombre forcé pour certains clients */
+			@media(prefers-color-scheme: dark) {
+				[data-ogsc] body,
+				[data-ogsc] .container {
+					background-color: #1a202c !important;
+					color: #e2e8f0 !important;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="header">
+				<div class="logo">🚀 DELNYX</div>
+				<h1 style="color:#ffffff !important;">Merci pour votre demande !</h1>
+				<p style="color:#ffffff !important;">Votre message a bien été reçu</p>
 			</div>
 
-			<div class="info-box">
-				<h3 style="margin-top: 0; color: #1e293b;">📞 Prochaines étapes</h3>
-				<ul style="margin: 0; padding-left: 20px;">
-					<li><strong>Analyse</strong> de votre demande dans les prochaines heures</li>
-					<li><strong>Réponse personnalisée</strong> sous 24h maximum</li>
-					<li><strong>Échange téléphonique</strong> si nécessaire</li>
-					<li><strong>Devis gratuit et détaillé</strong> sous 48h</li>
-				</ul>
-			</div>
+			<div class="content">
+				<div class="highlight-box">
+					<h2 style="margin:0 0 10px 0; color:#ffffff !important;">✅ Confirmation de réception</h2>
+					<p style="margin:0; font-size:18px; color:#ffffff !important;">
+						Bonjour
+						{{ data.prenom }},<br>
+						Je vous confirme avoir bien reçu votre demande concernant :
+						<strong>{{ data.sujet }}</strong>
+					</p>
+				</div>
 
-			<div class="info-box">
-				<h3 style="margin-top: 0; color: #1e293b;">🎯 Votre demande en résumé</h3>
-				<p>
-					<strong>Sujet :</strong>
-					{% set sujets = {
-						'devis': '💼 Demande de devis',
-						'site-vitrine': '🌐 Site vitrine',
-						'e-commerce': '🛒 Site e-commerce',
-						'rdv': '📅 Système de prise de RDV',
-						'application': '⚙️ Application sur-mesure',
-						'maintenance': '🔧 Maintenance / Support',
-						'contact': '📞 Prise de contact',
-						'autre': '❓ Autre demande'
-					} %}
-					{{ sujets[data.sujet] ?? data.sujet }}
-				</p>
-				<p>
-					<strong>Message :</strong><br>
-					<em style="color: #64748b;">"{{ data.message|slice(0, 150) }}{% if data.message|length > 150 %}...{% endif %}"</em>
-				</p>
-			</div>
+				<div class="info-box">
+					<h3>📞 Prochaines étapes</h3>
+					<ul style="margin:0; padding-left:20px;">
+						<li>
+							<strong>Analyse de votre demande</strong>
+							dans les prochaines heures</li>
+						<li>
+							<strong>Réponse personnalisée</strong>
+							sous 24h maximum</li>
+						<li>
+							<strong>Échange téléphonique</strong>
+							si nécessaire pour affiner vos besoins</li>
+						<li>
+							<strong>Devis gratuit et détaillé</strong>
+							dans les 48h</li>
+					</ul>
+				</div>
 
-			<div class="contact-info">
-				<h3 style="margin-top: 0; color: #1e293b;">📧 Besoin de me joindre rapidement ?</h3>
-				<p style="margin-bottom: 15px;">N'hésitez pas à me contacter directement :</p>
+				<div class="info-box">
+					<h3>🎯 Votre demande en résumé</h3>
+					<p>
+						<strong>Sujet :</strong>
+						{{ sujets[data.sujet] ?? data.sujet }}</p>
+					<p>
+						<strong>Message :</strong><br>
+						<em>"{{ data.message|slice(0, 150) }}
+							{% if data.message|length > 150 %}...
+							{% endif %}"</em>
+					</p>
+				</div>
 
-				<p style="margin: 5px 0;">
-					<strong>📧 Email :</strong>
-					<a href="mailto:contact@delnyx.fr" style="color: #3b82f6;">contact@delnyx.fr</a>
-				</p>
-				<p style="margin: 5px 0;">
-					<strong>🌐 Site web :</strong>
-					<a href="https://delnyx.fr" style="color: #3b82f6;">https://delnyx.fr</a>
-				</p>
+				<div class="contact-info">
+					<h3>📧 Besoin de me joindre rapidement ?</h3>
+					<p style="margin-bottom:15px;">N'hésitez pas à me contacter directement :</p>
+					<p style="margin:5px 0;">
+						<strong>📧 Email :</strong>
+						<a href="mailto:contact@delnyx.fr" style="color:#3b82f6 !important;">contact@delnyx.fr</a>
+					</p>
+					<p style="margin:5px 0;">
+						<strong>🌐 Site web :</strong>
+						<a href="https://delnyx.fr" style="color:#3b82f6 !important;">https://delnyx.fr</a>
+					</p>
+					<div style="text-align:center; margin-top:20px;">
+						<a href="https://delnyx.fr/services" class="button">🔍 Découvrir mes services</a>
+					</div>
+				</div>
 
-				<div style="text-align: center; margin-top: 20px;">
-					<a href="https://delnyx.fr/services" class="button">🔍 Découvrir mes services</a>
+				<div class="tip-box">
+					<h3>💡 Le saviez-vous ?</h3>
+					<p style="margin-bottom:0;">
+						Je travaille exclusivement avec des
+						<strong>technologies modernes</strong>
+						(Symfony, React, PostgreSQL) 
+												          et je garantis un
+						<strong>code propre et maintenable</strong>. 
+														          Chaque projet bénéficie d'une
+						<strong>garantie de 3 mois</strong>
+						et d'un
+						<strong>support technique</strong>
+						inclus.
+					</p>
 				</div>
 			</div>
 
-			<div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin-top: 20px;">
-				<h3 style="margin-top: 0; color: #1e293b;">💡 Le saviez-vous ?</h3>
-				<p style="margin-bottom: 0; color: #475569;">
-					Je travaille exclusivement avec des <strong>technologies modernes</strong> 
-					(Symfony, React, PostgreSQL) et je garantis un <strong>code propre et maintenable</strong>.
-					Chaque projet bénéficie d'une <strong>garantie de 3 mois</strong> et d'un 
-					<strong>support technique inclus</strong>.
+			<div class="footer">
+				<p>
+					Cet email de confirmation a été envoyé automatiquement le
+					{{ "now"|date("d/m/Y à H:i") }}.<br>
+					<strong>Delnyx</strong>
+					- Développeur Web Freelance spécialisé Symfony<br>
+					<a href="https://delnyx.fr" style="color:#3b82f6;">delnyx.fr</a>
 				</p>
 			</div>
 		</div>
-
-		<div class="footer">
-			<p>
-				Cet email de confirmation a été envoyé automatiquement le {{ "now"|date("d/m/Y à H:i") }}.<br>
-				<strong>Delnyx</strong> - Développeur Web Freelance spécialisé Symfony<br>
-				<a href="https://delnyx.fr" style="color: #3b82f6;">delnyx.fr</a>
-			</p>
-		</div>
-	</div>
-</body>
+	</body>
 </html>
