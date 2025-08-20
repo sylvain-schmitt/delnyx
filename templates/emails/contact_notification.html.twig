@@ -1,172 +1,97 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="UTF-8">
-		<title>Nouvelle demande de contact - Delnyx</title>
-		<style>
-			/* Styles de base */
-			body {
-				font-family: Arial, sans-serif;
-				line-height: 1.6;
-				color: #333333;
-				background-color: #ffffff;
-			}
-			.container {
-				max-width: 600px;
-				margin: 0 auto;
-				padding: 20px;
-				background-color: #ffffff;
-			}
-			.header {
-				background: linear-gradient(135deg, #1e293b, #0f172a);
-				color: #ffffff !important;
-				padding: 20px;
-				border-radius: 8px 8px 0 0;
-			}
-			.content {
-				background-color: #f8fafc;
-				padding: 20px;
-				border-radius: 0 0 8px 8px;
-			}
-			.field {
-				margin-bottom: 15px;
-				padding: 10px;
-				background-color: #ffffff;
-				border-radius: 5px;
-				border-left: 4px solid #3b82f6;
-			}
-			.field-label {
-				font-weight: bold;
-				color: #1e293b !important;
-				margin-bottom: 5px;
-			}
-			.field-value {
-				color: #475569 !important;
-			}
-			.message-box {
-				background-color: #ffffff;
-				padding: 15px;
-				border-radius: 5px;
-				border-left: 4px solid #10b981;
-			}
-			.meta {
-				font-size: 12px;
-				color: #64748b !important;
-				margin-top: 20px;
-				padding-top: 15px;
-				border-top: 1px solid #e2e8f0;
-			}
+<head>
+  <meta charset="UTF-8">
+  <title>Nouvelle demande de contact - Delnyx</title>
+</head>
+<body style="margin:0; padding:0; font-family: Arial, sans-serif; line-height:1.6; color:#333333; background-color:#ffffff;">
+  
+  <!-- Préheader (aperçu dans Gmail/Outlook) -->
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0;">
+    Vous avez reçu une nouvelle demande de contact sur Delnyx.
+  </div>
 
-			/* Support du mode sombre */
-			@media(prefers-color-scheme: dark) {
-				body {
-					background-color: #1a202c !important;
-					color: #e2e8f0 !important;
-				}
-				.container {
-					background-color: #1a202c !important;
-				}
-				.content {
-					background-color: #2d3748 !important;
-				}
-				.field {
-					background-color: #4a5568 !important;
-				}
-				.field-label {
-					color: #e2e8f0 !important;
-				}
-				.field-value {
-					color: #cbd5e0 !important;
-				}
-				.message-box {
-					background-color: #4a5568 !important;
-				}
-				.meta {
-					color: #a0aec0 !important;
-					border-top-color: #4a5568 !important;
-				}
-			}
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td align="center" style="padding:20px 0; background-color:#f8fafc;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px; background-color:#ffffff; border-radius:8px; overflow:hidden;">
 
-			/* Force les couleurs pour les clients mail récalcitrants */
-			[data-ogsc] body,
-			[data-ogsc] .container {
-				background-color: #ffffff !important;
-				color: #333333 !important;
-			}
+          <!-- HEADER -->
+          <tr>
+            <td style="padding:20px; background-color:#1e293b; background:linear-gradient(135deg, #1e293b, #0f172a); color:#ffffff; border-radius:8px 8px 0 0;">
+              <h1 style="margin:0; color:#ffffff; font-size:22px;">🔔 Nouvelle demande de contact</h1>
+              <p style="margin:10px 0 0; color:#e2e8f0; font-size:16px; line-height:1.5;">
+                Une nouvelle demande vient d'être soumise sur votre site Delnyx
+              </p>
+            </td>
+          </tr>
 
-			/* Mode sombre forcé pour certains clients */
-			@media(prefers-color-scheme: dark) {
-				[data-ogsc] body,
-				[data-ogsc] .container {
-					background-color: #1a202c !important;
-					color: #e2e8f0 !important;
-				}
-			}
-		</style>
-	</head>
-	<body>
-		<div class="container">
-			<div class="header">
-				<h1 style="color: #ffffff; margin-bottom: 20px;">🔔 Nouvelle demande de contact</h1>
-				<p style="color: #e2e8f0; font-size: 16px; line-height: 1.5;">Une nouvelle demande vient d'être soumise sur votre site Delnyx</p>
-			</div>
+          <!-- CONTENT -->
+          <tr>
+            <td style="background-color:#f8fafc; padding:20px;">
 
-			<div class="content">
-				<div class="field">
-					<div class="field-label">👤 Contact</div>
-					<div class="field-value">{{ data.prenom }}
-						{{ data.nom }}</div>
-				</div>
+              <!-- Contact -->
+              <div style="margin-bottom:15px; padding:10px; background-color:#ffffff; border-radius:5px; border-left:4px solid #3b82f6;">
+                <div style="font-weight:bold; color:#1e293b; margin-bottom:5px;">👤 Contact</div>
+                <div style="color:#475569;">{{ data.prenom }} {{ data.nom }}</div>
+              </div>
 
-				<div class="field">
-					<div class="field-label">📧 Email</div>
-					<div class="field-value">
-						<a href="mailto:{{ data.email }}">{{ data.email }}</a>
-					</div>
-				</div>
+              <!-- Email -->
+              <div style="margin-bottom:15px; padding:10px; background-color:#ffffff; border-radius:5px; border-left:4px solid #3b82f6;">
+                <div style="font-weight:bold; color:#1e293b; margin-bottom:5px;">📧 Email</div>
+                <div style="color:#475569;">
+                  <a href="mailto:{{ data.email }}" style="color:#2563eb; text-decoration:none;">{{ data.email }}</a>
+                </div>
+              </div>
 
-				{% if data.telephone %}
-					<div class="field">
-						<div class="field-label">📞 Téléphone</div>
-						<div class="field-value">
-							<a href="tel:{{ data.telephone }}">{{ data.telephone }}</a>
-						</div>
-					</div>
-				{% endif %}
+              <!-- Téléphone -->
+              {% if data.telephone %}
+              <div style="margin-bottom:15px; padding:10px; background-color:#ffffff; border-radius:5px; border-left:4px solid #3b82f6;">
+                <div style="font-weight:bold; color:#1e293b; margin-bottom:5px;">📞 Téléphone</div>
+                <div style="color:#475569;">
+                  <a href="tel:{{ data.telephone }}" style="color:#2563eb; text-decoration:none;">{{ data.telephone }}</a>
+                </div>
+              </div>
+              {% endif %}
 
-				<div class="field">
-					<div class="field-label">📋 Sujet</div>
-					<div class="field-value">
-						{% set sujets = {
-                        'devis': '💼 Demande de devis',
-                        'site-vitrine': '🌐 Site vitrine',
-                        'e-commerce': '🛒 Site e-commerce',
-                        'rdv': '📅 Système de prise de RDV',
-                        'application': '⚙️ Application sur-mesure',
-                        'maintenance': '🔧 Maintenance / Support',
-                        'contact': '📞 Prise de contact',
-                        'autre': '❓ Autre demande'
-                    } %}
-						{{ sujets[data.sujet] ?? data.sujet }}
-					</div>
-				</div>
+              <!-- Sujet -->
+              <div style="margin-bottom:15px; padding:10px; background-color:#ffffff; border-radius:5px; border-left:4px solid #3b82f6;">
+                <div style="font-weight:bold; color:#1e293b; margin-bottom:5px;">📋 Sujet</div>
+                <div style="color:#475569;">
+                  {% set sujets = {
+                    'devis': '💼 Demande de devis',
+                    'site-vitrine': '🌐 Site vitrine',
+                    'e-commerce': '🛒 Site e-commerce',
+                    'rdv': '📅 Système de prise de RDV',
+                    'application': '⚙️ Application sur-mesure',
+                    'maintenance': '🔧 Maintenance / Support',
+                    'contact': '📞 Prise de contact',
+                    'autre': '❓ Autre demande'
+                  } %}
+                  {{ sujets[data.sujet] ?? data.sujet }}
+                </div>
+              </div>
 
+              <!-- Message -->
+              <div style="padding:15px; background-color:#ffffff; border-radius:5px; border-left:4px solid #10b981;">
+                <div style="font-weight:bold; color:#1e293b; margin-bottom:5px;">💬 Message</div>
+                <div style="color:#475569;">{{ data.message|nl2br }}</div>
+              </div>
 
-				<div class="message-box">
-					<div class="field-label">💬 Message</div>
-					<div class="field-value">{{ data.message|nl2br }}</div>
-				</div>
+              <!-- META -->
+              <div style="font-size:12px; color:#64748b; margin-top:20px; padding-top:15px; border-top:1px solid #e2e8f0;">
+                <strong>Informations techniques :</strong><br>
+                📅 Date : {{ "now"|date("d/m/Y à H:i") }}<br>
+                🌐 IP : {{ ip }}<br>
+                🖥️ Navigateur : {{ userAgent }}
+              </div>
 
-				<div class="meta">
-					<strong>Informations techniques :</strong><br>
-					📅 Date :
-					{{ "now"|date("d/m/Y à H:i") }}<br>
-					🌐 IP :
-					{{ ip }}<br>
-					🖥️ Navigateur :
-					{{ userAgent }}
-				</div>
-			</div>
-		</div>
-	</body>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
 </html>
