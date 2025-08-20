@@ -50,6 +50,5 @@ class DashboardController extends AbstractDashboardController
     {
         return Assets::new()
             ->addCssFile('css/admin.css');
- 
     }
 }
