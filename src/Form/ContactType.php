@@ -101,24 +101,7 @@ class ContactType extends AbstractType
                     'style' => 'color-scheme: dark;',
                 ],
             ])
-            ->add('budget', ChoiceType::class, [
-                'label' => 'Budget approximatif',
-                'required' => false,
-                'choices' => [
-                    'Budget non défini' => '',
-                    'Moins de 1 000€' => 'moins-1000',
-                    '1 000€ - 3 000€' => '1000-3000',
-                    '3 000€ - 5 000€' => '3000-5000',
-                    '5 000€ - 10 000€' => '5000-10000',
-                    'Plus de 10 000€' => 'plus-10000',
-                    'À discuter' => 'discuter',
-                ],
-                'attr' => [
-                    'class' => 'form-select',
-                    'data-contact-target' => 'field',
-                    'style' => 'color-scheme: dark;',
-                ],
-            ])
+
             ->add('message', TextareaType::class, [
                 'label' => 'Votre message',
                 'constraints' => [
