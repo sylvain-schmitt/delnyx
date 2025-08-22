@@ -25,7 +25,7 @@
 		<meta property="og:url" content="{% block og_url %}{{ app.request.uri }}{% endblock %}">
 		<meta property="og:site_name" content="Delnyx">
 		<meta
-		property="og:image" content="{% block og_image %}{{ absolute_url(asset('images/logo-delnyx.svg')) }}{% endblock %}">
+		property="og:image" content="{% block og_image %}{{ absolute_url(asset('images/og-image.jpg')) }}{% endblock %}">
 
 		{# Twitter Card #}
 		<meta name="twitter:card" content="summary_large_image">
@@ -35,10 +35,18 @@
 		name="twitter:image" content="{% block twitter_image %}{{ block('og_image') }}{% endblock %}">
 
 		{# Additional SEO #}
+		<meta name="google-site-verification" content="I8Tmiz7luvHrxagDrHZvstTKfqxbBLCkU6kstBmBSYU" />
 		<meta name="robots" content="{% block robots %}index, follow{% endblock %}">
 		<link rel="canonical" href="{% block canonical %}{{ app.request.uri }}{% endblock %}">
 
-		<link rel="icon" href="{{ asset('images/favicon.ico') }}">
+
+		<link rel="icon" type="image/png" href="{{ asset('images/favicon/favicon-96x96.png') }}" sizes="96x96"/>
+		<link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon/favicon.svg') }}"/>
+		<link rel="shortcut icon" href="{{ asset('images/favicon/favicon.ico') }}"/>
+		<link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/favicon/apple-touch-icon.png') }}"/>
+		<meta name="apple-mobile-web-app-title" content="Delnyx"/>
+		<link rel="manifest" href="{{ asset('images/favicon/site.webmanifest') }}"/>
+
 		{% block stylesheets %}
 			<link rel="stylesheet" href="{{ asset('styles/app.css') }}">
 		{% endblock %}
