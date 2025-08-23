@@ -37,6 +37,44 @@
 			u + .body .highlight-box * {
 				color: #ffffff !important;
 			}
+
+			/* Règles spécifiques Gmail avec classes */
+			.gmail-fix .header,
+			.gmail-fix .header *,
+			.gmail-fix .highlight-box,
+			.gmail-fix .highlight-box * {
+				color: #ffffff !important;
+			}
+
+			/* Force les couleurs pour Gmail Dark Mode */
+			[data-ogsc] body,
+			[data-ogsc] .container,
+			[data-ogsc] .content,
+			[data-ogsc] .info-box,
+			[data-ogsc] .contact-info,
+			[data-ogsc] .tip-box {
+				background-color: #1a202c !important;
+				color: #e2e8f0 !important;
+			}
+
+			[data-ogsc] .info-box h3,
+			[data-ogsc] .contact-info h3,
+			[data-ogsc] .tip-box h3 {
+				color: #ffffff !important;
+			}
+
+			[data-ogsc] .info-box p,
+			[data-ogsc] .info-box ul,
+			[data-ogsc] .info-box li,
+			[data-ogsc] .contact-info p,
+			[data-ogsc] .tip-box p {
+				color: #cbd5e0 !important;
+			}
+
+			[data-ogsc] .footer {
+				color: #a0aec0 !important;
+				border-top-color: #4a5568 !important;
+			}
 			.container {
 				max-width: 600px;
 				margin: 0 auto;
@@ -218,7 +256,7 @@
 		</style>
 	</head>
 	<body>
-		<div class="container">
+		<div class="container gmail-fix">
 			<div class="header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: #ffffff !important;">
 				<div class="logo" style="color: #ffffff !important; font-size: 24px; font-weight: bold; margin-bottom: 10px;">🚀 DELNYX</div>
 				<h1 style="color:#ffffff !important; margin: 0; font-size: 22px;">Merci pour votre demande !</h1>
@@ -289,9 +327,9 @@
 						Je travaille exclusivement avec des
 						<strong>technologies modernes</strong>
 						(Symfony, React, PostgreSQL) 
-																																				          et je garantis un
+																																																          et je garantis un
 						<strong>code propre et maintenable</strong>. 
-																																										          Chaque projet bénéficie d'une
+																																																								          Chaque projet bénéficie d'une
 						<strong>garantie de 3 mois</strong>
 						et d'un
 						<strong>support technique</strong>
