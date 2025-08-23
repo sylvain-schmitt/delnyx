@@ -24,8 +24,8 @@
 		<meta property="og:description" content="{% block og_description %}{{ block('meta_description') }}{% endblock %}">
 		<meta property="og:url" content="{% block og_url %}{{ app.request.uri }}{% endblock %}">
 		<meta property="og:site_name" content="Delnyx">
-		<meta property="og:image" content="{% block og_image %}{{ absolute_url(asset('images/og-image.jpg')) }}{% endblock %}">
-
+		<meta
+		property="og:image" content="{% block og_image %}{{ asset('images/og-image.jpg') }}?v=2{% endblock %}">
 		{# Twitter Card #}
 		<meta name="twitter:card" content="summary_large_image">
 		<meta name="twitter:title" content="{% block twitter_title %}{{ block('title') }}{% endblock %}">
