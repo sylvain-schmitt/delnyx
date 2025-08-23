@@ -10,6 +10,7 @@ export default class extends Controller {
         this.setupFormValidation()
         this.setupCharacterCounter()
         this.setupFieldAnimations()
+        this.setupFormProtection()
     }
 
     setupFormValidation() {
@@ -61,6 +62,16 @@ export default class extends Controller {
                     icon.classList.add('text-gray-400')
                 }
             })
+        })
+    }
+
+    setupFormProtection() {
+        // Protection contre les soumissions multiples
+        this.formTarget.addEventListener('submit', (event) => {
+            if (this.submitTarget.disabled) {
+                event.preventDefault()
+                return false
+            }
         })
     }
 
@@ -160,6 +171,11 @@ export default class extends Controller {
     handleSubmit(event) {
         event.preventDefault()
 
+        // Éviter le double-clic
+        if (this.submitTarget.disabled) {
+            return
+        }
+
         // Nettoyage de toutes les erreurs existantes
         this.fieldTargets.forEach(field => {
             this.clearFieldError(field)
@@ -182,13 +198,15 @@ export default class extends Controller {
             return
         }
 
-        // Animation de chargement
+        // Animation de chargement et désactivation immédiate
         this.submitTarget.classList.add('btn-loading')
         this.submitTarget.disabled = true
         this.submitTarget.textContent = 'Envoi en cours...'
 
-        // Soumission du formulaire
-        this.formTarget.submit()
+        // Soumission du formulaire avec un délai pour éviter le double-clic
+        setTimeout(() => {
+            this.formTarget.submit()
+        }, 100)
     }
 
     // Animation de succès (appelée après redirection)

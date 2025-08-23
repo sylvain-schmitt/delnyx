@@ -118,7 +118,7 @@
 
 					{# Bouton d'envoi #}
 					<div class="pt-4">
-						{{ form_widget(contactForm.envoyer) }}
+						{{ form_widget(contactForm.envoyer, {'attr': {'class': 'btn-primary w-full cursor-pointer'}}) }}
 						<div class="flex items-center justify-center mt-4 text-sm text-gray-400">
 							{{ ux_icon('lucide:shield-check', {class: 'w-4 h-4 mr-2'}) }}
 							Vos données sont protégées et ne seront jamais partagées
