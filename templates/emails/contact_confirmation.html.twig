@@ -11,6 +11,32 @@
 				color: #333333;
 				background-color: #ffffff;
 			}
+
+			/* Règles spécifiques pour Gmail Dark Mode */
+			[data-ogsc] .header,
+			[data-ogsc] .header *,
+			[data-ogsc] .highlight-box,
+			[data-ogsc] .highlight-box * {
+				color: #ffffff !important;
+			}
+
+			/* Règles pour Outlook et autres clients */
+			@media(prefers-color-scheme: dark) {
+				.header,
+				.header *,
+				.highlight-box,
+				.highlight-box * {
+					color: #ffffff !important;
+				}
+			}
+
+			/* Règles ultra-agressives pour Gmail */
+			u + .body .header,
+			u + .body .header *,
+			u + .body .highlight-box,
+			u + .body .highlight-box * {
+				color: #ffffff !important;
+			}
 			.container {
 				max-width: 600px;
 				margin: 0 auto;
@@ -204,7 +230,7 @@
 					<h2 style="margin:0 0 10px 0; color:#ffffff !important;">✅ Confirmation de réception</h2>
 					<p style="margin:0; font-size:18px; color:#ffffff !important;">
 						Bonjour
-						{{ data.prenom }},<br>
+						<span style="color:#ffffff !important;">{{ data.prenom }}</span>,<br>
 						Je vous confirme avoir bien reçu votre demande concernant :
 						<strong style="color:#ffffff !important;">{{ data.sujet }}</strong>
 					</p>
@@ -263,9 +289,9 @@
 						Je travaille exclusivement avec des
 						<strong>technologies modernes</strong>
 						(Symfony, React, PostgreSQL) 
-																								          et je garantis un
+																																				          et je garantis un
 						<strong>code propre et maintenable</strong>. 
-																												          Chaque projet bénéficie d'une
+																																										          Chaque projet bénéficie d'une
 						<strong>garantie de 3 mois</strong>
 						et d'un
 						<strong>support technique</strong>

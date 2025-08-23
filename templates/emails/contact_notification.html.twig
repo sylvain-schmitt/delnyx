@@ -48,6 +48,18 @@
 					color: #e2e8f0 !important;
 				}
 			}
+
+			/* Règles spécifiques pour Gmail Dark Mode - Header */
+			[data-ogsc] td[style*="background:linear-gradient(135deg, #1e293b, #0f172a)"],
+			[data-ogsc] td[style*="background:linear-gradient(135deg, #1e293b, #0f172a)"] * {
+				color: #ffffff !important;
+			}
+
+			/* Règles ultra-agressives pour Gmail */
+			u + .body td[style*="background:linear-gradient(135deg, #1e293b, #0f172a)"],
+			u + .body td[style*="background:linear-gradient(135deg, #1e293b, #0f172a)"] * {
+				color: #ffffff !important;
+			}
 		</style>
 	</head>
 	<body
@@ -69,7 +81,8 @@
 							<td style="padding:20px; background:linear-gradient(135deg, #1e293b, #0f172a); color:#ffffff !important; border-radius:8px 8px 0 0;">
 								<h1 style="margin:0; color:#ffffff !important; font-size:22px;">🔔 Nouvelle demande de contact</h1>
 								<p style="margin:10px 0 0; color:#ffffff !important; font-size:16px; line-height:1.5;">
-									Une nouvelle demande vient d'être soumise sur votre site Delnyx
+									Une nouvelle demande vient d'être soumise sur votre site
+									<span style="color:#ffffff !important;">Delnyx</span>
 								</p>
 							</td>
 						</tr>
