@@ -23,12 +23,14 @@
 		<meta property="og:title" content="{% block og_title %}{{ block('title') }}{% endblock %}">
 		<meta property="og:description" content="{% block og_description %}{{ block('meta_description') }}{% endblock %}">
 		<meta property="og:url" content="{% block og_url %}{{ app.request.uri }}{% endblock %}">
+		<meta property="og:image" content="{% block og_image %}{{ absolute_url(asset('images/preview.png')) }}{% endblock %}">
 		<meta property="og:site_name" content="Delnyx">	
-		<meta property="og:image:secure_url" content="{% block og_image_secure_url %}{{ absolute_url(asset('images/preview.png')) }}{% endblock %}">
-		<meta property="og:image:width" content="1200">
+		<meta property="og:image:width" content="1200">	
 		<meta property="og:image:height" content="630">
-		<meta property="og:image:alt" content="Delnyx - Développeur Web Freelance">
+		<meta property="og:image:alt" content="Delnyx - Développeur Web Freelance Symfony">
 		<meta property="og:image:type" content="image/png">
+		<meta property="og:image:secure_url" content="{% block og_image_secure_url %}{{ absolute_url(asset('images/preview.png')) }}{% endblock %}">
+		<meta property="og:image:url" content="{% block og_image_url %}{{ absolute_url(asset('images/preview.png')) }}{% endblock %}">
 
 		{# Twitter Card #}
 		<meta name="twitter:card" content="summary_large_image">
