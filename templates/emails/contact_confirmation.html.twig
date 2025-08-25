@@ -5,19 +5,7 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 		<title>Confirmation de réception - Delnyx</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<meta name="color-scheme" content="light dark">
-		<meta name="supported-color-schemes" content="light dark">
 		<style>
-			/* Fix Gmail dark mode avec les modes de fusion - Technique HTeuMeuLeu */
-			u + .body .gmail-blend-screen {
-				background: #000000 !important;
-				mix-blend-mode: screen !important;
-			}
-			u + .body .gmail-blend-difference {
-				background: #000000 !important;
-				mix-blend-mode: difference !important;
-			}
-
 			/* Styles responsive */
 			@media only screen and(max-width: 600px) {
 				.mobile-container {
@@ -37,7 +25,7 @@
 		</style>
 	</head>
 	<body
-		class="body" style="margin:0; padding:0; font-family:Arial, sans-serif; background-color:#f8fafc; color:#1f2937;">
+		style="margin:0; padding:0; font-family:Arial, sans-serif; background-color:#f8fafc; color:#1f2937;">
 
 		<!-- Container -->
 		<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc">
@@ -46,26 +34,16 @@
 					<table
 						width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="max-width:600px; margin:0 auto; border-radius:8px; overflow:hidden; border:1px solid #e5e7eb;" class="mobile-container">
 
-						<!-- HEADER avec fix Gmail -->
+						<!-- HEADER -->
 						<tr>
-							<td style="background:#1e293b; background-image:linear-gradient(#1e293b,#1e293b); padding:20px; text-align:center;">
-								<table class="gmail-blend-screen" width="100%" cellpadding="0" cellspacing="0" border="0">
-									<tr>
-										<td>
-											<table class="gmail-blend-difference" width="100%" cellpadding="0" cellspacing="0" border="0">
-												<tr>
-													<td style="text-align:center;">
-														<font color="#ffffff" style="font-size:24px; font-weight:bold; display:block; margin-bottom:10px;">🚀 DELNYX</font>
-														<font color="#ffffff" style="font-size:22px; font-weight:bold; display:block;" class="mobile-title">
-															<b>Merci pour votre demande !</b>
-														</font>
-														<font color="#e2e8f0" style="display:block; margin-top:10px;">Votre message a bien été reçu</font>
-													</td>
-												</tr>
-											</table>
-										</td>
-									</tr>
-								</table>
+							<td bgcolor="#f8fafc" style="padding:20px; text-align:center; border-left:6px solid #3b82f6;">
+								<font color="#1e293b" style="font-size:24px; font-weight:bold; display:block; margin-bottom:10px;">
+									<b>🚀 DELNYX</b>
+								</font>
+								<font color="#1e293b" style="font-size:22px; font-weight:bold; display:block;" class="mobile-title">
+									<b>Merci pour votre demande !</b>
+								</font>
+								<font color="#6b7280" style="display:block; margin-top:10px;">Votre message a bien été reçu</font>
 							</td>
 						</tr>
 
@@ -74,37 +52,25 @@
 							<td
 								bgcolor="#ffffff" style="padding:20px;" class="mobile-padding">
 
-								<!-- Highlight Box avec fix Gmail -->
-								<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-radius:8px; margin:20px 0; overflow:hidden;">
+								<!-- Highlight Box -->
+								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f0fdf4" style="border-left:6px solid #10b981; border-radius:5px; margin:20px 0; border:1px solid #bbf7d0;">
 									<tr>
-										<td style="background:#10b981; background-image:linear-gradient(#10b981,#10b981); padding:20px; text-align:center;">
-											<table class="gmail-blend-screen" width="100%" cellpadding="0" cellspacing="0" border="0">
-												<tr>
-													<td>
-														<table class="gmail-blend-difference" width="100%" cellpadding="0" cellspacing="0" border="0">
-															<tr>
-																<td style="text-align:center;">
-																	<font color="#ffffff" style="font-size:20px; font-weight:bold; display:block; margin-bottom:10px;">
-																		<b>✅ Confirmation de réception</b>
-																	</font>
-																	<font color="#ffffff" style="font-size:16px; display:block;" class="mobile-text">
-																		Bonjour
-																		<b>{{ data.prenom }}</b>,<br>
-																		Je vous confirme avoir bien reçu votre demande concernant :
-																		<b>{{ data.sujet }}</b>
-																	</font>
-																</td>
-															</tr>
-														</table>
-													</td>
-												</tr>
-											</table>
+										<td style="padding:20px; text-align:center;">
+											<font color="#065f46" style="font-size:20px; font-weight:bold; display:block; margin-bottom:10px;">
+												<b>✅ Confirmation de réception</b>
+											</font>
+											<font color="#047857" style="font-size:16px; display:block;" class="mobile-text">
+												Bonjour
+												<b>{{ data.prenom }}</b>,<br>
+												Je vous confirme avoir bien reçu votre demande concernant :
+												<b>{{ data.sujet }}</b>
+											</font>
 										</td>
 									</tr>
 								</table>
 
 								<!-- Info Box -->
-								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc" style="border-left:4px solid #3b82f6; border-radius:5px; margin-bottom:15px; border:1px solid #e5e7eb;">
+								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc" style="border-left:6px solid #3b82f6; border-radius:5px; margin-bottom:15px; border:1px solid #e5e7eb;">
 									<tr>
 										<td style="padding:15px;">
 											<font color="#1e293b" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">
@@ -121,7 +87,7 @@
 								</table>
 
 								<!-- Résumé -->
-								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc" style="border-left:4px solid #3b82f6; border-radius:5px; margin-bottom:15px; border:1px solid #e5e7eb;">
+								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc" style="border-left:6px solid #3b82f6; border-radius:5px; margin-bottom:15px; border:1px solid #e5e7eb;">
 									<tr>
 										<td style="padding:15px;">
 											<font color="#1e293b" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">
@@ -140,13 +106,13 @@
 								</table>
 
 								<!-- Contact -->
-								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc" style="border-left:4px solid #10b981; border-radius:5px; margin-bottom:15px; border:1px solid #e5e7eb;">
+								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f0fdf4" style="border-left:6px solid #10b981; border-radius:5px; margin-bottom:15px; border:1px solid #bbf7d0;">
 									<tr>
 										<td style="padding:15px;">
-											<font color="#1e293b" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">
+											<font color="#065f46" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">
 												<b>📧 Besoin de me joindre rapidement ?</b>
 											</font>
-											<font color="#374151">
+											<font color="#047857">
 												N'hésitez pas à me contacter directement :<br><br>
 												📧
 												<a href="mailto:contact@delnyx.fr" style="color:#2563eb; text-decoration:none;">contact@delnyx.fr</a><br>
@@ -167,13 +133,13 @@
 								</table>
 
 								<!-- Tip -->
-								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc" style="border-left:4px solid #f59e0b; border-radius:5px; margin-bottom:15px; border:1px solid #e5e7eb;">
+								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fffbeb" style="border-left:6px solid #f59e0b; border-radius:5px; margin-bottom:15px; border:1px solid #fed7aa;">
 									<tr>
 										<td style="padding:15px;">
-											<font color="#1e293b" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">
+											<font color="#92400e" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">
 												<b>💡 Le saviez-vous ?</b>
 											</font>
-											<font color="#374151">
+											<font color="#a16207">
 												Je travaille exclusivement avec des
 												<b>technologies modernes</b>
 												(Symfony, React, PostgreSQL) 
@@ -192,28 +158,16 @@
 							</td>
 						</tr>
 
-						<!-- FOOTER avec fix Gmail -->
+						<!-- FOOTER -->
 						<tr>
-							<td style="background:#1e293b; background-image:linear-gradient(#1e293b,#1e293b); font-size:12px; text-align:center; padding:20px; border-top:1px solid #475569;">
-								<table class="gmail-blend-screen" width="100%" cellpadding="0" cellspacing="0" border="0">
-									<tr>
-										<td>
-											<table class="gmail-blend-difference" width="100%" cellpadding="0" cellspacing="0" border="0">
-												<tr>
-													<td style="text-align:center;">
-														<font color="#94a3b8">
-															Cet email a été envoyé automatiquement le
-															{{ "now"|date("d/m/Y à H:i") }}.<br>
-															<b>Delnyx</b>
-															- Développeur Web Freelance spécialisé Symfony<br>
-															<a href="https://delnyx.fr" style="color:#60a5fa; text-decoration:none;">delnyx.fr</a>
-														</font>
-													</td>
-												</tr>
-											</table>
-										</td>
-									</tr>
-								</table>
+							<td bgcolor="#f8fafc" style="font-size:12px; text-align:center; padding:20px; border-top:1px solid #e5e7eb; border-left:6px solid #6b7280;">
+								<font color="#6b7280">
+									Cet email a été envoyé automatiquement le
+									{{ "now"|date("d/m/Y à H:i") }}.<br>
+									<b>Delnyx</b>
+									- Développeur Web Freelance spécialisé Symfony<br>
+									<a href="https://delnyx.fr" style="color:#2563eb; text-decoration:none;">delnyx.fr</a>
+								</font>
 							</td>
 						</tr>
 
