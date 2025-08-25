@@ -2,6 +2,7 @@
 <html lang="fr">
 	<head>
 		<meta charset="UTF-8">
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 		<title>Confirmation de réception - Delnyx</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta name="color-scheme" content="light dark">
@@ -48,13 +49,23 @@
 						<!-- HEADER avec fix Gmail -->
 						<tr>
 							<td style="background:#1e293b; background-image:linear-gradient(#1e293b,#1e293b); padding:20px; text-align:center;">
-								<div class="gmail-blend-screen">
-									<div class="gmail-blend-difference">
-										<font color="#ffffff" style="font-size:24px; font-weight:bold; display:block; margin-bottom:10px;">🚀 DELNYX</font>
-										<font color="#ffffff" style="font-size:22px; font-weight:bold; display:block;" class="mobile-title">Merci pour votre demande !</font>
-										<font color="#e2e8f0" style="display:block; margin-top:10px;">Votre message a bien été reçu</font>
-									</div>
-								</div>
+								<table class="gmail-blend-screen" width="100%" cellpadding="0" cellspacing="0" border="0">
+									<tr>
+										<td>
+											<table class="gmail-blend-difference" width="100%" cellpadding="0" cellspacing="0" border="0">
+												<tr>
+													<td style="text-align:center;">
+														<font color="#ffffff" style="font-size:24px; font-weight:bold; display:block; margin-bottom:10px;">🚀 DELNYX</font>
+														<font color="#ffffff" style="font-size:22px; font-weight:bold; display:block;" class="mobile-title">
+															<b>Merci pour votre demande !</b>
+														</font>
+														<font color="#e2e8f0" style="display:block; margin-top:10px;">Votre message a bien été reçu</font>
+													</td>
+												</tr>
+											</table>
+										</td>
+									</tr>
+								</table>
 							</td>
 						</tr>
 
@@ -67,17 +78,27 @@
 								<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-radius:8px; margin:20px 0; overflow:hidden;">
 									<tr>
 										<td style="background:#10b981; background-image:linear-gradient(#10b981,#10b981); padding:20px; text-align:center;">
-											<div class="gmail-blend-screen">
-												<div class="gmail-blend-difference">
-													<font color="#ffffff" style="font-size:20px; font-weight:bold; display:block; margin-bottom:10px;">✅ Confirmation de réception</font>
-													<font color="#ffffff" style="font-size:16px; display:block;" class="mobile-text">
-														Bonjour
-														<strong>{{ data.prenom }}</strong>,<br>
-														Je vous confirme avoir bien reçu votre demande concernant :
-														<strong>{{ data.sujet }}</strong>
-													</font>
-												</div>
-											</div>
+											<table class="gmail-blend-screen" width="100%" cellpadding="0" cellspacing="0" border="0">
+												<tr>
+													<td>
+														<table class="gmail-blend-difference" width="100%" cellpadding="0" cellspacing="0" border="0">
+															<tr>
+																<td style="text-align:center;">
+																	<font color="#ffffff" style="font-size:20px; font-weight:bold; display:block; margin-bottom:10px;">
+																		<b>✅ Confirmation de réception</b>
+																	</font>
+																	<font color="#ffffff" style="font-size:16px; display:block;" class="mobile-text">
+																		Bonjour
+																		<b>{{ data.prenom }}</b>,<br>
+																		Je vous confirme avoir bien reçu votre demande concernant :
+																		<b>{{ data.sujet }}</b>
+																	</font>
+																</td>
+															</tr>
+														</table>
+													</td>
+												</tr>
+											</table>
 										</td>
 									</tr>
 								</table>
@@ -86,14 +107,14 @@
 								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc" style="border-left:4px solid #3b82f6; border-radius:5px; margin-bottom:15px; border:1px solid #e5e7eb;">
 									<tr>
 										<td style="padding:15px;">
-											<font color="#1e293b" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">📞 Prochaines étapes</font>
+											<font color="#1e293b" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">
+												<b>📞 Prochaines étapes</b>
+											</font>
 											<font color="#374151">
-												<ul style="margin:0; padding-left:20px;">
-													<li>Analyse de votre demande dans les prochaines heures</li>
-													<li>Réponse personnalisée sous 24h maximum</li>
-													<li>Échange téléphonique si nécessaire</li>
-													<li>Devis gratuit et détaillé sous 48h</li>
-												</ul>
+												&bull; Analyse de votre demande dans les prochaines heures<br>
+												&bull; Réponse personnalisée sous 24h maximum<br>
+												&bull; Échange téléphonique si nécessaire<br>
+												&bull; Devis gratuit et détaillé sous 48h
 											</font>
 										</td>
 									</tr>
@@ -103,17 +124,16 @@
 								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc" style="border-left:4px solid #3b82f6; border-radius:5px; margin-bottom:15px; border:1px solid #e5e7eb;">
 									<tr>
 										<td style="padding:15px;">
-											<font color="#1e293b" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">🎯 Votre demande en résumé</font>
+											<font color="#1e293b" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">
+												<b>🎯 Votre demande en résumé</b>
+											</font>
 											<font color="#374151">
-												<p style="margin:0;">
-													<strong>Sujet :</strong>
-													{{ sujets[data.sujet] ?? data.sujet }}</p>
-												<p style="margin:0;">
-													<strong>Message :</strong><br>
-													<em>"{{ data.message|slice(0, 150) }}
-														{% if data.message|length > 150 %}...
-														{% endif %}"</em>
-												</p>
+												<b>Sujet :</b>
+												{{ sujets[data.sujet] ?? data.sujet }}<br><br>
+												<b>Message :</b><br>
+												<em>"{{ data.message|slice(0, 150) }}
+													{% if data.message|length > 150 %}...
+													{% endif %}"</em>
 											</font>
 										</td>
 									</tr>
@@ -123,19 +143,25 @@
 								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc" style="border-left:4px solid #10b981; border-radius:5px; margin-bottom:15px; border:1px solid #e5e7eb;">
 									<tr>
 										<td style="padding:15px;">
-											<font color="#1e293b" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">📧 Besoin de me joindre rapidement ?</font>
-											<font color="#374151">
-												<p style="margin-bottom:15px;">N'hésitez pas à me contacter directement :</p>
-												<p style="margin:5px 0;">📧
-													<a href="mailto:contact@delnyx.fr" style="color:#2563eb; text-decoration:none;">contact@delnyx.fr</a>
-												</p>
-												<p style="margin:5px 0;">🌐
-													<a href="https://delnyx.fr" style="color:#2563eb; text-decoration:none;">https://delnyx.fr</a>
-												</p>
+											<font color="#1e293b" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">
+												<b>📧 Besoin de me joindre rapidement ?</b>
 											</font>
-											<div style="text-align:center; margin-top:20px;">
-												<a href="https://delnyx.fr/services" style="display:inline-block; background:#3b82f6; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold;">🔍 Découvrir mes services</a>
-											</div>
+											<font color="#374151">
+												N'hésitez pas à me contacter directement :<br><br>
+												📧
+												<a href="mailto:contact@delnyx.fr" style="color:#2563eb; text-decoration:none;">contact@delnyx.fr</a><br>
+												🌐
+												<a href="https://delnyx.fr" style="color:#2563eb; text-decoration:none;">https://delnyx.fr</a>
+											</font>
+											<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;">
+												<tr>
+													<td align="center">
+														<a href="https://delnyx.fr/services" style="display:inline-block; background:#3b82f6; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold;">
+															<b>🔍 Découvrir mes services</b>
+														</a>
+													</td>
+												</tr>
+											</table>
 										</td>
 									</tr>
 								</table>
@@ -144,17 +170,19 @@
 								<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc" style="border-left:4px solid #f59e0b; border-radius:5px; margin-bottom:15px; border:1px solid #e5e7eb;">
 									<tr>
 										<td style="padding:15px;">
-											<font color="#1e293b" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">💡 Le saviez-vous ?</font>
+											<font color="#1e293b" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px;">
+												<b>💡 Le saviez-vous ?</b>
+											</font>
 											<font color="#374151">
 												Je travaille exclusivement avec des
-												<strong>technologies modernes</strong>
+												<b>technologies modernes</b>
 												(Symfony, React, PostgreSQL) 
 																								                      et je garantis un
-												<strong>code propre et maintenable</strong>.  
+												<b>code propre et maintenable</b>.  
 																										                      Chaque projet bénéficie d'une
-												<strong>garantie de 3 mois</strong>
+												<b>garantie de 3 mois</b>
 												et d'un
-												<strong>support technique</strong>
+												<b>support technique</b>
 												inclus.
 											</font>
 										</td>
@@ -167,17 +195,25 @@
 						<!-- FOOTER avec fix Gmail -->
 						<tr>
 							<td style="background:#1e293b; background-image:linear-gradient(#1e293b,#1e293b); font-size:12px; text-align:center; padding:20px; border-top:1px solid #475569;">
-								<div class="gmail-blend-screen">
-									<div class="gmail-blend-difference">
-										<font color="#94a3b8">
-											Cet email a été envoyé automatiquement le
-											{{ "now"|date("d/m/Y à H:i") }}.<br>
-											<strong>Delnyx</strong>
-											- Développeur Web Freelance spécialisé Symfony<br>
-											<a href="https://delnyx.fr" style="color:#60a5fa; text-decoration:none;">delnyx.fr</a>
-										</font>
-									</div>
-								</div>
+								<table class="gmail-blend-screen" width="100%" cellpadding="0" cellspacing="0" border="0">
+									<tr>
+										<td>
+											<table class="gmail-blend-difference" width="100%" cellpadding="0" cellspacing="0" border="0">
+												<tr>
+													<td style="text-align:center;">
+														<font color="#94a3b8">
+															Cet email a été envoyé automatiquement le
+															{{ "now"|date("d/m/Y à H:i") }}.<br>
+															<b>Delnyx</b>
+															- Développeur Web Freelance spécialisé Symfony<br>
+															<a href="https://delnyx.fr" style="color:#60a5fa; text-decoration:none;">delnyx.fr</a>
+														</font>
+													</td>
+												</tr>
+											</table>
+										</td>
+									</tr>
+								</table>
 							</td>
 						</tr>
 
