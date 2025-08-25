@@ -1,0 +1,18 @@
+# Robots.txt généré dynamiquement par Symfony
+# Site: {{ hostname ?? 'delnyx.fr' }}
+# Généré le: {{ "now"|date("Y-m-d H:i:s") }}
+
+User-agent: {{ rules.user_agent }}
+{% for allow in rules.allow %}
+Allow: {{ allow }}
+{% endfor %}
+
+{% for disallow in rules.disallow %}
+Disallow: {{ disallow }}
+{% endfor %}
+
+# Sitemap principal
+Sitemap: {{ rules.sitemap }}
+
+# Optimisations pour les moteurs de recherche
+Crawl-delay: 1
