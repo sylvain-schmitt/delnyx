@@ -1,186 +1,123 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="UTF-8">
-		<title>Nouvelle demande de contact - Delnyx</title>
-		<style>
-			/* Mode sombre automatique */
-			@media(prefers-color-scheme: dark) {
-				body,
-				table,
-				td {
-					background-color: #1a202c !important;
-					color: #e2e8f0 !important;
-				}
-				.content {
-					background-color: #2d3748 !important;
-				}
-				.card {
-					background-color: #4a5568 !important;
-				}
-				.label {
-					color: #f1f5f9 !important;
-				}
-				.value {
-					color: #e2e8f0 !important;
-				}
-				a {
-					color: #60a5fa !important;
-				}
-				.meta {
-					color: #a0aec0 !important;
-					border-top-color: #4a5568 !important;
-				}
-			}
+<head>
+  <meta charset="UTF-8">
+  <title>Nouvelle demande de contact - Delnyx</title>
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+</head>
+<body style="margin:0; padding:0; font-family:Arial, sans-serif; line-height:1.6; color:#333333; background-color:#ffffff;">
 
-			/* Outlook et Gmail (forcés en clair ou sombre) */
-			[data-ogsc] body,
-			[data-ogsc] table,
-			[data-ogsc] td {
-				background-color: #ffffff !important;
-				color: #333333 !important;
-			}
-			@media(prefers-color-scheme: dark) {
-				[data-ogsc] body,
-				[data-ogsc] table,
-				[data-ogsc] td {
-					background-color: #1a202c !important;
-					color: #e2e8f0 !important;
-				}
-			}
+  <!-- Préheader (aperçu Gmail/Outlook) -->
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0;">
+    Vous avez reçu une nouvelle demande de contact sur Delnyx.
+  </div>
 
-			/* Règles spécifiques pour Gmail Dark Mode - Header */
-			[data-ogsc] td[style*="background:linear-gradient(135deg, #1e293b, #0f172a)"],
-			[data-ogsc] td[style*="background:linear-gradient(135deg, #1e293b, #0f172a)"] * {
-				color: #ffffff !important;
-			}
+  <!-- Container -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc">
+    <tr>
+      <td align="center" style="padding:20px 0;">
+        <table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="max-width:600px; border-radius:8px; overflow:hidden;">
 
-			/* Règles ultra-agressives pour Gmail */
-			u + .body td[style*="background:linear-gradient(135deg, #1e293b, #0f172a)"],
-			u + .body td[style*="background:linear-gradient(135deg, #1e293b, #0f172a)"] * {
-				color: #ffffff !important;
-			}
+          <!-- HEADER -->
+          <tr>
+            <td bgcolor="#1e293b" style="background:linear-gradient(135deg,#1e293b,#0f172a); padding:20px; border-radius:8px 8px 0 0;">
+              <font color="#ffffff" style="font-size:22px; font-weight:bold; display:block;">🔔 Nouvelle demande de contact</font>
+              <font color="#ffffff" style="display:block; font-size:16px; margin-top:10px;">
+                Une nouvelle demande vient d'être soumise sur votre site <strong>Delnyx</strong>
+              </font>
+            </td>
+          </tr>
 
-			/* Force les couleurs pour Gmail Dark Mode */
-			[data-ogsc] body,
-			[data-ogsc] table,
-			[data-ogsc] td,
-			[data-ogsc] .content,
-			[data-ogsc] .card {
-				background-color: #1a202c !important;
-				color: #e2e8f0 !important;
-			}
+          <!-- CONTENT -->
+          <tr>
+            <td bgcolor="#f8fafc" style="padding:20px;">
 
-			[data-ogsc] .label {
-				color: #ffffff !important;
-			}
+              <!-- Contact -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border-left:4px solid #3b82f6; border-radius:5px; margin-bottom:15px;">
+                <tr>
+                  <td style="padding:10px;">
+                    <font color="#1e293b" style="font-weight:bold; display:block; margin-bottom:5px;">👤 Contact</font>
+                    <font color="#475569">{{ data.prenom }} {{ data.nom }}</font>
+                  </td>
+                </tr>
+              </table>
 
-			[data-ogsc] .value {
-				color: #cbd5e0 !important;
-			}
+              <!-- Email -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border-left:4px solid #3b82f6; border-radius:5px; margin-bottom:15px;">
+                <tr>
+                  <td style="padding:10px;">
+                    <font color="#1e293b" style="font-weight:bold; display:block; margin-bottom:5px;">📧 Email</font>
+                    <a href="mailto:{{ data.email }}" style="color:#2563eb; text-decoration:none;">{{ data.email }}</a>
+                  </td>
+                </tr>
+              </table>
 
-			[data-ogsc] .meta {
-				color: #a0aec0 !important;
-				border-top-color: #4a5568 !important;
-			}
-		</style>
-	</head>
-	<body
-		style="margin:0; padding:0; font-family: Arial, sans-serif; line-height:1.6; color:#333333; background-color:#ffffff;">
+              <!-- Téléphone -->
+              {% if data.telephone %}
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border-left:4px solid #3b82f6; border-radius:5px; margin-bottom:15px;">
+                <tr>
+                  <td style="padding:10px;">
+                    <font color="#1e293b" style="font-weight:bold; display:block; margin-bottom:5px;">📞 Téléphone</font>
+                    <a href="tel:{{ data.telephone }}" style="color:#2563eb; text-decoration:none;">{{ data.telephone }}</a>
+                  </td>
+                </tr>
+              </table>
+              {% endif %}
 
-		<!-- Préheader (aperçu Gmail/Outlook) -->
-		<div style="display:none; max-height:0; overflow:hidden; opacity:0;">
-			Vous avez reçu une nouvelle demande de contact sur Delnyx.
-		</div>
+              <!-- Sujet -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border-left:4px solid #3b82f6; border-radius:5px; margin-bottom:15px;">
+                <tr>
+                  <td style="padding:10px;">
+                    <font color="#1e293b" style="font-weight:bold; display:block; margin-bottom:5px;">📋 Sujet</font>
+                    <font color="#475569">
+                      {% set sujets = {
+                        'devis': '💼 Demande de devis',
+                        'site-vitrine': '🌐 Site vitrine',
+                        'e-commerce': '🛒 Site e-commerce',
+                        'rdv': '📅 Système de prise de RDV',
+                        'application': '⚙️ Application sur-mesure',
+                        'maintenance': '🔧 Maintenance / Support',
+                        'contact': '📞 Prise de contact',
+                        'autre': '❓ Autre demande'
+                      } %}
+                      {{ sujets[data.sujet] ?? data.sujet }}
+                    </font>
+                  </td>
+                </tr>
+              </table>
 
-		<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-			<tr>
-				<td align="center" style="padding:20px 0; background-color:#f8fafc;">
-					<table
-						role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px; background-color:#ffffff; border-radius:8px; overflow:hidden;" class="content">
+              <!-- Message -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border-left:4px solid #10b981; border-radius:5px;">
+                <tr>
+                  <td style="padding:15px;">
+                    <font color="#1e293b" style="font-weight:bold; display:block; margin-bottom:5px;">💬 Message</font>
+                    <font color="#475569">{{ data.message|nl2br }}</font>
+                  </td>
+                </tr>
+              </table>
 
-						<!-- HEADER -->
-						<tr>
-							<td style="padding:20px; background:linear-gradient(135deg, #1e293b, #0f172a); color:#ffffff !important; border-radius:8px 8px 0 0;">
-								<h1 style="margin:0; color:#ffffff !important; font-size:22px;">🔔 Nouvelle demande de contact</h1>
-								<p style="margin:10px 0 0; color:#ffffff !important; font-size:16px; line-height:1.5;">
-									Une nouvelle demande vient d'être soumise sur votre site
-									<span style="color:#ffffff !important;">Delnyx</span>
-								</p>
-							</td>
-						</tr>
+              <!-- META -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-size:12px; color:#64748b; margin-top:20px; padding-top:15px; border-top:1px solid #e2e8f0;">
+                    <font color="#64748b">
+                      <strong>Informations techniques :</strong><br>
+                      📅 Date : {{ "now"|date("d/m/Y à H:i") }}<br>
+                      🌐 IP : {{ ip }}<br>
+                      🖥️ Navigateur : {{ userAgent }}
+                    </font>
+                  </td>
+                </tr>
+              </table>
 
-						<!-- CONTENT -->
-						<tr>
-							<td
-								style="padding:20px; background-color:#f8fafc;" class="content">
+            </td>
+          </tr>
 
-								<!-- Contact -->
-								<div class="card" style="margin-bottom:15px; padding:10px; background-color:#ffffff; border-radius:5px; border-left:4px solid #3b82f6;">
-									<div class="label" style="font-weight:bold; color:#1e293b; margin-bottom:5px;">👤 Contact</div>
-									<div class="value" style="color:#475569;">{{ data.prenom }}
-										{{ data.nom }}</div>
-								</div>
+        </table>
+      </td>
+    </tr>
+  </table>
 
-								<!-- Email -->
-								<div class="card" style="margin-bottom:15px; padding:10px; background-color:#ffffff; border-radius:5px; border-left:4px solid #3b82f6;">
-									<div class="label" style="font-weight:bold; color:#1e293b; margin-bottom:5px;">📧 Email</div>
-									<div class="value" style="color:#475569;">
-										<a href="mailto:{{ data.email }}" style="color:#2563eb; text-decoration:none;">{{ data.email }}</a>
-									</div>
-								</div>
-
-								<!-- Téléphone -->
-								{% if data.telephone %}
-									<div class="card" style="margin-bottom:15px; padding:10px; background-color:#ffffff; border-radius:5px; border-left:4px solid #3b82f6;">
-										<div class="label" style="font-weight:bold; color:#1e293b; margin-bottom:5px;">📞 Téléphone</div>
-										<div class="value" style="color:#475569;">
-											<a href="tel:{{ data.telephone }}" style="color:#2563eb; text-decoration:none;">{{ data.telephone }}</a>
-										</div>
-									</div>
-								{% endif %}
-
-								<!-- Sujet -->
-								<div class="card" style="margin-bottom:15px; padding:10px; background-color:#ffffff; border-radius:5px; border-left:4px solid #3b82f6;">
-									<div class="label" style="font-weight:bold; color:#1e293b; margin-bottom:5px;">📋 Sujet</div>
-									<div class="value" style="color:#475569;">
-										{% set sujets = {
-                    'devis': '💼 Demande de devis',
-                    'site-vitrine': '🌐 Site vitrine',
-                    'e-commerce': '🛒 Site e-commerce',
-                    'rdv': '📅 Système de prise de RDV',
-                    'application': '⚙️ Application sur-mesure',
-                    'maintenance': '🔧 Maintenance / Support',
-                    'contact': '📞 Prise de contact',
-                    'autre': '❓ Autre demande'
-                  } %}
-										{{ sujets[data.sujet] ?? data.sujet }}
-									</div>
-								</div>
-
-								<!-- Message -->
-								<div class="card" style="padding:15px; background-color:#ffffff; border-radius:5px; border-left:4px solid #10b981;">
-									<div class="label" style="font-weight:bold; color:#1e293b; margin-bottom:5px;">💬 Message</div>
-									<div class="value" style="color:#475569;">{{ data.message|nl2br }}</div>
-								</div>
-
-								<!-- META -->
-								<div class="meta" style="font-size:12px; color:#64748b; margin-top:20px; padding-top:15px; border-top:1px solid #e2e8f0;">
-									<strong>Informations techniques :</strong><br>
-									📅 Date :
-									{{ "now"|date("d/m/Y à H:i") }}<br>
-									🌐 IP :
-									{{ ip }}<br>
-									🖥️ Navigateur :
-									{{ userAgent }}
-								</div>
-
-							</td>
-						</tr>
-
-					</table>
-				</td>
-			</tr>
-		</table>
-	</body>
+</body>
 </html>
