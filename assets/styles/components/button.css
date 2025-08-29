@@ -14,6 +14,7 @@
 .btn-primary:hover {
 	transform: translateY(-3px) rotateX(5deg);
 	box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.4);
+	cursor: pointer;
 }
 
 .btn-secondary {
