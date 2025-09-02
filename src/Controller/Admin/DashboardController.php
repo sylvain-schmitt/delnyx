@@ -27,28 +27,29 @@ class DashboardController extends AbstractDashboardController
     public function configureDashboard(): Dashboard
     {
         return Dashboard::new()
-            ->setTitle('🚀 Delnyx - Administration')
-            ->setFaviconPath('/images/favicon.ico')
+            ->setFaviconPath('/images/favicon/favicon.ico')
+            ->disableDarkMode()
             ->renderContentMaximized();
     }
 
     public function configureMenuItems(): iterable
     {
-        yield MenuItem::linkToDashboard('🏠 Dashboard', 'fa fa-home');
+        yield MenuItem::linkToDashboard('Dashboard', 'monitor');
 
         yield MenuItem::section('📁 Portfolio');
-        yield MenuItem::linkToCrud('📋 Projets', 'fas fa-project-diagram', Project::class);
-        yield MenuItem::linkToCrud('🔧 Technologies', 'fas fa-cogs', Technology::class);
-        yield MenuItem::linkToCrud('🖼️ Images', 'fas fa-images', ProjectImage::class);
+        yield MenuItem::linkToCrud('Projets', 'folder-open', Project::class);
+        yield MenuItem::linkToCrud('Technologies', 'zap', Technology::class);
+        yield MenuItem::linkToCrud('Images', 'image', ProjectImage::class);
 
         yield MenuItem::section('🌐 Site');
-        yield MenuItem::linkToUrl('🚀 Voir le site', 'fas fa-external-link-alt', '/');
-        yield MenuItem::linkToUrl('📊 API Platform', 'fas fa-code', '/api');
+        yield MenuItem::linkToUrl('Voir le site', 'external-link', '/');
+        yield MenuItem::linkToUrl('API Platform', 'database', '/api');
     }
 
     public function configureAssets(): Assets
     {
         return Assets::new()
-            ->addCssFile('css/admin.css');
+            ->addAssetMapperEntry('admin')
+            ->useCustomIconSet('lucide');
     }
 }

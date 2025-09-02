@@ -1,37 +1,149 @@
-/* Boutons */
-.btn-primary {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	padding: 1rem 2rem;
-	background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-	color: white;
-	font-weight: 600;
-	border-radius: 0.75rem;
-	box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
-	transition: all 0.3s ease;
-}
-.btn-primary:hover {
-	transform: translateY(-3px) rotateX(5deg);
-	box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.4);
-	cursor: pointer;
+/* === SYSTÈME DE BOUTONS DELNYX === */
+
+/* Bouton primaire - identique au site principal */
+.btn-primary,
+.btn.btn-primary,
+.ea-action.btn-primary {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	padding: 12px 24px !important;
+	background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+	color: white !important;
+	font-weight: 600 !important;
+	border-radius: 12px !important;
+	box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3) !important;
+	transition: all 0.3s ease !important;
+	border: none !important;
+	text-decoration: none !important;
+	font-size: 14px !important;
 }
 
-.btn-secondary {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	padding: 1rem 2rem;
-	background: rgba(255, 255, 255, 0.1);
-	backdrop-filter: blur(15px);
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	color: white;
-	font-weight: 600;
-	border-radius: 0.75rem;
-	transition: all 0.3s ease;
+.btn-primary:hover,
+.btn.btn-primary:hover,
+.ea-action.btn-primary:hover {
+	transform: translateY(-2px) !important;
+	box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.4) !important;
+	color: white !important;
+	text-decoration: none !important;
 }
-.btn-secondary:hover {
-	background: rgba(255, 255, 255, 0.15);
-	transform: translateY(-3px) rotateX(5deg);
-	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+
+/* Bouton secondaire - identique au site principal */
+.btn-secondary,
+.btn.btn-secondary,
+.ea-action.btn-secondary {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	padding: 12px 24px !important;
+	background: rgba(255, 255, 255, 0.1) !important;
+	backdrop-filter: blur(15px) !important;
+	border: 1px solid rgba(255, 255, 255, 0.2) !important;
+	color: white !important;
+	font-weight: 600 !important;
+	border-radius: 12px !important;
+	transition: all 0.3s ease !important;
+	text-decoration: none !important;
+	font-size: 14px !important;
+}
+
+.btn-secondary:hover,
+.btn.btn-secondary:hover,
+.ea-action.btn-secondary:hover {
+	background: rgba(255, 255, 255, 0.15) !important;
+	transform: translateY(-2px) !important;
+	box-shadow: 0 10px 15px -3px rgba(255, 255, 255, 0.2) !important;
+	color: white !important;
+	text-decoration: none !important;
+}
+
+/* Bouton de succès */
+.btn-success,
+.btn.btn-success {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	padding: 12px 24px !important;
+	background: linear-gradient(135deg, #10b981, #059669) !important;
+	color: white !important;
+	font-weight: 600 !important;
+	border-radius: 12px !important;
+	box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3) !important;
+	transition: all 0.3s ease !important;
+	border: none !important;
+	text-decoration: none !important;
+	font-size: 14px !important;
+}
+
+.btn-success:hover,
+.btn.btn-success:hover {
+	transform: translateY(-2px) !important;
+	box-shadow: 0 15px 25px -5px rgba(16, 185, 129, 0.4) !important;
+	color: white !important;
+}
+
+/* Bouton de danger */
+.btn-danger,
+.btn.btn-danger {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	padding: 12px 24px !important;
+	background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+	color: white !important;
+	font-weight: 600 !important;
+	border-radius: 12px !important;
+	box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3) !important;
+	transition: all 0.3s ease !important;
+	border: none !important;
+	text-decoration: none !important;
+	font-size: 14px !important;
+}
+
+.btn-danger:hover,
+.btn.btn-danger:hover {
+	transform: translateY(-2px) !important;
+	box-shadow: 0 15px 25px -5px rgba(239, 68, 68, 0.4) !important;
+	color: white !important;
+}
+
+/* Bouton outline */
+.btn-outline-primary,
+.btn.btn-outline-primary {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	padding: 12px 24px !important;
+	background: transparent !important;
+	border: 1px solid rgba(59, 130, 246, 0.5) !important;
+	color: #3b82f6 !important;
+	font-weight: 600 !important;
+	border-radius: 12px !important;
+	transition: all 0.3s ease !important;
+	text-decoration: none !important;
+	font-size: 14px !important;
+}
+
+.btn-outline-primary:hover,
+.btn.btn-outline-primary:hover {
+	background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+	border-color: #3b82f6 !important;
+	color: white !important;
+	transform: translateY(-2px) !important;
+	box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Petits boutons */
+.btn-sm,
+.btn.btn-sm {
+	padding: 8px 16px !important;
+	font-size: 13px !important;
+	border-radius: 10px !important;
+}
+
+/* Très petits boutons */
+.btn-xs {
+	padding: 6px 12px !important;
+	font-size: 12px !important;
+	border-radius: 8px !important;
 }

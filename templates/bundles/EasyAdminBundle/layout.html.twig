@@ -1,0 +1,45 @@
+{# Template EasyAdmin personnalisé avec Tailwind CSS local #}
+{# Étend le template original pour éviter de tout réécrire #}
+{% extends '@!EasyAdmin/layout.html.twig' %}
+
+{# Override des stylesheets pour utiliser Tailwind local via SymfonyCasts #}
+	{% block head_stylesheets %}
+	{# Garder les styles EasyAdmin de base #}
+	{{ parent() }}
+
+	{# CSS Tailwind géré par le DashboardController #}
+
+	{# Favicons complets pour une meilleure compatibilité #}
+	<link rel="icon" type="image/x-icon" href="{{ asset('images/favicon/favicon.ico') }}"> <link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon/favicon.svg') }}">
+	<link rel="icon" type="image/png" sizes="96x96" href="{{ asset('images/favicon/favicon-96x96.png') }}">
+	<link rel="apple-touch-icon" href="{{ asset('images/favicon/apple-touch-icon.png') }}">
+	<link rel="manifest" href="{{ asset('images/favicon/site.webmanifest') }}">
+{% endblock %}
+
+
+{# Override de la sidebar #}
+{% block sidebar %}
+	<aside class="ea-sidebar">
+		<div class="sidebar-logo">
+			<a href="{{ path('app_home') }}">
+				<div class="logo-container">
+					<img src="{{ asset('images/logo-delnyx.svg') }}" alt="Delnyx - Développement web freelance Symfony et React">
+				</div>
+			</a>
+		</div>
+
+		{# Garde le menu original pour l'instant #}
+		{% block main_menu_wrapper %}
+			{{ include('@EasyAdmin/menu.html.twig') }}
+		{% endblock %}
+	</aside>
+{% endblock %}
+
+{# Override du logo responsive mobile #}
+{% block responsive_header_logo %}
+	<div id="responsive-header-logo" class="text-truncate ms-auto">
+		<a class="responsive-logo" title="Delnyx - Développement web freelance" href="{{ path('app_home') }}">
+			<img src="{{ asset('images/logo-delnyx.svg') }}" alt="Delnyx" style="height: 32px; width: auto;">
+		</a>
+	</div>
+{% endblock %}
