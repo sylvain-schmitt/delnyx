@@ -82,6 +82,7 @@
     --user-name-color: #ffffff;
     --form-help-color: #ffffff;
     --responsive-table-row-border-color: rgba(255, 255, 255, 0.1);
+
 }
 
 body {
@@ -110,8 +111,8 @@ body {
 
 /* === MAIN CONTENT BACKGROUND === */
 .main-content {
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 12px !important;
+    /* border: 1px solid rgba(255, 255, 255, 0.1) !important; */
+    /* border-radius: 12px !important; */
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
     /* CRITIQUE : Empêcher main-content de masquer le dropdown utilisateur */
     z-index: 1 !important;
@@ -217,7 +218,7 @@ button {
 .btn-secondary::before,
 .btn-success::before,
 .btn-danger::before,
-button::before {
+button:not(.trix-button)::before {
     content: '' !important;
     position: absolute !important;
     top: 0 !important;
@@ -227,6 +228,20 @@ button::before {
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent) !important;
     transition: left 0.6s ease !important;
     z-index: 1 !important;
+}
+
+/* Exclure explicitement les boutons Trix de l'effet shimmer */
+.trix-button::before {
+    /* Réinitialiser l'effet shimmer pour les boutons Trix */
+    content: unset !important;
+    position: unset !important;
+    top: unset !important;
+    left: unset !important;
+    width: unset !important;
+    height: unset !important;
+    background: unset !important;
+    transition: unset !important;
+    z-index: unset !important;
 }
 
 .btn:hover::before,
@@ -239,7 +254,7 @@ button::before {
 .btn-secondary:hover::before,
 .btn-success:hover::before,
 .btn-danger:hover::before,
-button:hover::before {
+button:not(.trix-button):hover::before {
     left: 100% !important;
 }
 
@@ -867,47 +882,461 @@ button:disabled:hover {
     text-shadow: 0 0 8px rgba(139, 92, 246, 0.3) !important;
 }
 
+/* === TABLEAUX RESPONSIVES TABLETTES === */
+@media (max-width: 991.98px) and (min-width: 768.01px) {
+
+    /* Adaptation des tableaux entre 992px et 768px SEULEMENT */
+    .table.datagrid {
+        font-size: 0.875rem !important;
+    }
+
+    .table.datagrid th,
+    .table.datagrid td {
+        padding: 0.5rem 0.25rem !important;
+        vertical-align: middle !important;
+    }
+
+    /* Masquer certaines colonnes moins importantes sur les tablettes */
+    .table.datagrid th[data-column="description"],
+    .table.datagrid td[data-column="description"],
+    .table.datagrid th[data-column="url"],
+    .table.datagrid td[data-column="url"] {
+        display: none !important;
+    }
+
+    /* Réduire la largeur des colonnes de dates */
+    .table.datagrid th[data-column="dateCreation"],
+    .table.datagrid td[data-column="dateCreation"],
+    .table.datagrid th[data-column="updatedAt"],
+    .table.datagrid td[data-column="updatedAt"] {
+        min-width: 120px !important;
+        font-size: 0.75rem !important;
+    }
+
+    /* Optimiser les badges de technologies */
+    .table.datagrid .badge {
+        font-size: 0.75rem !important;
+        padding: 0.25rem 0.5rem !important;
+    }
+
+    /* Optimiser les dropdowns d'actions */
+    .table.datagrid .actions.actions-as-dropdown {
+        min-width: 40px !important;
+    }
+}
+
 /* === DROPDOWN UTILISATEUR MOBILE === */
-@media (max-width: 768px) {
+@media (max-width: 991.98px) {
     .user-menu-wrapper {
         position: relative !important;
-        z-index: 20000 !important;
-        /* Z-index encore plus élevé sur mobile */
+        z-index: 50000 !important;
+        /* Z-index ULTRA élevé sur mobile */
     }
 
-    .user-menu-wrapper .dropdown-menu {
-        position: absolute !important;
-        z-index: 20001 !important;
+    /* Override Popper.js styles avec !important */
+    .user-menu-wrapper .dropdown-menu,
+    .user-menu-wrapper .dropdown-menu.show,
+    .dropdown-overlay .dropdown-menu,
+    .dropdown-overlay .dropdown-menu.show {
+        /* position: fixed !important; */
+        /* Fixed au lieu d'absolute pour échapper complètement */
+        z-index: 50001 !important;
         min-width: 200px !important;
-        right: 0 !important;
-        top: 100% !important;
-        left: auto !important;
-        margin-top: 0.25rem !important;
+        /* Laisser Popper.js gérer la position mais forcer le z-index */
     }
 
-    .user-menu-wrapper .dropdown-menu.show {
-        position: absolute !important;
-        z-index: 20001 !important;
-        display: block !important;
-        right: 0 !important;
-        top: 100% !important;
-        left: auto !important;
+    /* Override des styles Popper.js inline */
+    .user-menu-wrapper .dropdown-menu[style*="position"],
+    .dropdown-overlay .dropdown-menu[style*="position"] {
+        z-index: 50001 !important;
+        /* position: fixed !important; */
     }
 
-    /* Forcer tous les conteneurs mobiles à un z-index bas */
+    /* Forcer l'overlay à avoir un z-index élevé aussi */
+    .user-menu-wrapper .dropdown-overlay,
+    .dropdown .dropdown-overlay {
+        z-index: 50000 !important;
+        position: relative !important;
+    }
+
+    /* Forcer tous les conteneurs mobiles à un z-index TRÈS bas */
     .responsive-header,
     .main-content,
     .content-wrapper,
     .content-top,
-    .content-body {
+    .content-body,
+    .content-header,
+    .table,
+    .datagrid {
         z-index: 1 !important;
+        position: relative !important;
     }
 
     /* Exception pour la navbar du header qui contient le dropdown */
     .responsive-header .navbar-custom-menu {
-        z-index: 19999 !important;
+        z-index: 49999 !important;
         position: relative !important;
     }
+
+    /* Forcer le header responsive à rester en bas */
+    .responsive-header {
+        z-index: 10 !important;
+    }
+}
+
+/* === DROPDOWN UTILISATEUR MOBILE ORIGINAL === */
+@media (max-width: 768px) {
+    .user-menu-wrapper {
+        position: relative !important;
+        z-index: 50000 !important;
+        /* Z-index ULTRA élevé sur mobile */
+    }
+
+    /* Override Popper.js styles avec !important */
+    .user-menu-wrapper .dropdown-menu,
+    .user-menu-wrapper .dropdown-menu.show,
+    .dropdown-overlay .dropdown-menu,
+    .dropdown-overlay .dropdown-menu.show {
+        /* position: fixed !important; */
+        /* Fixed au lieu d'absolute pour échapper complètement */
+        z-index: 50001 !important;
+        min-width: 200px !important;
+        /* Laisser Popper.js gérer la position mais forcer le z-index */
+    }
+
+    /* Override des styles Popper.js inline */
+    .user-menu-wrapper .dropdown-menu[style*="position"],
+    .dropdown-overlay .dropdown-menu[style*="position"] {
+        z-index: 50001 !important;
+        /* position: fixed !important; */
+    }
+
+    /* Forcer l'overlay à avoir un z-index élevé aussi */
+    .user-menu-wrapper .dropdown-overlay,
+    .dropdown .dropdown-overlay {
+        z-index: 50000 !important;
+        position: relative !important;
+    }
+
+    /* Forcer tous les conteneurs mobiles à un z-index TRÈS bas */
+    .responsive-header,
+    .main-content,
+    .content-wrapper,
+    .content-top,
+    .content-body,
+    .content-header,
+    .table,
+    .datagrid {
+        z-index: 1 !important;
+        position: relative !important;
+    }
+
+    /* Exception pour la navbar du header qui contient le dropdown */
+    .responsive-header .navbar-custom-menu {
+        z-index: 49999 !important;
+        position: relative !important;
+    }
+
+    /* Forcer le header responsive à rester en bas */
+    .responsive-header {
+        z-index: 10 !important;
+    }
+}
+
+/* === ÉDITEUR TRIX === */
+.ea-text-editor-wrapper {
+    background: rgba(15, 20, 25, 0.6) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Toolbar Trix */
+trix-toolbar {
+    background: rgba(15, 20, 25, 0.8) !important;
+    backdrop-filter: blur(12px) !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    padding: 0.75rem !important;
+}
+
+/* Boutons Trix */
+.trix-button {
+    background: rgba(15, 20, 25, 0.6) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+    padding: 0.5rem !important;
+    margin: 0.125rem !important;
+    transition: all 0.3s ease !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Forcer le texte blanc dans les boutons Trix */
+.trix-button,
+.trix-button *,
+.trix-button::before,
+.trix-button::after {
+    color: #ffffff !important;
+}
+
+/* Icônes des boutons Trix */
+.trix-button--icon,
+.trix-button--icon::before,
+.trix-button--icon::after {
+    color: #ffffff !important;
+}
+
+/* Icônes spécifiques */
+.trix-button--icon-bold,
+.trix-button--icon-italic,
+.trix-button--icon-strike,
+.trix-button--icon-link,
+.trix-button--icon-heading-1,
+.trix-button--icon-quote,
+.trix-button--icon-code,
+.trix-button--icon-bullet-list,
+.trix-button--icon-number-list,
+.trix-button--icon-decrease-nesting-level,
+.trix-button--icon-increase-nesting-level,
+.trix-button--icon-attach,
+.trix-button--icon-undo,
+.trix-button--icon-redo {
+    color: #ffffff !important;
+}
+
+/* SOLUTION ULTRA SPÉCIFIQUE POUR ICÔNES TRIX */
+trix-toolbar .trix-button--icon::before,
+trix-toolbar .trix-button--icon-bold::before,
+trix-toolbar .trix-button--icon-italic::before,
+trix-toolbar .trix-button--icon-strike::before,
+trix-toolbar .trix-button--icon-link::before,
+trix-toolbar .trix-button--icon-heading-1::before,
+trix-toolbar .trix-button--icon-quote::before,
+trix-toolbar .trix-button--icon-code::before,
+trix-toolbar .trix-button--icon-bullet-list::before,
+trix-toolbar .trix-button--icon-number-list::before,
+trix-toolbar .trix-button--icon-decrease-nesting-level::before,
+trix-toolbar .trix-button--icon-increase-nesting-level::before,
+trix-toolbar .trix-button--icon-attach::before,
+trix-toolbar .trix-button--icon-undo::before,
+trix-toolbar .trix-button--icon-redo::before {
+    filter: invert(1) brightness(1) !important;
+    opacity: 1 !important;
+    background-color: transparent !important;
+}
+
+/* Forcer l'inversion sur le thème sombre EasyAdmin */
+.ea-dark-scheme trix-toolbar .trix-button--icon::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-bold::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-italic::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-strike::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-link::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-heading-1::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-quote::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-code::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-bullet-list::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-number-list::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-decrease-nesting-level::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-increase-nesting-level::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-attach::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-undo::before,
+.ea-dark-scheme trix-toolbar .trix-button--icon-redo::before {
+    filter: invert(1) brightness(1) !important;
+    opacity: 1 !important;
+}
+
+/* Override du style EasyAdmin original */
+body trix-toolbar .trix-button--icon::before,
+html trix-toolbar .trix-button--icon::before {
+    filter: invert(1) brightness(1) !important;
+    opacity: 1 !important;
+}
+
+/* Texte des boutons avec icônes */
+.trix-button[data-trix-attribute],
+.trix-button[data-trix-action] {
+    color: #ffffff !important;
+}
+
+.trix-button:hover {
+    background: rgba(139, 92, 246, 0.2) !important;
+    border-color: rgba(139, 92, 246, 0.3) !important;
+    color: rgba(139, 92, 246, 0.95) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.trix-button:hover,
+.trix-button:hover *,
+.trix-button:hover::before,
+.trix-button:hover::after {
+    color: rgba(139, 92, 246, 0.95) !important;
+}
+
+/* Icônes au hover */
+.trix-button--icon:hover,
+.trix-button--icon:hover::before,
+.trix-button--icon:hover::after {
+    color: rgba(139, 92, 246, 0.95) !important;
+}
+
+/* Icônes au hover avec spécificité maximale */
+trix-toolbar .trix-button--icon:hover::before,
+body trix-toolbar .trix-button--icon:hover::before,
+html trix-toolbar .trix-button--icon:hover::before {
+    filter: invert(0) brightness(0) saturate(100%) hue-rotate(258deg) brightness(0.7) contrast(1.2) !important;
+    opacity: 0.95 !important;
+}
+
+.trix-button:focus {
+    background: rgba(139, 92, 246, 0.2) !important;
+    border-color: rgba(139, 92, 246, 0.4) !important;
+    color: rgba(139, 92, 246, 0.95) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.trix-button:focus,
+.trix-button:focus *,
+.trix-button:focus::before,
+.trix-button:focus::after {
+    color: rgba(139, 92, 246, 0.95) !important;
+}
+
+/* Icônes au focus */
+.trix-button--icon:focus,
+.trix-button--icon:focus::before,
+.trix-button--icon:focus::after {
+    color: rgba(139, 92, 246, 0.95) !important;
+}
+
+/* Icônes au focus avec spécificité maximale */
+trix-toolbar .trix-button--icon:focus::before,
+body trix-toolbar .trix-button--icon:focus::before,
+html trix-toolbar .trix-button--icon:focus::before {
+    filter: invert(0) brightness(0) saturate(100%) hue-rotate(258deg) brightness(0.7) contrast(1.2) !important;
+    opacity: 0.95 !important;
+}
+
+.trix-button.trix-button--active {
+    background: rgba(139, 92, 246, 0.3) !important;
+    border-color: rgba(139, 92, 246, 0.5) !important;
+    color: rgba(139, 92, 246, 1) !important;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.trix-button.trix-button--active,
+.trix-button.trix-button--active *,
+.trix-button.trix-button--active::before,
+.trix-button.trix-button--active::after {
+    color: rgba(139, 92, 246, 1) !important;
+}
+
+/* Icônes actives */
+.trix-button--icon.trix-button--active,
+.trix-button--icon.trix-button--active::before,
+.trix-button--icon.trix-button--active::after {
+    color: rgba(139, 92, 246, 1) !important;
+}
+
+/* Icônes actives avec spécificité maximale */
+trix-toolbar .trix-button--icon.trix-button--active::before,
+body trix-toolbar .trix-button--icon.trix-button--active::before,
+html trix-toolbar .trix-button--icon.trix-button--active::before {
+    filter: invert(0) brightness(0) saturate(100%) hue-rotate(258deg) brightness(0.8) contrast(1.3) !important;
+    opacity: 1 !important;
+}
+
+/* Groupes de boutons */
+.trix-button-group {
+    margin-right: 0.5rem !important;
+}
+
+.trix-button-group:not(:last-child) {
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+    padding-right: 0.5rem !important;
+}
+
+/* Éditeur Trix */
+trix-editor {
+    background: rgba(15, 20, 25, 0.4) !important;
+    color: #ffffff !important;
+    border: none !important;
+    padding: 1rem !important;
+    font-size: 1rem !important;
+    line-height: 1.6 !important;
+    min-height: 150px !important;
+}
+
+trix-editor:focus {
+    outline: none !important;
+    background: rgba(15, 20, 25, 0.5) !important;
+}
+
+/* Placeholder */
+trix-editor:empty:not(:focus)::before {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Dialogs Trix */
+.trix-dialog {
+    background: rgba(15, 20, 25, 0.95) !important;
+    backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+    padding: 1rem !important;
+}
+
+.trix-input {
+    background: rgba(15, 20, 25, 0.6) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+    padding: 0.75rem !important;
+    font-size: 1rem !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.trix-input:focus {
+    border-color: rgba(139, 92, 246, 0.5) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.trix-input::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Boutons de dialog */
+.trix-button--dialog {
+    background: rgba(15, 20, 25, 0.6) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+    padding: 0.5rem 1rem !important;
+    margin: 0.25rem !important;
+    transition: all 0.3s ease !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+}
+
+.trix-button--dialog:hover {
+    background: rgba(139, 92, 246, 0.2) !important;
+    border-color: rgba(139, 92, 246, 0.3) !important;
+    color: rgba(139, 92, 246, 0.95) !important;
+    transform: translateY(-1px) !important;
 }
 
 /* === ALERTS === */
