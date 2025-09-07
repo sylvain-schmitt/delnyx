@@ -5,7 +5,9 @@ namespace App\Controller\Admin;
 use App\Entity\Project;
 use App\Entity\Technology;
 use App\Entity\ProjectImage;
+use App\Entity\Client;
 use App\Controller\Admin\ProjectCrudController;
+use App\Controller\Admin\ClientCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
@@ -19,9 +21,9 @@ class DashboardController extends AbstractDashboardController
 {
     public function index(): Response
     {
-        // Redirection vers la liste des projets par défaut
+        // Redirection vers la liste des clients par défaut
         $adminUrlGenerator = $this->container->get(AdminUrlGenerator::class);
-        return $this->redirect($adminUrlGenerator->setController(ProjectCrudController::class)->generateUrl());
+        return $this->redirect($adminUrlGenerator->setController(ClientCrudController::class)->generateUrl());
     }
 
     public function configureDashboard(): Dashboard
@@ -35,6 +37,9 @@ class DashboardController extends AbstractDashboardController
     public function configureMenuItems(): iterable
     {
         yield MenuItem::linkToDashboard('Dashboard', 'monitor');
+
+        yield MenuItem::section('👥 Gestion Commerciale');
+        yield MenuItem::linkToCrud('Clients', 'users', Client::class);
 
         yield MenuItem::section('📁 Portfolio');
         yield MenuItem::linkToCrud('Projets', 'folder-open', Project::class);
