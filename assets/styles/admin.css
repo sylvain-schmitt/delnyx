@@ -79,12 +79,55 @@ body:not(.ea-light-scheme) trix-toolbar .trix-button--icon::before {
 }
 
 @media (max-width: 991.98px) and (min-width: 768.01px) {
+
     /* Adaptation des tableaux UNIQUEMENT sur cette plage */
-    .table.datagrid { font-size: 0.875rem !important; }
-    
-    /* Masquer colonnes description et URL */
-    th[data-column="description"], td[data-column="description"],
-    th[data-column="url"], td[data-column="url"] {
+    .table.datagrid {
+        font-size: 0.875rem !important;
+    }
+
+    /* Masquer colonnes description et URL pour les projets */
+    th[data-column="description"],
+    td[data-column="description"],
+    th[data-column="url"],
+    td[data-column="url"] {
+        display: none !important;
+    }
+
+    /* Masquer colonnes problématiques pour les clients */
+    th[data-column="email"],
+    td[data-column="email"],
+    th[data-column="telephone"],
+    td[data-column="telephone"],
+    th[data-column="adresse"],
+    td[data-column="adresse"],
+    th[data-column="ville"],
+    td[data-column="ville"],
+    th[data-column="pays"],
+    td[data-column="pays"],
+    th[data-column="siret"],
+    td[data-column="siret"],
+    th[data-column="tvaIntracommunautaire"],
+    td[data-column="tvaIntracommunautaire"],
+    th[data-column="notes"],
+    td[data-column="notes"] {
+        display: none !important;
+    }
+
+    /* Masquer colonnes problématiques pour les devis */
+    th[data-column="dateValidite"],
+    td[data-column="dateValidite"],
+    th[data-column="montantHT"],
+    td[data-column="montantHT"],
+    th[data-column="tauxTVA"],
+    td[data-column="tauxTVA"],
+    th[data-column="acomptePourcentage"],
+    td[data-column="acomptePourcentage"],
+    th[data-column="conditionsPaiement"],
+    td[data-column="conditionsPaiement"],
+    th[data-column="delaiLivraison"],
+    td[data-column="delaiLivraison"],
+    th[data-column="notes"],
+    td[data-column="notes"] {
         display: none !important;
     }
 }

@@ -441,9 +441,10 @@ class Client
     {
         $total = 0;
         foreach ($this->factures as $facture) {
-            if ($facture->getStatut() === FactureStatus::PAYEE) {
-                $total += $facture->getMontantTTC();
-            }
+            // Pour l'instant, on additionne toutes les factures
+            // Plus tard, on filtrera par statut PAYEE
+            $montantTTC = (float) $facture->getMontantTTC();
+            $total += $montantTTC;
         }
         return $total;
     }
@@ -483,5 +484,4 @@ class Client
     {
         return $this->statut->value;
     }
-    
 }

@@ -1,11 +1,11 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Entity;
 
 /**
  * Enum pour les statuts des devis
+ * 
+ * @package App\Entity
  */
 enum DevisStatus: string
 {
@@ -14,18 +14,20 @@ enum DevisStatus: string
     case ACCEPTE = 'accepte';
     case REFUSE = 'refuse';
     case EXPIRE = 'expire';
+    case ANNULE = 'annule';
 
     /**
      * Retourne le libellé du statut
      */
     public function getLabel(): string
     {
-        return match($this) {
+        return match ($this) {
             self::BROUILLON => 'Brouillon',
             self::ENVOYE => 'Envoyé',
             self::ACCEPTE => 'Accepté',
             self::REFUSE => 'Refusé',
             self::EXPIRE => 'Expiré',
+            self::ANNULE => 'Annulé',
         };
     }
 
@@ -34,17 +36,18 @@ enum DevisStatus: string
      */
     public function getColor(): string
     {
-        return match($this) {
+        return match ($this) {
             self::BROUILLON => 'secondary',
             self::ENVOYE => 'info',
             self::ACCEPTE => 'success',
             self::REFUSE => 'danger',
             self::EXPIRE => 'warning',
+            self::ANNULE => 'dark',
         };
     }
 
     /**
-     * Retourne tous les statuts disponibles pour les formulaires
+     * Retourne les choix pour les formulaires
      */
     public static function getChoices(): array
     {
@@ -56,7 +59,7 @@ enum DevisStatus: string
     }
 
     /**
-     * Retourne tous les statuts disponibles pour EasyAdmin
+     * Retourne les choix pour EasyAdmin (retourne les enums directement)
      */
     public static function getEasyAdminChoices(): array
     {
@@ -65,5 +68,29 @@ enum DevisStatus: string
             $choices[$case->getLabel()] = $case;
         }
         return $choices;
+    }
+
+    /**
+     * Vérifie si le devis est dans un état final (ne peut plus être modifié)
+     */
+    public function isFinal(): bool
+    {
+        return in_array($this, [self::ACCEPTE, self::REFUSE, self::EXPIRE, self::ANNULE]);
+    }
+
+    /**
+     * Vérifie si le devis peut être envoyé
+     */
+    public function canBeSent(): bool
+    {
+        return $this === self::BROUILLON;
+    }
+
+    /**
+     * Vérifie si le devis peut être accepté
+     */
+    public function canBeAccepted(): bool
+    {
+        return $this === self::ENVOYE;
     }
 }
