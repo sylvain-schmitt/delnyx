@@ -21,8 +21,8 @@ final class Version20250909211317 extends AbstractMigration
     {
         // La table clients existe déjà en production, on ne la recrée pas
 
-        // Création de la table tarifs
-        $this->addSql('CREATE TABLE tarifs (
+        // Création de la table tarifs (si elle n'existe pas)
+        $this->addSql('CREATE TABLE IF NOT EXISTS tarifs (
             id SERIAL PRIMARY KEY,
             nom VARCHAR(100) NOT NULL,
             categorie VARCHAR(50) NOT NULL,
@@ -36,8 +36,8 @@ final class Version20250909211317 extends AbstractMigration
             date_modification TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL
         )');
 
-        // Création de la table devis
-        $this->addSql('CREATE TABLE devis (
+        // Création de la table devis (si elle n'existe pas)
+        $this->addSql('CREATE TABLE IF NOT EXISTS devis (
             id SERIAL PRIMARY KEY,
             numero VARCHAR(50) NOT NULL UNIQUE,
             client_id INTEGER NOT NULL,
@@ -60,8 +60,8 @@ final class Version20250909211317 extends AbstractMigration
             FOREIGN KEY (client_id) REFERENCES clients(id)
         )');
 
-        // Création de la table de liaison devis_tarifs
-        $this->addSql('CREATE TABLE devis_tarifs (
+        // Création de la table de liaison devis_tarifs (si elle n'existe pas)
+        $this->addSql('CREATE TABLE IF NOT EXISTS devis_tarifs (
             devis_id INTEGER NOT NULL,
             tarif_id INTEGER NOT NULL,
             PRIMARY KEY (devis_id, tarif_id),
@@ -69,8 +69,8 @@ final class Version20250909211317 extends AbstractMigration
             FOREIGN KEY (tarif_id) REFERENCES tarifs(id) ON DELETE CASCADE
         )');
 
-        // Création de la table factures
-        $this->addSql('CREATE TABLE factures (
+        // Création de la table factures (si elle n'existe pas)
+        $this->addSql('CREATE TABLE IF NOT EXISTS factures (
             id SERIAL PRIMARY KEY,
             devis_id INTEGER NOT NULL UNIQUE,
             client_id INTEGER NOT NULL,
@@ -78,12 +78,12 @@ final class Version20250909211317 extends AbstractMigration
             FOREIGN KEY (client_id) REFERENCES clients(id)
         )');
 
-        // Index pour les performances
-        $this->addSql('CREATE INDEX IDX_tarifs_categorie ON tarifs(categorie)');
-        $this->addSql('CREATE INDEX IDX_tarifs_actif ON tarifs(actif)');
-        $this->addSql('CREATE INDEX IDX_devis_client ON devis(client_id)');
-        $this->addSql('CREATE INDEX IDX_devis_statut ON devis(statut)');
-        $this->addSql('CREATE INDEX IDX_devis_date_creation ON devis(date_creation)');
+        // Index pour les performances (si ils n'existent pas)
+        $this->addSql('CREATE INDEX IF NOT EXISTS IDX_tarifs_categorie ON tarifs(categorie)');
+        $this->addSql('CREATE INDEX IF NOT EXISTS IDX_tarifs_actif ON tarifs(actif)');
+        $this->addSql('CREATE INDEX IF NOT EXISTS IDX_devis_client ON devis(client_id)');
+        $this->addSql('CREATE INDEX IF NOT EXISTS IDX_devis_statut ON devis(statut)');
+        $this->addSql('CREATE INDEX IF NOT EXISTS IDX_devis_date_creation ON devis(date_creation)');
     }
 
     public function down(Schema $schema): void
