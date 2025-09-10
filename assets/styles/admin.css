@@ -130,4 +130,26 @@ body:not(.ea-light-scheme) trix-toolbar .trix-button--icon::before {
     td[data-column="notes"] {
         display: none !important;
     }
+
+    /* Masquer colonnes problématiques pour les factures */
+    th[data-column="devis"],
+    td[data-column="devis"],
+    th[data-column="dateCreation"],
+    td[data-column="dateCreation"],
+    th[data-column="montantHT"],
+    td[data-column="montantHT"],
+    th[data-column="montantTVA"],
+    td[data-column="montantTVA"],
+    th[data-column="montantAcompte"],
+    td[data-column="montantAcompte"],
+    th[data-column="conditionsPaiement"],
+    td[data-column="conditionsPaiement"],
+    th[data-column="delaiPaiement"],
+    td[data-column="delaiPaiement"],
+    th[data-column="penalitesRetard"],
+    td[data-column="penalitesRetard"],
+    th[data-column="notes"],
+    td[data-column="notes"] {
+        display: none !important;
+    }
 }

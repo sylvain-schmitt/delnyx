@@ -29,7 +29,8 @@ class ProjectImageCrudController extends AbstractCrudController
             ->setPageTitle('new', 'Ajouter une image')
             ->setPageTitle('edit', 'Modifier l\'image')
             ->setPageTitle('detail', 'Détails de l\'image')
-            ->setDefaultSort(['projet' => 'ASC', 'ordre' => 'ASC']);
+            ->setDefaultSort(['projet' => 'ASC', 'ordre' => 'ASC'])
+            ->setPaginatorPageSize(30);
     }
 
     public function configureFields(string $pageName): iterable

@@ -42,4 +42,28 @@ enum FactureStatus: string
             self::ANNULEE => 'dark',
         };
     }
+
+    /**
+     * Retourne les choix pour EasyAdmin
+     */
+    public static function getEasyAdminChoices(): array
+    {
+        $choices = [];
+        foreach (self::cases() as $case) {
+            $choices[$case->getLabel()] = $case->value;
+        }
+        return $choices;
+    }
+
+    /**
+     * Retourne les choix pour les formulaires
+     */
+    public static function getChoices(): array
+    {
+        $choices = [];
+        foreach (self::cases() as $case) {
+            $choices[$case->getLabel()] = $case->value;
+        }
+        return $choices;
+    }
 }

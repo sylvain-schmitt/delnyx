@@ -451,8 +451,8 @@ class Devis
 
         $tauxTVA = (float) $this->tauxTVA;
 
-        // Montant HT = somme des tarifs (en euros)
-        $this->montantHT = number_format($totalHT, 2, '.', '');
+        // Montant HT = somme des tarifs (en centimes pour MoneyField)
+        $this->montantHT = number_format($totalHT * 100, 0, '.', '');
 
         // Montant TTC = HT + TVA
         if ($tauxTVA > 0) {
@@ -463,7 +463,7 @@ class Devis
             $montantTTC = $totalHT;
         }
 
-        $this->montantTTC = number_format($montantTTC, 2, '.', '');
+        $this->montantTTC = number_format($montantTTC * 100, 0, '.', '');
     }
 
     /**
@@ -510,7 +510,7 @@ class Devis
         $montantTTC = (float) $this->montantTTC;
         $acomptePourcentage = (float) $this->acomptePourcentage;
 
-        // EasyAdmin MoneyField stocke en centimes, donc on divise par 100
+        // MoneyField stocke en centimes, donc on divise par 100
         $montantTTCEnEuros = $montantTTC / 100;
         $montantAcompte = $montantTTCEnEuros * ($acomptePourcentage / 100);
 
@@ -597,6 +597,43 @@ class Devis
     public function isMicroEntrepreneur(): bool
     {
         return (float) $this->tauxTVA === 0.0;
+    }
+
+    // ===== MÉTHODES D'AFFICHAGE =====
+
+    /**
+     * Retourne une représentation string de l'entité
+     */
+    public function __toString(): string
+    {
+        return $this->numero ?? 'Devis #' . $this->id;
+    }
+
+    /**
+     * Retourne le montant HT formaté pour l'affichage
+     */
+    public function getMontantHTFormate(): string
+    {
+        $montant = (float) $this->montantHT / 100; // Conversion centimes -> euros
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Retourne le montant TTC formaté pour l'affichage
+     */
+    public function getMontantTTCFormate(): string
+    {
+        $montant = (float) $this->montantTTC / 100; // Conversion centimes -> euros
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Retourne le montant acompte formaté pour l'affichage
+     */
+    public function getMontantAcompteFormate(): string
+    {
+        $montant = (float) $this->getMontantAcompte();
+        return number_format($montant, 2, ',', ' ') . ' €';
     }
 
     // ===== LIFECYCLE CALLBACKS =====

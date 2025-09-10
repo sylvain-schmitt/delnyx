@@ -25,7 +25,8 @@ class TechnologyCrudController extends AbstractCrudController
             ->setPageTitle('index', '🔧 Gestion des Technologies')
             ->setPageTitle('new', '➕ Nouvelle Technologie')
             ->setPageTitle('edit', '✏️ Modifier la Technologie')
-            ->setDefaultSort(['nom' => 'ASC']);
+            ->setDefaultSort(['nom' => 'ASC'])
+            ->setPaginatorPageSize(50);
     }
 
     public function configureFields(string $pageName): iterable
@@ -56,5 +57,4 @@ class TechnologyCrudController extends AbstractCrudController
                 ->hideOnForm(),
         ];
     }
-
 }

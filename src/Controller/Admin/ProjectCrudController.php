@@ -28,7 +28,8 @@ class ProjectCrudController extends AbstractCrudController
             ->setPageTitle('index', '📋 Gestion des Projets')
             ->setPageTitle('new', '➕ Nouveau Projet')
             ->setPageTitle('edit', '✏️ Modifier le Projet')
-            ->setDefaultSort(['dateCreation' => 'DESC']);
+            ->setDefaultSort(['dateCreation' => 'DESC'])
+            ->setPaginatorPageSize(20);
     }
 
     public function configureFields(string $pageName): iterable
