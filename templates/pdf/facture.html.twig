@@ -1,0 +1,240 @@
+{% extends 'pdf/base.html.twig' %}
+
+{% block content %}
+	<!-- En-tête -->
+	<div class="header">
+		<div class="company-info">
+			<div class="company-logo">DELNYX</div>
+			<div class="company-details">
+				<strong>Développement Web & Applications</strong><br>
+				Sylvain SCHMITT<br>
+				Micro-entrepreneur<br>
+				SIRET: 12345678901234<br>
+				Email: contact@delnyx.fr<br>
+				Tél: +33 6 XX XX XX XX
+			</div>
+		</div>
+		<div class="document-info">
+			<div class="document-title">FACTURE</div>
+			<div class="document-number">{{ facture.numero }}</div>
+			<div class="document-date">
+				Émise le
+				{{ facture.dateCreation|date('d/m/Y') }}<br>
+				{% if facture.dateEcheance %}
+					Échéance:
+					{{ facture.dateEcheance|date('d/m/Y') }}
+				{% endif %}
+			</div>
+		</div>
+	</div>
+
+	<!-- Informations client -->
+	<div class="client-section">
+		<div class="client-info">
+			<div class="section-title">Facturer à</div>
+			<div class="client-name">{{ facture.devis.client.nomComplet }}</div>
+			<div class="client-details">
+				{% if facture.devis.client.email %}
+					{{ facture.devis.client.email }}<br>
+				{% endif %}
+				{% if facture.devis.client.telephone %}
+					{{ facture.devis.client.telephone }}<br>
+				{% endif %}
+				{% if facture.devis.client.adresse %}
+					{{ facture.devis.client.adresse }}<br>
+					{% if facture.devis.client.codePostal %}
+						{{ facture.devis.client.codePostal }}
+					{% endif %}
+					{% if facture.devis.client.ville %}
+						{{ facture.devis.client.ville }}
+					{% endif %}
+				{% endif %}
+				{% if facture.devis.client.siret %}<br>SIRET:
+					{{ facture.devis.client.siret }}
+				{% endif %}
+			</div>
+		</div>
+		<div class="company-billing">
+			<div class="section-title">Informations légales</div>
+			<div class="client-details">
+				<strong>DELNYX</strong><br>
+				Sylvain SCHMITT<br>
+				Micro-entrepreneur<br>
+				SIRET: 12345678901234<br>
+				TVA non applicable (art. 293 B du CGI)
+			</div>
+		</div>
+	</div>
+
+	<!-- Référence devis -->
+	{% if facture.devis %}
+		<div class="conditions-section">
+			<div class="conditions-title">Référence</div>
+			<div class="conditions-content">
+				<strong>Devis:</strong>
+				{{ facture.devis.numero }}
+				du
+				{{ facture.devis.dateCreation|date('d/m/Y') }}
+			</div>
+		</div>
+	{% endif %}
+
+	<!-- Tableau des services -->
+	<table class="services-table">
+		<thead>
+			<tr>
+				<th style="width: 50%;">Description</th>
+				<th style="width: 15%;" class="text-center">Quantité</th>
+				<th style="width: 15%;" class="text-right">Prix unitaire</th>
+				<th style="width: 20%;" class="text-right">Total HT</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for tarif in facture.devis.tarifs %}
+				<tr>
+					<td>
+						<strong>{{ tarif.nom }}</strong><br>
+						<small style="color: #666;">{{ tarif.description }}</small>
+					</td>
+					<td class="text-center">1</td>
+					<td class="text-right">{{ tarif.prixFormate }}</td>
+					<td class="text-right">{{ tarif.prixFormate }}</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	<!-- Totaux -->
+	<div class="totals">
+		<table class="totals-table">
+			<tr>
+				<td class="label">Sous-total HT:</td>
+				<td class="amount">{{ facture.montantHTFormate }}</td>
+			</tr>
+			{% if facture.devis.tauxTVA != '0.00' %}
+				<tr>
+					<td class="label">TVA ({{ facture.devis.tauxTVA }}%):</td>
+					<td class="amount">{{ facture.montantTVAFormate }}</td>
+				</tr>
+			{% endif %}
+			<tr class="total-row">
+				<td class="label">Total TTC:</td>
+				<td class="amount">{{ facture.montantTTCFormate }}</td>
+			</tr>
+
+			<!-- Gestion de l'accompte -->
+			{% if facture.devis.acomptePourcentage > 0 %}
+				<tr style="background: #fef3c7; color: #92400e;">
+					<td class="label">Acompte déjà versé ({{ facture.devis.acomptePourcentage }}%):</td>
+					<td class="amount">-
+						{{ facture.devis.montantAcompteFormate }}</td>
+				</tr>
+				<tr class="total-row" style="background: #d1fae5; color: #065f46;">
+					<td class="label">SOLDE À PAYER:</td>
+					<td class="amount">{{ facture.montantRestantFormate }}</td>
+				</tr>
+			{% else %}
+				<tr class="total-row" style="background: #d1fae5; color: #065f46;">
+					<td class="label">MONTANT À PAYER:</td>
+					<td class="amount">{{ facture.montantTTCFormate }}</td>
+				</tr>
+			{% endif %}
+		</table>
+	</div>
+
+	<!-- Conditions de paiement -->
+	<div class="conditions-section">
+		<div class="conditions-title">Conditions de paiement</div>
+		<div class="conditions-content">
+			{% if facture.conditionsPaiement %}
+				{{ facture.conditionsPaiement }}<br><br>
+			{% endif %}
+
+			{% if facture.delaiPaiement %}
+				<strong>Délai de paiement:</strong>
+				{{ facture.delaiPaiement }}<br><br>
+			{% endif %}
+
+			{% if facture.penalitesRetard %}
+				<strong>Pénalités de retard:</strong>
+				{{ facture.penalitesRetard }}<br><br>
+			{% endif %}
+
+			<strong>Moyens de paiement acceptés:</strong><br>
+			• Virement bancaire (IBAN fourni sur demande)<br>
+			• Chèque<br>
+			• Espèces (dans la limite légale)
+		</div>
+	</div>
+
+	<!-- Notes -->
+	{% if facture.notes %}
+		<div class="conditions-section">
+			<div class="conditions-title">Notes</div>
+			<div class="conditions-content">
+				{{ facture.notes }}
+			</div>
+		</div>
+	{% endif %}
+
+	<!-- Statut de paiement -->
+	{% if facture.statut %}
+		<div class="conditions-section">
+			<div class="conditions-title">Statut</div>
+			<div class="conditions-content">
+				{% if facture.isPayee %}
+					<span style="color: #065f46; font-weight: bold;">✅ FACTURE PAYÉE</span><br>
+					{% if facture.datePaiement %}
+						Paiement reçu le
+						{{ facture.datePaiement|date('d/m/Y') }}
+					{% endif %}
+				{% elseif facture.isEnRetard %}
+					<span style="color: #991b1b; font-weight: bold;">⚠️ EN RETARD</span><br>
+					{{ facture.joursRetard }}
+					jour(s) de retard
+					{% if facture.montantPenalites > 0 %}
+						<br>Pénalités:
+						{{ facture.montantPenalites|number_format(2, ',', ' ') }}
+						€
+					{% endif %}
+				{% else %}
+					<span style="color: #1e40af; font-weight: bold;">⏳ EN ATTENTE DE PAIEMENT</span>
+				{% endif %}
+			</div>
+		</div>
+	{% endif %}
+
+	<!-- Mentions légales -->
+	<div class="legal-mentions">
+		<strong>Mentions légales:</strong><br>
+		Facture émise le
+		{{ facture.dateCreation|date('d/m/Y') }}.
+		{% if facture.dateEcheance %}
+			Échéance de paiement:
+			{{ facture.dateEcheance|date('d/m/Y') }}.
+		{% endif %}
+		En cas de retard de paiement, des pénalités de retard pourront être appliquées conformément à la réglementation en vigueur.
+		<br><br>
+		<strong>Micro-entrepreneur:</strong>
+		TVA non applicable selon l'article 293 B du Code Général des Impôts.
+		<br><br>
+		<strong>Nouvelles obligations 2026-2027:</strong><br>
+		{% if facture.devis.sirenClient %}SIREN Client:
+			{{ facture.devis.sirenClient }}<br>
+		{% endif %}
+		{% if facture.devis.adresseLivraison %}Adresse de livraison:
+			{{ facture.devis.adresseLivraison }}<br>
+		{% endif %}
+		{% if facture.devis.typeOperations %}Type d'opérations:
+			{{ facture.devis.typeOperations }}<br>
+		{% endif %}
+		{% if facture.devis.paiementTvaSurDebits %}TVA sur débits: Oui
+		{% endif %}
+	</div>
+
+	<!-- Pied de page -->
+	<div class="footer">
+		<strong>DELNYX</strong>
+		- Développement Web & Applications | contact@delnyx.fr | +33 6 XX XX XX XX
+	</div>
+{% endblock %}

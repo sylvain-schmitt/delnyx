@@ -23,12 +23,16 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\NumericFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Service\PdfGeneratorService;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Request;
 
 
 class DevisCrudController extends AbstractCrudController
 {
     public function __construct(
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private PdfGeneratorService $pdfGenerator
     ) {}
 
     public static function getEntityFqcn(): string
@@ -199,12 +203,23 @@ class DevisCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
+        // Action pour générer le PDF du devis
+        $generatePdf = Action::new('generatePdf', '📄 PDF')
+            ->linkToCrudAction('generatePdf')
+            ->setCssClass('btn btn-success')
+            ->displayIf(function ($entity) {
+                return $entity->getTarifs()->count() > 0;
+            });
+
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_INDEX, $generatePdf)
+            ->add(Crud::PAGE_DETAIL, $generatePdf)
             ->setPermission(Action::DELETE, 'ROLE_ADMIN')
             ->setPermission(Action::NEW, 'ROLE_ADMIN')
             ->setPermission(Action::EDIT, 'ROLE_ADMIN')
-            ->setPermission(Action::DETAIL, 'ROLE_ADMIN');
+            ->setPermission(Action::DETAIL, 'ROLE_ADMIN')
+            ->setPermission('generatePdf', 'ROLE_ADMIN');
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -281,5 +296,30 @@ class DevisCrudController extends AbstractCrudController
 
         $nextNumber = $count + 1;
         return sprintf('DEV-%s-%s-%03d', $year, $month, $nextNumber);
+    }
+
+    /**
+     * Génère le PDF du devis
+     */
+    public function generatePdf(Request $request): Response
+    {
+        // Récupérer l'ID depuis la requête
+        $id = $request->query->get('entityId');
+
+        if (!$id) {
+            throw new \Exception('ID du devis manquant');
+        }
+
+        $devis = $this->entityManager->getRepository(Devis::class)->find($id);
+
+        if (!$devis) {
+            throw new \Exception('Devis non trouvé');
+        }
+
+        if ($devis->getTarifs()->isEmpty()) {
+            throw new \Exception('Impossible de générer le PDF : devis sans tarifs');
+        }
+
+        return $this->pdfGenerator->generateDevisPdf($devis);
     }
 }

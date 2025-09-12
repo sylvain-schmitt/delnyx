@@ -1,0 +1,175 @@
+{% extends 'pdf/base.html.twig' %}
+
+{% block content %}
+	<!-- En-tête -->
+	<div class="header">
+		<div class="company-info">
+			<div class="company-logo">DELNYX</div>
+			<div class="company-details">
+				<strong>Développement Web & Applications</strong><br>
+				Sylvain SCHMITT<br>
+				Micro-entrepreneur<br>
+				SIRET: 12345678901234<br>
+				Email: contact@delnyx.fr<br>
+				Tél: +33 6 XX XX XX XX
+			</div>
+		</div>
+		<div class="document-info">
+			<div class="document-title">DEVIS</div>
+			<div class="document-number">{{ devis.numero }}</div>
+			<div class="document-date">
+				Créé le
+				{{ devis.dateCreation|date('d/m/Y') }}<br>
+				{% if devis.dateValidite %}
+					Valide jusqu'au
+					{{ devis.dateValidite|date('d/m/Y') }}
+				{% endif %}
+			</div>
+		</div>
+	</div>
+
+	<!-- Informations client -->
+	<div class="client-section">
+		<div class="client-info">
+			<div class="section-title">Facturer à</div>
+			<div class="client-name">{{ devis.client.nomComplet }}</div>
+			<div class="client-details">
+				{% if devis.client.email %}
+					{{ devis.client.email }}<br>
+				{% endif %}
+				{% if devis.client.telephone %}
+					{{ devis.client.telephone }}<br>
+				{% endif %}
+				{% if devis.client.adresse %}
+					{{ devis.client.adresse }}<br>
+					{% if devis.client.codePostal %}
+						{{ devis.client.codePostal }}
+					{% endif %}
+					{% if devis.client.ville %}
+						{{ devis.client.ville }}
+					{% endif %}
+				{% endif %}
+				{% if devis.client.siret %}<br>SIRET:
+					{{ devis.client.siret }}
+				{% endif %}
+			</div>
+		</div>
+		<div class="company-billing">
+			<div class="section-title">Informations légales</div>
+			<div class="client-details">
+				<strong>DELNYX</strong><br>
+				Sylvain SCHMITT<br>
+				Micro-entrepreneur<br>
+				SIRET: 12345678901234<br>
+				TVA non applicable (art. 293 B du CGI)
+			</div>
+		</div>
+	</div>
+
+	<!-- Tableau des services -->
+	<table class="services-table">
+		<thead>
+			<tr>
+				<th style="width: 50%;">Description</th>
+				<th style="width: 15%;" class="text-center">Quantité</th>
+				<th style="width: 15%;" class="text-right">Prix unitaire</th>
+				<th style="width: 20%;" class="text-right">Total HT</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for tarif in devis.tarifs %}
+				<tr>
+					<td>
+						<strong>{{ tarif.nom }}</strong><br>
+						<small style="color: #666;">{{ tarif.description }}</small>
+					</td>
+					<td class="text-center">1</td>
+					<td class="text-right">{{ tarif.prixFormate }}</td>
+					<td class="text-right">{{ tarif.prixFormate }}</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	<!-- Totaux -->
+	<div class="totals">
+		<table class="totals-table">
+			<tr>
+				<td class="label">Sous-total HT:</td>
+				<td class="amount">{{ devis.montantHTFormate }}</td>
+			</tr>
+			{% if devis.tauxTVA != '0.00' %}
+				<tr>
+					<td class="label">TVA ({{ devis.tauxTVA }}%):</td>
+					<td class="amount">{{ devis.montantTVA|number_format(2, ',', ' ') }}
+						€</td>
+				</tr>
+			{% endif %}
+			<tr class="total-row">
+				<td class="label">Total TTC:</td>
+				<td class="amount">{{ devis.montantTTCFormate }}</td>
+			</tr>
+			{% if devis.acomptePourcentage > 0 %}
+				<tr>
+					<td class="label">Acompte ({{ devis.acomptePourcentage }}%):</td>
+					<td class="amount">{{ devis.montantAcompteFormate }}</td>
+				</tr>
+				<tr>
+					<td class="label">Solde restant:</td>
+					<td class="amount">{{ (devis.montantTTC - devis.montantAcompte)|number_format(2, ',', ' ') }}
+						€</td>
+				</tr>
+			{% endif %}
+		</table>
+	</div>
+
+	<!-- Conditions de paiement -->
+	{% if devis.conditionsPaiement or devis.delaiLivraison %}
+		<div class="conditions-section">
+			<div class="conditions-title">Conditions</div>
+			<div class="conditions-content">
+				{% if devis.conditionsPaiement %}
+					<strong>Conditions de paiement:</strong><br>
+					{{ devis.conditionsPaiement }}<br><br>
+				{% endif %}
+				{% if devis.delaiLivraison %}
+					<strong>Délai de livraison:</strong><br>
+					{{ devis.delaiLivraison }}<br><br>
+				{% endif %}
+				{% if devis.acomptePourcentage > 0 %}
+					<strong>Acompte:</strong><br>
+					Un acompte de
+					{{ devis.acomptePourcentage }}% ({{ devis.montantAcompteFormate }}) sera demandé à la commande.<br>
+					Le solde restant sera facturé à la livraison.
+				{% endif %}
+			</div>
+		</div>
+	{% endif %}
+
+	<!-- Notes -->
+	{% if devis.notes %}
+		<div class="conditions-section">
+			<div class="conditions-title">Notes</div>
+			<div class="conditions-content">
+				{{ devis.notes }}
+			</div>
+		</div>
+	{% endif %}
+
+	<!-- Mentions légales -->
+	<div class="legal-mentions">
+		<strong>Mentions légales:</strong><br>
+		Ce devis est valable 30 jours à compter de sa date d'émission. L'acceptation de ce devis vaut commande ferme et définitive. 
+		        Les prestations seront exécutées conformément aux conditions générales de vente. 
+		        En cas de litige, les tribunaux français seront seuls compétents.
+		<br><br>
+		<strong>Micro-entrepreneur:</strong>
+		TVA non applicable selon l'article 293 B du Code Général des Impôts.
+	</div>
+
+	<!-- Pied de page -->
+	<div class="footer">
+		<strong>DELNYX</strong>
+		- Développement Web & Applications | contact@delnyx.fr | +33 6 XX XX XX XX
+	</div>
+{% endblock %}

@@ -12,6 +12,7 @@
         "doctrine/doctrine-bundle": "^2.15",
         "doctrine/doctrine-migrations-bundle": "^3.4",
         "doctrine/orm": "^3.5",
+        "dompdf/dompdf": "*",
         "easycorp/easyadmin-bundle": "*",
         "symfony/asset": "7.3.*",
         "symfony/console": "7.3.*",

@@ -25,11 +25,15 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\NumericFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Service\PdfGeneratorService;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Request;
 
 class FactureCrudController extends AbstractCrudController
 {
     public function __construct(
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private PdfGeneratorService $pdfGenerator
     ) {}
 
     public static function getEntityFqcn(): string
@@ -171,12 +175,23 @@ class FactureCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
+        // Action pour générer le PDF de la facture
+        $generatePdf = Action::new('generatePdf', '📄 PDF')
+            ->linkToCrudAction('generatePdf')
+            ->setCssClass('btn btn-success')
+            ->displayIf(function ($entity) {
+                return $entity->getDevis() !== null;
+            });
+
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_INDEX, $generatePdf)
+            ->add(Crud::PAGE_DETAIL, $generatePdf)
             ->setPermission(Action::DELETE, 'ROLE_ADMIN')
             ->setPermission(Action::NEW, 'ROLE_ADMIN')
             ->setPermission(Action::EDIT, 'ROLE_ADMIN')
-            ->setPermission(Action::DETAIL, 'ROLE_ADMIN');
+            ->setPermission(Action::DETAIL, 'ROLE_ADMIN')
+            ->setPermission('generatePdf', 'ROLE_ADMIN');
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -286,5 +301,30 @@ class FactureCrudController extends AbstractCrudController
 
         $nextNumber = $count + 1;
         return sprintf('FAC-%s-%s-%03d', $year, $month, $nextNumber);
+    }
+
+    /**
+     * Génère le PDF de la facture
+     */
+    public function generatePdf(Request $request): Response
+    {
+        // Récupérer l'ID depuis la requête
+        $id = $request->query->get('entityId');
+
+        if (!$id) {
+            throw new \Exception('ID de la facture manquant');
+        }
+
+        $facture = $this->entityManager->getRepository(Facture::class)->find($id);
+
+        if (!$facture) {
+            throw new \Exception('Facture non trouvée');
+        }
+
+        if (!$facture->getDevis()) {
+            throw new \Exception('Impossible de générer le PDF : facture sans devis associé');
+        }
+
+        return $this->pdfGenerator->generateFacturePdf($facture);
     }
 }
