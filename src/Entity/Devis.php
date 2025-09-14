@@ -636,6 +636,28 @@ class Devis
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 
+    /**
+     * Calcule le solde restant après acompte
+     */
+    public function getSoldeRestant(): string
+    {
+        $montantTTCEnEuros = (float) $this->montantTTC / 100; // Conversion centimes -> euros
+        $montantAcompteEnEuros = (float) $this->getMontantAcompte();
+
+        $soldeRestant = $montantTTCEnEuros - $montantAcompteEnEuros;
+
+        return number_format(round($soldeRestant, 2), 2, '.', '');
+    }
+
+    /**
+     * Retourne le solde restant formaté pour l'affichage
+     */
+    public function getSoldeRestantFormate(): string
+    {
+        $montant = (float) $this->getSoldeRestant();
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
     // ===== LIFECYCLE CALLBACKS =====
 
     #[ORM\PrePersist]

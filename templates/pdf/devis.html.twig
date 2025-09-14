@@ -4,7 +4,13 @@
 	<!-- En-tête -->
 	<div class="header">
 		<div class="company-info">
-			<div class="company-logo">DELNYX</div>
+			<div class="company-logo">
+				{% if logo_base64 %}
+					<img src="{{ logo_base64 }}" alt="DELNYX" style="height: 40px; width: auto;">
+				{% else %}
+					<span style="font-size: 24px; font-weight: bold; color: #2563eb; letter-spacing: 2px;">DELNYX</span>
+				{% endif %}
+			</div>
 			<div class="company-details">
 				<strong>Développement Web & Applications</strong><br>
 				Sylvain SCHMITT<br>
@@ -116,8 +122,7 @@
 				</tr>
 				<tr>
 					<td class="label">Solde restant:</td>
-					<td class="amount">{{ (devis.montantTTC - devis.montantAcompte)|number_format(2, ',', ' ') }}
-						€</td>
+					<td class="amount">{{ devis.soldeRestantFormate }}</td>
 				</tr>
 			{% endif %}
 		</table>

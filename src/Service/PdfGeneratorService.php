@@ -6,6 +6,7 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 use Twig\Environment;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\KernelInterface;
 
 /**
  * Service de génération de PDF avec DomPDF
@@ -13,7 +14,8 @@ use Symfony\Component\HttpFoundation\Response;
 class PdfGeneratorService
 {
     public function __construct(
-        private Environment $twig
+        private Environment $twig,
+        private KernelInterface $kernel
     ) {}
 
     /**
@@ -29,6 +31,17 @@ class PdfGeneratorService
         $options->set('isPhpEnabled', true);
 
         $dompdf = new Dompdf($options);
+
+        // Conversion du logo SVG en base64 (meilleure qualité)
+        $logoPath = $this->kernel->getProjectDir() . '/assets/images/logo-delnyx.svg';
+        $logoBase64 = '';
+
+        if (file_exists($logoPath)) {
+            $logoData = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/svg+xml;base64,' . base64_encode($logoData);
+        }
+
+        $data['logo_base64'] = $logoBase64;
 
         // Rendu du template Twig
         $html = $this->twig->render($template, $data);
