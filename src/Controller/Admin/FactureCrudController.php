@@ -91,7 +91,7 @@ class FactureCrudController extends AbstractCrudController
                 ->setFormat('dd/MM/yyyy HH:mm')
                 ->setRequired(true),
 
-            ChoiceField::new('statut', 'Statut')
+            ChoiceField::new('statutEnum', 'Statut')
                 ->setHelp('Statut actuel de la facture')
                 ->setChoices(FactureStatus::getEasyAdminChoices())
                 ->formatValue(function ($value, $entity) {
@@ -183,21 +183,70 @@ class FactureCrudController extends AbstractCrudController
                 return $entity->getDevis() !== null;
             });
 
+        // Actions pour changer le statut rapidement
+        $markAsSent = Action::new('markAsSent', '📤 Envoyée')
+            ->linkToCrudAction('markAsSent')
+            ->setCssClass('btn btn-info btn-sm')
+            ->displayIf(function ($entity) {
+                return $entity && $entity->getStatutEnum() && $entity->getStatutEnum() === FactureStatus::BROUILLON;
+            });
+
+        $markAsPaid = Action::new('markAsPaid', '💰 Payée')
+            ->linkToCrudAction('markAsPaid')
+            ->setCssClass('btn btn-success btn-sm')
+            ->displayIf(function ($entity) {
+                return $entity && $entity->getStatutEnum() && $entity->getStatutEnum() === FactureStatus::ENVOYEE;
+            });
+
+        $markAsOverdue = Action::new('markAsOverdue', '⚠️ En retard')
+            ->linkToCrudAction('markAsOverdue')
+            ->setCssClass('btn btn-warning btn-sm')
+            ->displayIf(function ($entity) {
+                return $entity && $entity->getStatutEnum() && $entity->getStatutEnum() === FactureStatus::ENVOYEE;
+            });
+
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, $generatePdf)
+            ->add(Crud::PAGE_INDEX, $markAsSent)
+            ->add(Crud::PAGE_INDEX, $markAsPaid)
+            ->add(Crud::PAGE_INDEX, $markAsOverdue)
             ->add(Crud::PAGE_DETAIL, $generatePdf)
+            ->add(Crud::PAGE_DETAIL, $markAsSent)
+            ->add(Crud::PAGE_DETAIL, $markAsPaid)
+            ->add(Crud::PAGE_DETAIL, $markAsOverdue)
             ->setPermission(Action::DELETE, 'ROLE_ADMIN')
             ->setPermission(Action::NEW, 'ROLE_ADMIN')
-            ->setPermission(Action::EDIT, 'ROLE_ADMIN')
             ->setPermission(Action::DETAIL, 'ROLE_ADMIN')
-            ->setPermission('generatePdf', 'ROLE_ADMIN');
+            ->setPermission('generatePdf', 'ROLE_ADMIN')
+            ->setPermission('markAsSent', 'ROLE_ADMIN')
+            ->setPermission('markAsPaid', 'ROLE_ADMIN')
+            ->setPermission('markAsOverdue', 'ROLE_ADMIN')
+            ->setPermission(Action::EDIT, 'ROLE_ADMIN')
+            ->update(Crud::PAGE_INDEX, Action::EDIT, function (Action $action) {
+                return $action->displayIf(function ($entity) {
+                    if (!$entity) {
+                        return true;
+                    }
+                    $statut = $entity->getStatutEnum();
+                    return !$statut || !$statut->isEmitted();
+                });
+            })
+            ->update(Crud::PAGE_DETAIL, Action::EDIT, function (Action $action) {
+                return $action->displayIf(function ($entity) {
+                    if (!$entity) {
+                        return true;
+                    }
+                    $statut = $entity->getStatutEnum();
+                    return !$statut || !$statut->isEmitted();
+                });
+            });
     }
 
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
-            ->add(ChoiceFilter::new('statut', 'Statut')
+            ->add(ChoiceFilter::new('statutEnum', 'Statut')
                 ->setChoices(FactureStatus::getChoices()))
             ->add(DateTimeFilter::new('dateCreation', 'Date de création'))
             ->add(DateTimeFilter::new('dateEcheance', 'Date d\'échéance'))
@@ -326,5 +375,64 @@ class FactureCrudController extends AbstractCrudController
         }
 
         return $this->pdfGenerator->generateFacturePdf($facture);
+    }
+
+    /**
+     * Marque la facture comme envoyée
+     */
+    public function markAsSent(Request $request): Response
+    {
+        $id = $request->query->get('entityId');
+        $facture = $this->entityManager->getRepository(Facture::class)->find($id);
+
+        if (!$facture) {
+            throw $this->createNotFoundException('Facture non trouvée');
+        }
+
+        $facture->setStatutEnum(FactureStatus::ENVOYEE);
+        $facture->setDateEnvoi(new \DateTime());
+        $this->entityManager->flush();
+
+        $this->addFlash('success', 'Facture marquée comme envoyée');
+        return $this->redirectToRoute('admin');
+    }
+
+    /**
+     * Marque la facture comme payée
+     */
+    public function markAsPaid(Request $request): Response
+    {
+        $id = $request->query->get('entityId');
+        $facture = $this->entityManager->getRepository(Facture::class)->find($id);
+
+        if (!$facture) {
+            throw $this->createNotFoundException('Facture non trouvée');
+        }
+
+        $facture->setStatutEnum(FactureStatus::PAYEE);
+        $facture->setDatePaiement(new \DateTime());
+        $this->entityManager->flush();
+
+        $this->addFlash('success', 'Facture marquée comme payée');
+        return $this->redirectToRoute('admin');
+    }
+
+    /**
+     * Marque la facture comme en retard
+     */
+    public function markAsOverdue(Request $request): Response
+    {
+        $id = $request->query->get('entityId');
+        $facture = $this->entityManager->getRepository(Facture::class)->find($id);
+
+        if (!$facture) {
+            throw $this->createNotFoundException('Facture non trouvée');
+        }
+
+        $facture->setStatutEnum(FactureStatus::EN_RETARD);
+        $this->entityManager->flush();
+
+        $this->addFlash('success', 'Facture marquée comme en retard');
+        return $this->redirectToRoute('admin');
     }
 }

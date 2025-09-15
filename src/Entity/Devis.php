@@ -606,7 +606,8 @@ class Devis
      */
     public function __toString(): string
     {
-        return $this->numero ?? 'Devis #' . $this->id;
+        $client = $this->getClient() ? $this->getClient()->getNomComplet() : 'Client inconnu';
+        return sprintf('%s - %s (%s)', $this->numero ?? 'Devis #' . $this->id, $client, $this->getMontantTTCFormate());
     }
 
     /**
@@ -624,6 +625,15 @@ class Devis
     public function getMontantTTCFormate(): string
     {
         $montant = (float) $this->montantTTC / 100; // Conversion centimes -> euros
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Retourne le montant TVA formaté pour l'affichage
+     */
+    public function getMontantTVAFormate(): string
+    {
+        $montant = (float) $this->getMontantTVA() / 100; // Conversion centimes -> euros
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 

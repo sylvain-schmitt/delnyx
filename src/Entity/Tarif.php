@@ -281,6 +281,27 @@ class Tarif
     }
 
     /**
+     * Retourne le prix TTC formaté avec l'unité
+     */
+    #[Groups(['tarif:read'])]
+    public function getPrixTTCFormate(): string
+    {
+        // Calculer le prix TTC (HT + TVA)
+        $prixHT = (float) $this->prix / 100;
+        $tauxTVA = 0.20; // 20% par défaut, à adapter selon vos besoins
+        $prixTTC = $prixHT * (1 + $tauxTVA);
+        $prix = number_format($prixTTC, 2, ',', ' ');
+
+        return match ($this->unite) {
+            'forfait' => $prix . ' € TTC',
+            'mois' => $prix . ' €/mois TTC',
+            'an' => $prix . ' €/an TTC',
+            'heure' => $prix . ' €/h TTC',
+            default => $prix . ' € TTC'
+        };
+    }
+
+    /**
      * Retourne toutes les catégories disponibles
      */
     public static function getCategories(): array

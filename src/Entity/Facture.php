@@ -473,4 +473,13 @@ class Facture
     {
         return number_format((float) $this->getMontantRestant(), 2, ',', ' ') . ' €';
     }
+
+    /**
+     * Représentation string de la facture pour les listes déroulantes
+     */
+    public function __toString(): string
+    {
+        $client = $this->getClient() ? $this->getClient()->getNomComplet() : 'Client inconnu';
+        return sprintf('%s - %s (%s)', $this->numero ?? 'Facture #' . $this->id, $client, $this->getMontantTTCFormate());
+    }
 }

@@ -50,7 +50,7 @@ enum FactureStatus: string
     {
         $choices = [];
         foreach (self::cases() as $case) {
-            $choices[$case->getLabel()] = $case->value;
+            $choices[$case->getLabel()] = $case;
         }
         return $choices;
     }
@@ -65,5 +65,22 @@ enum FactureStatus: string
             $choices[$case->getLabel()] = $case->value;
         }
         return $choices;
+    }
+
+    /**
+     * Détermine si la facture est modifiable
+     * Une facture n'est modifiable que si elle est en brouillon
+     */
+    public function isModifiable(): bool
+    {
+        return $this === self::BROUILLON;
+    }
+
+    /**
+     * Détermine si la facture est émise (envoyée, payée, en retard, annulée)
+     */
+    public function isEmitted(): bool
+    {
+        return in_array($this, [self::ENVOYEE, self::PAYEE, self::EN_RETARD, self::ANNULEE]);
     }
 }

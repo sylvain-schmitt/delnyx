@@ -1,0 +1,222 @@
+{% extends 'pdf/base.html.twig' %}
+
+{% block content %}
+	<!-- En-tête -->
+	<div class="header">
+		<div class="company-info">
+			<div class="company-logo">
+				{% if logo_base64 %}
+					<img src="{{ logo_base64 }}" alt="DELNYX" style="height: 40px; width: auto;">
+				{% else %}
+					<span style="font-size: 24px; font-weight: bold; color: #2563eb; letter-spacing: 2px;">DELNYX</span>
+				{% endif %}
+			</div>
+			<div class="company-details">
+				<strong>Développement Web & Applications</strong><br>
+				Sylvain SCHMITT<br>
+				Micro-entrepreneur<br>
+				SIRET: 12345678901234<br>
+				Email: contact@delnyx.fr<br>
+				Tél: +33 6 XX XX XX XX
+			</div>
+		</div>
+		<div class="document-info">
+			<div class="document-title">AVENANT</div>
+			<div class="document-number">{{ avenant.numero }}</div>
+			<div class="document-date">
+				Créé le
+				{{ avenant.dateCreation|date('d/m/Y') }}<br>
+				{% if avenant.dateValidation %}
+					Validé le
+					{{ avenant.dateValidation|date('d/m/Y') }}
+				{% endif %}
+			</div>
+		</div>
+	</div>
+
+	<!-- Informations client -->
+	<div class="client-section">
+		<div class="client-info">
+			<div class="section-title">Client</div>
+			{% if avenant.devis %}
+				<div class="client-name">{{ avenant.devis.client.nomComplet }}</div>
+				<div class="client-details">
+					{% if avenant.devis.client.email %}
+						{{ avenant.devis.client.email }}<br>
+					{% endif %}
+					{% if avenant.devis.client.telephone %}
+						{{ avenant.devis.client.telephone }}<br>
+					{% endif %}
+					{% if avenant.devis.client.adresse %}
+						{{ avenant.devis.client.adresse }}<br>
+						{% if avenant.devis.client.codePostal %}
+							{{ avenant.devis.client.codePostal }}
+						{% endif %}
+						{% if avenant.devis.client.ville %}
+							{{ avenant.devis.client.ville }}
+						{% endif %}
+					{% endif %}
+					{% if avenant.devis.client.siret %}<br>SIRET:
+						{{ avenant.devis.client.siret }}
+					{% endif %}
+				</div>
+			{% elseif avenant.facture %}
+				<div class="client-name">{{ avenant.facture.client.nomComplet }}</div>
+				<div class="client-details">
+					{% if avenant.facture.client.email %}
+						{{ avenant.facture.client.email }}<br>
+					{% endif %}
+					{% if avenant.facture.client.telephone %}
+						{{ avenant.facture.client.telephone }}<br>
+					{% endif %}
+					{% if avenant.facture.client.adresse %}
+						{{ avenant.facture.client.adresse }}<br>
+						{% if avenant.facture.client.codePostal %}
+							{{ avenant.facture.client.codePostal }}
+						{% endif %}
+						{% if avenant.facture.client.ville %}
+							{{ avenant.facture.client.ville }}
+						{% endif %}
+					{% endif %}
+					{% if avenant.facture.client.siret %}<br>SIRET:
+						{{ avenant.facture.client.siret }}
+					{% endif %}
+				</div>
+			{% endif %}
+		</div>
+		<div class="company-billing">
+			<div class="section-title">Informations légales</div>
+			<div class="client-details">
+				<strong>DELNYX</strong><br>
+				Sylvain SCHMITT<br>
+				Micro-entrepreneur<br>
+				SIRET: 12345678901234<br>
+				TVA non applicable (art. 293 B du CGI)
+			</div>
+		</div>
+	</div>
+
+	<!-- Document d'origine -->
+	<div class="conditions-section">
+		<div class="conditions-title">Document d'origine</div>
+		<div class="conditions-content">
+			{% if avenant.devis %}
+				<strong>Devis:</strong>
+				{{ avenant.devis.numero }}
+				du
+				{{ avenant.devis.dateCreation|date('d/m/Y') }}<br>
+				<strong>Montant HT:</strong>
+				{{ avenant.devis.getMontantHTFormate }}
+				—
+				<strong>TVA:</strong>
+				{{ avenant.devis.getMontantTVAFormate }}
+				—
+				<strong>TTC:</strong>
+				{{ avenant.devis.getMontantTTCFormate }}
+			{% elseif avenant.facture %}
+				<strong>Facture:</strong>
+				{{ avenant.facture.numero }}
+				du
+				{{ avenant.facture.dateCreation|date('d/m/Y') }}<br>
+				<strong>Montant HT:</strong>
+				{{ avenant.facture.getMontantHTFormate }}
+				—
+				<strong>TVA:</strong>
+				{{ avenant.facture.getMontantTVAFormate }}
+				—
+				<strong>TTC:</strong>
+				{{ avenant.facture.getMontantTTCFormate }}
+			{% else %}
+				<strong>Document:</strong>
+				{{ avenant.documentNumero }}
+			{% endif %}
+		</div>
+	</div>
+
+	<!-- Détail des tarifs du document d'origine -->
+	{% if avenant.devis and avenant.devis.tarifs|length > 0 %}
+		<div class="conditions-section">
+			<div class="conditions-title">Détail des services du devis d'origine</div>
+			<div class="conditions-content">
+				<table class="services-table">
+					<thead>
+						<tr>
+							<th style="width: 50%;">Service</th>
+							<th style="width: 25%;" class="text-right">Prix HT</th>
+							<th style="width: 25%;" class="text-right">Prix TTC</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for tarif in avenant.devis.tarifs %}
+							<tr>
+								<td>
+									<strong>{{ tarif.nom }}</strong><br>
+									<small style="color: #666;">{{ tarif.description|default('') }}</small>
+								</td>
+								<td class="text-right">{{ tarif.getPrixFormate }}</td>
+								<td class="text-right">{{ tarif.getPrixTTCFormate }}</td>
+							</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	{% endif %}
+
+	<!-- Motif de la modification -->
+	<div class="conditions-section">
+		<div class="conditions-title">Motif de la modification</div>
+		<div class="conditions-content">
+			{{ avenant.motif|nl2br }}
+		</div>
+	</div>
+
+	<!-- Modifications apportées -->
+	<div class="conditions-section">
+		<div class="conditions-title">Modifications apportées</div>
+		<div class="conditions-content">
+			{{ avenant.modifications|nl2br }}
+		</div>
+	</div>
+
+	<!-- Justification -->
+	{% if avenant.justification %}
+		<div class="conditions-section">
+			<div class="conditions-title">Justification</div>
+			<div class="conditions-content">
+				{{ avenant.justification|nl2br }}
+			</div>
+		</div>
+	{% endif %}
+
+	<!-- Notes -->
+	{% if avenant.notes %}
+		<div class="conditions-section">
+			<div class="conditions-title">Notes</div>
+			<div class="conditions-content">
+				{{ avenant.notes|nl2br }}
+			</div>
+		</div>
+	{% endif %}
+
+	<!-- Mentions légales -->
+	<div class="legal-mentions">
+		<strong>Mentions légales:</strong><br>
+		Cet avenant modifie le document
+		{{ avenant.documentNumero }}.
+		{% if avenant.dateValidation %}
+			Il a été validé le
+			{{ avenant.dateValidation|date('d/m/Y') }}.
+		{% endif %}
+		Les modifications décrites ci-dessus sont applicables dès validation de cet avenant.
+		<br><br>
+		<strong>Micro-entrepreneur:</strong>
+		TVA non applicable selon l'article 293 B du Code Général des Impôts.
+	</div>
+
+	<!-- Pied de page -->
+	<div class="footer">
+		<strong>DELNYX</strong>
+		- Développement Web & Applications | contact@delnyx.fr | +33 6 XX XX XX XX
+	</div>
+{% endblock %}

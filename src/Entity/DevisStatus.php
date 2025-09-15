@@ -93,4 +93,21 @@ enum DevisStatus: string
     {
         return $this === self::ENVOYE;
     }
+
+    /**
+     * Détermine si le devis est modifiable
+     * Un devis n'est modifiable que s'il est en brouillon
+     */
+    public function isModifiable(): bool
+    {
+        return $this === self::BROUILLON;
+    }
+
+    /**
+     * Détermine si le devis est émis (envoyé, accepté, refusé, expiré, annulé)
+     */
+    public function isEmitted(): bool
+    {
+        return in_array($this, [self::ENVOYE, self::ACCEPTE, self::REFUSE, self::EXPIRE, self::ANNULE]);
+    }
 }

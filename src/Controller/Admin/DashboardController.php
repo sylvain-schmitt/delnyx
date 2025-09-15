@@ -9,6 +9,7 @@ use App\Entity\Client;
 use App\Entity\Devis;
 use App\Entity\Facture;
 use App\Entity\Tarif;
+use App\Entity\Avenant;
 use App\Controller\Admin\ClientCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
@@ -45,6 +46,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Devis', 'file-text', Devis::class);
         yield MenuItem::linkToCrud('Factures', 'receipt', Facture::class);
         yield MenuItem::linkToCrud('Tarifs', 'calculator', Tarif::class);
+        yield MenuItem::linkToCrud('Avenants', 'edit', Avenant::class);
 
         yield MenuItem::section('📁 Portfolio');
         yield MenuItem::linkToCrud('Projets', 'folder-open', Project::class);

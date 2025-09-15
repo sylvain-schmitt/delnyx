@@ -211,15 +211,64 @@ class DevisCrudController extends AbstractCrudController
                 return $entity->getTarifs()->count() > 0;
             });
 
+        // Actions pour changer le statut rapidement
+        $markAsSent = Action::new('markAsSent', '📤 Envoyé')
+            ->linkToCrudAction('markAsSent')
+            ->setCssClass('btn btn-info btn-sm')
+            ->displayIf(function ($entity) {
+                return $entity && $entity->getStatut() && $entity->getStatut() === DevisStatus::BROUILLON;
+            });
+
+        $markAsAccepted = Action::new('markAsAccepted', '✅ Accepté')
+            ->linkToCrudAction('markAsAccepted')
+            ->setCssClass('btn btn-success btn-sm')
+            ->displayIf(function ($entity) {
+                return $entity && $entity->getStatut() && $entity->getStatut() === DevisStatus::ENVOYE;
+            });
+
+        $markAsRejected = Action::new('markAsRejected', '❌ Refusé')
+            ->linkToCrudAction('markAsRejected')
+            ->setCssClass('btn btn-danger btn-sm')
+            ->displayIf(function ($entity) {
+                return $entity && $entity->getStatut() && $entity->getStatut() === DevisStatus::ENVOYE;
+            });
+
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, $generatePdf)
+            ->add(Crud::PAGE_INDEX, $markAsSent)
+            ->add(Crud::PAGE_INDEX, $markAsAccepted)
+            ->add(Crud::PAGE_INDEX, $markAsRejected)
             ->add(Crud::PAGE_DETAIL, $generatePdf)
+            ->add(Crud::PAGE_DETAIL, $markAsSent)
+            ->add(Crud::PAGE_DETAIL, $markAsAccepted)
+            ->add(Crud::PAGE_DETAIL, $markAsRejected)
             ->setPermission(Action::DELETE, 'ROLE_ADMIN')
             ->setPermission(Action::NEW, 'ROLE_ADMIN')
-            ->setPermission(Action::EDIT, 'ROLE_ADMIN')
             ->setPermission(Action::DETAIL, 'ROLE_ADMIN')
-            ->setPermission('generatePdf', 'ROLE_ADMIN');
+            ->setPermission('generatePdf', 'ROLE_ADMIN')
+            ->setPermission('markAsSent', 'ROLE_ADMIN')
+            ->setPermission('markAsAccepted', 'ROLE_ADMIN')
+            ->setPermission('markAsRejected', 'ROLE_ADMIN')
+            ->setPermission(Action::EDIT, 'ROLE_ADMIN')
+            ->update(Crud::PAGE_INDEX, Action::EDIT, function (Action $action) {
+                return $action->displayIf(function ($entity) {
+                    if (!$entity || !$entity->getStatut()) {
+                        return true;
+                    }
+                    $statut = $entity->getStatut();
+                    return !($statut instanceof \App\Entity\DevisStatus) || !$statut->isEmitted();
+                });
+            })
+            ->update(Crud::PAGE_DETAIL, Action::EDIT, function (Action $action) {
+                return $action->displayIf(function ($entity) {
+                    if (!$entity || !$entity->getStatut()) {
+                        return true;
+                    }
+                    $statut = $entity->getStatut();
+                    return !($statut instanceof \App\Entity\DevisStatus) || !$statut->isEmitted();
+                });
+            });
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -321,5 +370,63 @@ class DevisCrudController extends AbstractCrudController
         }
 
         return $this->pdfGenerator->generateDevisPdf($devis);
+    }
+
+    /**
+     * Marque le devis comme envoyé
+     */
+    public function markAsSent(Request $request): Response
+    {
+        $id = $request->query->get('entityId');
+        $devis = $this->entityManager->getRepository(Devis::class)->find($id);
+
+        if (!$devis) {
+            throw $this->createNotFoundException('Devis non trouvé');
+        }
+
+        $devis->setStatut(DevisStatus::ENVOYE);
+        $this->entityManager->flush();
+
+        $this->addFlash('success', 'Devis marqué comme envoyé');
+        return $this->redirectToRoute('admin');
+    }
+
+    /**
+     * Marque le devis comme accepté
+     */
+    public function markAsAccepted(Request $request): Response
+    {
+        $id = $request->query->get('entityId');
+        $devis = $this->entityManager->getRepository(Devis::class)->find($id);
+
+        if (!$devis) {
+            throw $this->createNotFoundException('Devis non trouvé');
+        }
+
+        $devis->setStatut(DevisStatus::ACCEPTE);
+        $devis->setDateAcceptation(new \DateTime());
+        $this->entityManager->flush();
+
+        $this->addFlash('success', 'Devis marqué comme accepté');
+        return $this->redirectToRoute('admin');
+    }
+
+    /**
+     * Marque le devis comme refusé
+     */
+    public function markAsRejected(Request $request): Response
+    {
+        $id = $request->query->get('entityId');
+        $devis = $this->entityManager->getRepository(Devis::class)->find($id);
+
+        if (!$devis) {
+            throw $this->createNotFoundException('Devis non trouvé');
+        }
+
+        $devis->setStatut(DevisStatus::REFUSE);
+        $this->entityManager->flush();
+
+        $this->addFlash('success', 'Devis marqué comme refusé');
+        return $this->redirectToRoute('admin');
     }
 }

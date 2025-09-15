@@ -89,4 +89,15 @@ class PdfGeneratorService
             'filename' => 'facture-' . $facture->getNumero()
         ]);
     }
+
+    /**
+     * Génère un PDF d'avenant
+     */
+    public function generateAvenantPdf($avenant): Response
+    {
+        return $this->generatePdf('pdf/avenant.html.twig', [
+            'avenant' => $avenant,
+            'filename' => 'avenant-' . ($avenant->getNumero() ?? ('AV-' . ($avenant->getId() ?? 'document')))
+        ]);
+    }
 }
