@@ -11,7 +11,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -19,12 +19,14 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
-use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Service\PdfGeneratorService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
+use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
+use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
 
 class AvenantCrudController extends AbstractCrudController
 {
@@ -49,7 +51,7 @@ class AvenantCrudController extends AbstractCrudController
             ->setPageTitle('edit', 'Modifier l\'avenant')
             ->setDefaultSort(['dateCreation' => 'DESC'])
             ->setPaginatorPageSize(20)
-            ->setHelp('index', 'Gérez les avenants pour modifier les devis et factures émis. Un avenant doit être validé pour être appliqué.');
+            ->setHelp('index', 'Gérez les avenants pour modifier les devis émis. Un avenant doit être validé pour être appliqué.');
     }
 
     public function configureFields(string $pageName): iterable
@@ -63,31 +65,82 @@ class AvenantCrudController extends AbstractCrudController
                 ->setRequired(true)
                 ->hideOnForm(),
 
-            // Champ pour sélectionner le devis
+            // ===== RELATION OBLIGATOIRE AVEC UN DEVIS =====
             AssociationField::new('devis', 'Devis à modifier')
-                ->setHelp('Sélectionnez le devis à modifier (si applicable)')
-                ->setRequired(false)
+                ->setHelp('Sélectionnez le devis à modifier (OBLIGATOIRE)')
+                ->setRequired(true)
                 ->hideOnIndex()
                 ->formatValue(function ($value, $entity) {
                     return $entity->getDevis()?->getNumero() . ' - ' . $entity->getDevis()?->getClient()?->getNomComplet();
                 }),
 
-            // Champ pour sélectionner la facture
-            AssociationField::new('facture', 'Facture à modifier')
-                ->setHelp('Sélectionnez la facture à modifier (si applicable)')
-                ->setRequired(false)
-                ->hideOnIndex()
-                ->formatValue(function ($value, $entity) {
-                    return $entity->getFacture()?->getNumero() . ' - ' . $entity->getFacture()?->getClient()?->getNomComplet();
-                }),
 
-            // Affichage du document sélectionné
-            TextField::new('documentInfo', 'Document concerné')
-                ->setHelp('Document concerné par l\'avenant')
+
+            TextField::new('documentInfo', 'Devis concerné')
+                ->setHelp('Devis concerné par l\'avenant')
                 ->hideOnForm()
                 ->formatValue(function ($value, $entity) {
                     return $entity->getDocumentInfo();
                 }),
+
+            // ===== SYSTÈME DE TARIFS POUR L'AVENANT =====
+            AssociationField::new('tarifs', 'Tarifs de l\'avenant')
+                ->setHelp('Sélectionnez les tarifs à ajouter/modifier dans l\'avenant (les montants seront calculés automatiquement)')
+                ->setRequired(false)
+                ->setFormTypeOption('multiple', true)
+                ->hideOnIndex()
+                ->formatValue(function ($value, $entity) {
+                    $tarifs = $entity->getTarifs();
+                    if ($tarifs->isEmpty()) {
+                        return 'Aucun tarif sélectionné';
+                    }
+                    $noms = [];
+                    foreach ($tarifs as $tarif) {
+                        $noms[] = $tarif->getNom() . ' (' . $tarif->getPrixFormate() . ')';
+                    }
+                    return implode(', ', $noms);
+                }),
+
+            // ===== MONTANTS CALCULÉS AUTOMATIQUEMENT =====
+            MoneyField::new('montantHT', 'Montant HT')
+                ->setHelp('Montant hors taxes (calculé automatiquement depuis les tarifs)')
+                ->setCurrency('EUR')
+                ->setRequired(true)
+                ->setFormTypeOption('disabled', true)
+                ->hideOnForm()
+                ->formatValue(function ($value, $entity) {
+                    return $entity->getMontantHTFormate();
+                }),
+
+            MoneyField::new('montantTVA', 'Montant TVA')
+                ->setHelp('Montant de la TVA (calculé automatiquement)')
+                ->setCurrency('EUR')
+                ->setRequired(true)
+                ->setFormTypeOption('disabled', true)
+                ->hideOnForm()
+                ->formatValue(function ($value, $entity) {
+                    return $entity->getMontantTVAFormate();
+                }),
+
+            MoneyField::new('montantTTC', 'Montant TTC')
+                ->setHelp('Montant toutes taxes comprises (calculé automatiquement)')
+                ->setCurrency('EUR')
+                ->setRequired(true)
+                ->setFormTypeOption('disabled', true)
+                ->hideOnForm()
+                ->formatValue(function ($value, $entity) {
+                    return $entity->getMontantTTCFormate();
+                }),
+
+            ChoiceField::new('tauxTVA', 'Taux TVA')
+                ->setHelp('Taux de TVA (0% pour micro-entrepreneur non assujetti)')
+                ->setRequired(true)
+                ->setChoices([
+                    '0% (Micro-entrepreneur)' => '0.00',
+                    '5.5%' => '5.50',
+                    '10%' => '10.00',
+                    '20%' => '20.00'
+                ]),
 
             TextareaField::new('motif', 'Motif')
                 ->setHelp('Raison de la modification')
@@ -121,7 +174,8 @@ class AvenantCrudController extends AbstractCrudController
                 ->setChoices([
                     'Brouillon' => 'brouillon',
                     'Validé' => 'valide',
-                    'Rejeté' => 'rejete'
+                    'Rejeté' => 'rejete',
+                    'Envoyé' => 'envoye'
                 ])
                 ->formatValue(function ($value, $entity) {
                     return $entity->getStatutLabel();
@@ -156,7 +210,7 @@ class AvenantCrudController extends AbstractCrudController
             ->linkToCrudAction('markAsSent')
             ->setCssClass('btn btn-info btn-sm')
             ->displayIf(function ($entity) {
-                return $entity && $entity->isValide();
+                return $entity && $entity->isBrouillon();
             });
 
         $generatePdf = Action::new('generatePdf', '📄 PDF')
@@ -173,6 +227,10 @@ class AvenantCrudController extends AbstractCrudController
             ->add(Crud::PAGE_DETAIL, $validate)
             ->add(Crud::PAGE_DETAIL, $reject)
             ->add(Crud::PAGE_DETAIL, $markAsSent)
+            ->add(Crud::PAGE_EDIT, $generatePdf)
+            ->add(Crud::PAGE_EDIT, $validate)
+            ->add(Crud::PAGE_EDIT, $reject)
+            ->add(Crud::PAGE_EDIT, $markAsSent)
             ->setPermission(Action::DELETE, 'ROLE_ADMIN')
             ->setPermission(Action::NEW, 'ROLE_ADMIN')
             ->setPermission(Action::EDIT, 'ROLE_ADMIN')
@@ -186,21 +244,16 @@ class AvenantCrudController extends AbstractCrudController
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
-            ->add(ChoiceFilter::new('typeDocument', 'Type de document')
-                ->setChoices([
-                    'Devis' => 'devis',
-                    'Facture' => 'facture'
-                ]))
             ->add(ChoiceFilter::new('statut', 'Statut')
                 ->setChoices([
                     'Brouillon' => 'brouillon',
                     'Validé' => 'valide',
-                    'Envoyé' => 'envoye',
-                    'Rejeté' => 'rejete'
+                    'Rejeté' => 'rejete',
+                    'Envoyé' => 'envoye'
                 ]))
             ->add(DateTimeFilter::new('dateCreation', 'Date de création'))
             ->add(DateTimeFilter::new('dateValidation', 'Date de validation'))
-            ->add(TextFilter::new('documentNumero', 'Numéro du document'));
+            ->add(EntityFilter::new('devis', 'Devis'));
     }
 
     public function createEntity(string $entityFqcn)
@@ -211,6 +264,26 @@ class AvenantCrudController extends AbstractCrudController
         $avenant->setNumero($this->generateAvenantNumber());
 
         return $avenant;
+    }
+
+    public function persistEntity($entityManager, $entityInstance): void
+    {
+        // Recalculer les montants avant la sauvegarde
+        if ($entityInstance instanceof Avenant && !$entityInstance->getTarifs()->isEmpty()) {
+            $entityInstance->calculerMontantsDepuisTarifs();
+        }
+
+        parent::persistEntity($entityManager, $entityInstance);
+    }
+
+    public function updateEntity($entityManager, $entityInstance): void
+    {
+        // Recalculer les montants avant la mise à jour
+        if ($entityInstance instanceof Avenant && !$entityInstance->getTarifs()->isEmpty()) {
+            $entityInstance->calculerMontantsDepuisTarifs();
+        }
+
+        parent::updateEntity($entityManager, $entityInstance);
     }
 
     /**
@@ -233,6 +306,8 @@ class AvenantCrudController extends AbstractCrudController
         $nextNumber = $count + 1;
         return sprintf('AV-%s-%s-%03d', $year, $month, $nextNumber);
     }
+
+    // (plus de helper nécessaire, l'AssociationField lit directement via la relation)
 
     /**
      * Génère le PDF de l'avenant

@@ -6,6 +6,8 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Symfony\Component\Validator\Constraints as Assert;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
@@ -16,7 +18,10 @@ use ApiPlatform\Metadata\Delete;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
- * Entité Avenant pour gérer les modifications des devis et factures émis
+ * Entité Avenant pour gérer les modifications des devis émis
+ * 
+ * CONTRAINTE LÉGALE : Un avenant ne peut être créé que pour un devis existant.
+ * Les factures ne peuvent pas être modifiées par des avenants.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'avenants')]
@@ -46,29 +51,18 @@ class Avenant
     #[Assert\NotBlank]
     private ?string $numero = null;
 
-    #[ORM\Column(type: Types::STRING, length: 20)]
-    #[Groups(['avenant:read', 'avenant:write'])]
-    #[Assert\NotBlank]
-    private ?string $typeDocument = null; // 'devis' ou 'facture'
-
-    #[ORM\Column(type: Types::INTEGER)]
-    #[Groups(['avenant:read', 'avenant:write'])]
-    #[Assert\NotBlank]
-    private ?int $documentId = null; // ID du devis ou de la facture
-
-    #[ORM\Column(type: Types::STRING, length: 20)]
-    #[Groups(['avenant:read', 'avenant:write'])]
-    #[Assert\NotBlank]
-    private ?string $documentNumero = null; // Numéro du devis ou de la facture
-
-    // Relations optionnelles pour faciliter l'accès aux documents
+    // ===== RELATION OBLIGATOIRE AVEC UN DEVIS =====
     #[ORM\ManyToOne(targetEntity: Devis::class)]
-    #[ORM\JoinColumn(name: 'devis_id', referencedColumnName: 'id', nullable: true)]
+    #[ORM\JoinColumn(name: 'devis_id', referencedColumnName: 'id', nullable: false)]
+    #[Groups(['avenant:read', 'avenant:write'])]
+    #[Assert\NotNull(message: "Un avenant doit être lié à un devis")]
     private ?Devis $devis = null;
 
-    #[ORM\ManyToOne(targetEntity: Facture::class)]
-    #[ORM\JoinColumn(name: 'facture_id', referencedColumnName: 'id', nullable: true)]
-    private ?Facture $facture = null;
+    // ===== SYSTÈME DE TARIFS POUR L'AVENANT =====
+    #[ORM\ManyToMany(targetEntity: Tarif::class)]
+    #[ORM\JoinTable(name: 'avenant_tarifs')]
+    #[Groups(['avenant:read', 'avenant:write'])]
+    private Collection $tarifs;
 
     #[ORM\Column(type: Types::TEXT)]
     #[Groups(['avenant:read', 'avenant:write'])]
@@ -95,16 +89,39 @@ class Avenant
     #[ORM\Column(type: Types::STRING, length: 20)]
     #[Groups(['avenant:read', 'avenant:write'])]
     #[Assert\NotBlank]
-    private ?string $statut = 'brouillon'; // brouillon, valide, rejete
+    private ?string $statut = 'brouillon'; // brouillon, valide, rejete, envoye
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['avenant:read', 'avenant:write'])]
     private ?string $notes = null;
 
+    // ===== NOUVEAUX CHAMPS POUR LES MONTANTS DE L'AVENANT =====
+
+    #[ORM\Column(type: Types::INTEGER)]
+    #[Groups(['avenant:read', 'avenant:write'])]
+    private ?int $montantHT = 0;
+
+    #[ORM\Column(type: Types::INTEGER)]
+    #[Groups(['avenant:read', 'avenant:write'])]
+    private ?int $montantTVA = 0;
+
+    #[ORM\Column(type: Types::INTEGER)]
+    #[Groups(['avenant:read', 'avenant:write'])]
+    private ?int $montantTTC = 0;
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2)]
+    #[Groups(['avenant:read', 'avenant:write'])]
+    private ?string $tauxTVA = '0.00';
+
     public function __construct()
     {
         $this->dateCreation = new \DateTime();
         $this->statut = 'brouillon';
+        $this->tarifs = new ArrayCollection();
+        $this->montantHT = 0;
+        $this->montantTVA = 0;
+        $this->montantTTC = 0;
+        $this->tauxTVA = '0.00';
     }
 
     public function getId(): ?int
@@ -123,36 +140,39 @@ class Avenant
         return $this;
     }
 
-    public function getTypeDocument(): ?string
+    public function getDevis(): ?Devis
     {
-        return $this->typeDocument;
+        return $this->devis;
     }
 
-    public function setTypeDocument(string $typeDocument): static
+    public function setDevis(?Devis $devis): static
     {
-        $this->typeDocument = $typeDocument;
+        $this->devis = $devis;
         return $this;
     }
 
-    public function getDocumentId(): ?int
+    /**
+     * @return Collection<int, Tarif>
+     */
+    public function getTarifs(): Collection
     {
-        return $this->documentId;
+        return $this->tarifs;
     }
 
-    public function setDocumentId(int $documentId): static
+    public function addTarif(Tarif $tarif): static
     {
-        $this->documentId = $documentId;
+        if (!$this->tarifs->contains($tarif)) {
+            $this->tarifs->add($tarif);
+            $this->calculerMontantsDepuisTarifs();
+        }
         return $this;
     }
 
-    public function getDocumentNumero(): ?string
+    public function removeTarif(Tarif $tarif): static
     {
-        return $this->documentNumero;
-    }
-
-    public function setDocumentNumero(string $documentNumero): static
-    {
-        $this->documentNumero = $documentNumero;
+        if ($this->tarifs->removeElement($tarif)) {
+            $this->calculerMontantsDepuisTarifs();
+        }
         return $this;
     }
 
@@ -233,9 +253,125 @@ class Avenant
         return $this;
     }
 
-    public function __toString(): string
+    // ===== NOUVELLES MÉTHODES POUR LES MONTANTS =====
+
+    public function getMontantHT(): ?int
     {
-        return $this->numero ?? 'Avenant #' . $this->id;
+        return $this->montantHT;
+    }
+
+    public function setMontantHT(int $montantHT): static
+    {
+        $this->montantHT = $montantHT;
+        return $this;
+    }
+
+    public function getMontantTVA(): ?int
+    {
+        return $this->montantTVA;
+    }
+
+    public function setMontantTVA(int $montantTVA): static
+    {
+        $this->montantTVA = $montantTVA;
+        return $this;
+    }
+
+    public function getMontantTTC(): ?int
+    {
+        return $this->montantTTC;
+    }
+
+    public function setMontantTTC(int $montantTTC): static
+    {
+        $this->montantTTC = $montantTTC;
+        return $this;
+    }
+
+    public function getTauxTVA(): ?string
+    {
+        return $this->tauxTVA;
+    }
+
+    public function setTauxTVA(string $tauxTVA): static
+    {
+        $this->tauxTVA = $tauxTVA;
+        return $this;
+    }
+
+    // ===== MÉTHODES DE CALCUL AUTOMATIQUE =====
+
+    /**
+     * Calcule les montants automatiquement depuis les tarifs sélectionnés
+     */
+    public function calculerMontantsDepuisTarifs(): void
+    {
+        // On travaille en centimes pour éviter les flottants
+        $montantHTCents = 0;
+
+        foreach ($this->tarifs as $tarif) {
+            // getPrix() renvoie le prix stocké (attendu en centimes). On force le cast en entier.
+            $montantHTCents += (int) $tarif->getPrix();
+        }
+
+        // Affectations strictes en int
+        $this->montantHT = (int) $montantHTCents;
+
+        // Calcul de la TVA à partir d'un pourcentage stocké en chaîne (ex: "20.00")
+        $tauxTVAPourcentage = (float) $this->tauxTVA; // ex: 20.00
+        $this->montantTVA = (int) round($this->montantHT * $tauxTVAPourcentage / 100);
+
+        // Calcul du TTC
+        $this->montantTTC = (int) ($this->montantHT + $this->montantTVA);
+    }
+
+    /**
+     * Retourne le montant HT formaté
+     */
+    public function getMontantHTFormate(): string
+    {
+        $montant = (float) $this->montantHT / 100; // Conversion centimes -> euros
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Retourne le montant TVA formaté
+     */
+    public function getMontantTVAFormate(): string
+    {
+        $montant = (float) $this->montantTVA / 100; // Conversion centimes -> euros
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Retourne le montant TTC formaté
+     */
+    public function getMontantTTCFormate(): string
+    {
+        $montant = (float) $this->montantTTC / 100; // Conversion centimes -> euros
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    // ===== MÉTHODES DE STATUT =====
+
+    public function isBrouillon(): bool
+    {
+        return $this->statut === 'brouillon';
+    }
+
+    public function isValide(): bool
+    {
+        return $this->statut === 'valide';
+    }
+
+    public function isRejete(): bool
+    {
+        return $this->statut === 'rejete';
+    }
+
+    public function isEnvoye(): bool
+    {
+        return $this->statut === 'envoye';
     }
 
     public function getStatutLabel(): string
@@ -244,6 +380,7 @@ class Avenant
             'brouillon' => 'Brouillon',
             'valide' => 'Validé',
             'rejete' => 'Rejeté',
+            'envoye' => 'Envoyé',
             default => 'Inconnu'
         };
     }
@@ -254,74 +391,53 @@ class Avenant
             'brouillon' => 'warning',
             'valide' => 'success',
             'rejete' => 'danger',
+            'envoye' => 'info',
             default => 'secondary'
         };
     }
 
-    public function isValide(): bool
-    {
-        return $this->statut === 'valide';
-    }
-
-    public function isBrouillon(): bool
-    {
-        return $this->statut === 'brouillon';
-    }
-
-    public function isRejete(): bool
-    {
-        return $this->statut === 'rejete';
-    }
-
-    public function getDevis(): ?Devis
-    {
-        return $this->devis;
-    }
-
-    public function setDevis(?Devis $devis): static
-    {
-        $this->devis = $devis;
-        if ($devis) {
-            $this->documentId = $devis->getId();
-            $this->documentNumero = $devis->getNumero();
-            $this->typeDocument = 'devis';
-        }
-        return $this;
-    }
-
-    public function getFacture(): ?Facture
-    {
-        return $this->facture;
-    }
-
-    public function setFacture(?Facture $facture): static
-    {
-        $this->facture = $facture;
-        if ($facture) {
-            $this->documentId = $facture->getId();
-            $this->documentNumero = $facture->getNumero();
-            $this->typeDocument = 'facture';
-        }
-        return $this;
-    }
-
-    public function getDocument(): Devis|Facture|null
-    {
-        return $this->devis ?? $this->facture;
-    }
+    // ===== MÉTHODES D'AFFICHAGE =====
 
     public function getDocumentInfo(): string
     {
-        $document = $this->getDocument();
-        if (!$document) {
-            return $this->documentNumero ?? 'Document inconnu';
+        if (!$this->devis) {
+            return 'Devis inconnu';
         }
 
         return sprintf(
-            '%s - %s (%s)',
-            $this->typeDocument === 'devis' ? 'Devis' : 'Facture',
-            $document->getNumero(),
-            $document->getClient()?->getNomComplet() ?? 'Client inconnu'
+            'Devis %s - %s (%s)',
+            $this->devis->getNumero(),
+            $this->devis->getClient()?->getNomComplet() ?? 'Client inconnu',
+            $this->devis->getMontantTTCFormate()
         );
+    }
+
+    public function __toString(): string
+    {
+        return $this->numero ?? 'Avenant #' . $this->id;
+    }
+
+    /**
+     * Résumé lisible des tarifs du devis concerné (pour affichage admin/PDF)
+     */
+    public function getDevisTarifsResume(): string
+    {
+        if ($this->devis === null) {
+            return '';
+        }
+
+        $tarifs = $this->devis->getTarifs();
+        if ($tarifs === null || $tarifs->count() === 0) {
+            return 'Aucun tarif sur le devis d\'origine.';
+        }
+
+        $lines = [];
+        foreach ($tarifs as $tarif) {
+            $nom = method_exists($tarif, 'getNom') ? (string) $tarif->getNom() : '';
+            $prix = method_exists($tarif, 'getPrixTTCFormate') ? (string) $tarif->getPrixTTCFormate() : '';
+            $lines[] = trim($nom . ' — ' . $prix);
+        }
+
+        return implode("\n", $lines);
     }
 }
