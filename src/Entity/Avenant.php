@@ -148,6 +148,12 @@ class Avenant
     public function setDevis(?Devis $devis): static
     {
         $this->devis = $devis;
+
+        // Propager automatiquement le tauxTVA du devis vers l'avenant
+        if ($devis && $devis->getTauxTVA()) {
+            $this->setTauxTVA($devis->getTauxTVA());
+        }
+
         return $this;
     }
 

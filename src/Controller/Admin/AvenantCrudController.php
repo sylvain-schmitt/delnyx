@@ -266,6 +266,25 @@ class AvenantCrudController extends AbstractCrudController
         return $avenant;
     }
 
+    public function new(AdminContext $context)
+    {
+        $entity = $this->createEntity($context->getEntity()->getFqcn());
+
+        // Si un devis est sélectionné via l'URL, propager son tauxTVA
+        $devisId = $context->getRequest()->query->get('devis_id');
+        if ($devisId) {
+            $devis = $this->entityManager->getRepository(\App\Entity\Devis::class)->find($devisId);
+            if ($devis) {
+                $entity->setDevis($devis);
+                $entity->setTauxTVA($devis->getTauxTVA());
+            }
+        }
+
+        $context->getEntity()->setInstance($entity);
+
+        return parent::new($context);
+    }
+
     public function persistEntity($entityManager, $entityInstance): void
     {
         // Recalculer les montants avant la sauvegarde

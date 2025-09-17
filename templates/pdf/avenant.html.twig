@@ -17,7 +17,7 @@
 				Micro-entrepreneur<br>
 				SIRET: 12345678901234<br>
 				Email: contact@delnyx.fr<br>
-				Tél: +33 6 XX XX XX XX
+				Tél: +33 6 78 31 26 84
 			</div>
 		</div>
 		<div class="document-info">
@@ -74,29 +74,39 @@
 				<strong>Montant TTC :</strong> {{ avenant.devis.getMontantTTCFormate() }}
 			</div>
 
-			{% if avenant.devis.tarifs|length > 0 %}
-				<div class="tarifs-section" style="margin-top: 8px;">
-					<div class="section-title">Tarifs du devis d'origine</div>
-					<table class="tarifs-table">
-						<thead>
-							<tr>
-								<th>Prestation</th>
-								<th>Description</th>
-								<th>Prix</th>
-							</tr>
-						</thead>
-						<tbody>
-							{% for tarif in avenant.devis.tarifs %}
-								<tr>
-									<td>{{ tarif.nom }}</td>
-									<td>{{ tarif.description }}</td>
-									<td>{{ tarif.getPrixTTCFormate() }}</td>
-								</tr>
-							{% endfor %}
-						</tbody>
-					</table>
-				</div>
-			{% endif %}
+            {% if avenant.devis.tarifs|length > 0 %}
+                <div class="tarifs-section" style="margin-top: 8px;">
+                    <div class="section-title">Tarifs du devis d'origine</div>
+                    <table class="tarifs-table">
+                        <thead>
+                            <tr>
+                                <th>Prestation</th>
+                                <th>Description</th>
+                                <th>Prix HT</th>
+                                {% if avenant.devis.tauxTVA > 0 %}
+                                    <th>Prix TTC</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tarif in avenant.devis.tarifs %}
+                                <tr>
+                                    <td>{{ tarif.nom }}</td>
+                                    <td>{{ tarif.description }}</td>
+                                    <td>{{ tarif.getPrixFormate() }}</td>
+                                    {% if avenant.devis.tauxTVA > 0 %}
+                                        <td>
+                                            {% set prixHT = (tarif.prix / 100) %}
+                                            {% set prixTTC = prixHT * (1 + (avenant.devis.tauxTVA / 100)) %}
+                                            {{ prixTTC|number_format(2, ',', ' ') }} € TTC
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
 		{% endif %}
 	</div>
 
@@ -109,7 +119,10 @@
 					<tr>
 						<th>Prestation</th>
 						<th>Description</th>
-						<th>Prix</th>
+						<th>Prix HT</th>
+						{% if avenant.tauxTVA > 0 %}
+							<th>Prix TTC</th>
+						{% endif %}
 					</tr>
 				</thead>
 				<tbody>
@@ -117,7 +130,14 @@
 						<tr>
 							<td>{{ tarif.nom }}</td>
 							<td>{{ tarif.description }}</td>
-							<td>{{ tarif.getPrixTTCFormate() }}</td>
+							<td>{{ tarif.getPrixFormate() }}</td>
+							{% if avenant.tauxTVA > 0 %}
+								<td>
+									{% set prixHT = (tarif.prix / 100) %}
+									{% set prixTTC = prixHT * (1 + (avenant.tauxTVA / 100)) %}
+									{{ prixTTC|number_format(2, ',', ' ') }} € TTC
+								</td>
+							{% endif %}
 						</tr>
 					{% endfor %}
 				</tbody>
@@ -192,7 +212,7 @@
 		<div class="footer-content">
 			<p><strong>DELNYX</strong> - Développement Web & Applications</p>
 			<p>Micro-entrepreneur - SIRET: 12345678901234</p>
-			<p>Email: contact@delnyx.fr - Tél: +33 6 XX XX XX XX</p>
+			<p>Email: contact@delnyx.fr - Tél: +33 6 78 31 26 84</p>
 		</div>
 	</div>
 {% endblock %}
