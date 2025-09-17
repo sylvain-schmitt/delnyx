@@ -24,9 +24,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use App\Service\PdfGeneratorService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
-use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
-use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
 
 class AvenantCrudController extends AbstractCrudController
 {
@@ -191,26 +189,27 @@ class AvenantCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
-        // Actions pour valider/rejeter/mettre envoyé rapidement
-        $validate = Action::new('validate', '✅ Valider')
-            ->linkToCrudAction('validate')
-            ->setCssClass('btn btn-success btn-sm')
-            ->displayIf(function ($entity) {
-                return $entity && $entity->isBrouillon();
-            });
-
-        $reject = Action::new('reject', '❌ Rejeter')
-            ->linkToCrudAction('reject')
-            ->setCssClass('btn btn-danger btn-sm')
-            ->displayIf(function ($entity) {
-                return $entity && $entity->isBrouillon();
-            });
-
-        $markAsSent = Action::new('markAsSent', '📤 Envoyé')
+        // Action pour envoyer un avenant en brouillon
+        $markAsSent = Action::new('markAsSent', '📤 Envoyer')
             ->linkToCrudAction('markAsSent')
             ->setCssClass('btn btn-info btn-sm')
             ->displayIf(function ($entity) {
                 return $entity && $entity->isBrouillon();
+            });
+
+        // Actions pour valider/rejeter un avenant envoyé
+        $validate = Action::new('validate', '✅ Valider')
+            ->linkToCrudAction('validate')
+            ->setCssClass('btn btn-success btn-sm')
+            ->displayIf(function ($entity) {
+                return $entity && $entity->isEnvoye();
+            });
+
+        $reject = Action::new('reject', '❌ Refuser')
+            ->linkToCrudAction('reject')
+            ->setCssClass('btn btn-danger btn-sm')
+            ->displayIf(function ($entity) {
+                return $entity && $entity->isEnvoye();
             });
 
         $generatePdf = Action::new('generatePdf', '📄 PDF')
@@ -220,17 +219,17 @@ class AvenantCrudController extends AbstractCrudController
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, $generatePdf)
+            ->add(Crud::PAGE_INDEX, $markAsSent)
             ->add(Crud::PAGE_INDEX, $validate)
             ->add(Crud::PAGE_INDEX, $reject)
-            ->add(Crud::PAGE_INDEX, $markAsSent)
             ->add(Crud::PAGE_DETAIL, $generatePdf)
+            ->add(Crud::PAGE_DETAIL, $markAsSent)
             ->add(Crud::PAGE_DETAIL, $validate)
             ->add(Crud::PAGE_DETAIL, $reject)
-            ->add(Crud::PAGE_DETAIL, $markAsSent)
             ->add(Crud::PAGE_EDIT, $generatePdf)
+            ->add(Crud::PAGE_EDIT, $markAsSent)
             ->add(Crud::PAGE_EDIT, $validate)
             ->add(Crud::PAGE_EDIT, $reject)
-            ->add(Crud::PAGE_EDIT, $markAsSent)
             ->setPermission(Action::DELETE, 'ROLE_ADMIN')
             ->setPermission(Action::NEW, 'ROLE_ADMIN')
             ->setPermission(Action::EDIT, 'ROLE_ADMIN')
@@ -238,7 +237,18 @@ class AvenantCrudController extends AbstractCrudController
             ->setPermission('validate', 'ROLE_ADMIN')
             ->setPermission('reject', 'ROLE_ADMIN')
             ->setPermission('generatePdf', 'ROLE_ADMIN')
-            ->setPermission('markAsSent', 'ROLE_ADMIN');
+            ->setPermission('markAsSent', 'ROLE_ADMIN')
+            // Rendre l'édition impossible une fois l'avenant envoyé
+            ->update(Crud::PAGE_INDEX, Action::EDIT, function (Action $action) {
+                return $action->displayIf(function ($entity) {
+                    return $entity && $entity->isBrouillon();
+                });
+            })
+            ->update(Crud::PAGE_DETAIL, Action::EDIT, function (Action $action) {
+                return $action->displayIf(function ($entity) {
+                    return $entity && $entity->isBrouillon();
+                });
+            });
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -355,8 +365,8 @@ class AvenantCrudController extends AbstractCrudController
             throw $this->createNotFoundException('Avenant non trouvé');
         }
 
-        if (!$avenant->isBrouillon()) {
-            $this->addFlash('error', 'Seuls les avenants en brouillon peuvent être validés');
+        if (!$avenant->isEnvoye()) {
+            $this->addFlash('danger', 'Seuls les avenants envoyés peuvent être validés');
             return $this->redirectToRoute('admin');
         }
 
@@ -364,7 +374,7 @@ class AvenantCrudController extends AbstractCrudController
         $avenant->setDateValidation(new \DateTime());
         $this->entityManager->flush();
 
-        $this->addFlash('success', 'Avenant validé avec succès');
+        $this->addFlash('success', 'Avenant validé avec succès !');
         return $this->redirectToRoute('admin');
     }
 
@@ -380,15 +390,15 @@ class AvenantCrudController extends AbstractCrudController
             throw $this->createNotFoundException('Avenant non trouvé');
         }
 
-        if (!$avenant->isBrouillon()) {
-            $this->addFlash('error', 'Seuls les avenants en brouillon peuvent être rejetés');
+        if (!$avenant->isEnvoye()) {
+            $this->addFlash('danger', 'Seuls les avenants envoyés peuvent être refusés');
             return $this->redirectToRoute('admin');
         }
 
         $avenant->setStatut('rejete');
         $this->entityManager->flush();
 
-        $this->addFlash('success', 'Avenant rejeté');
+        $this->addFlash('success', 'Avenant rejeté !');
         return $this->redirectToRoute('admin');
     }
 
@@ -404,8 +414,8 @@ class AvenantCrudController extends AbstractCrudController
             throw $this->createNotFoundException('Avenant non trouvé');
         }
 
-        if (!$avenant->isValide()) {
-            $this->addFlash('error', 'Seuls les avenants validés peuvent être marqués comme envoyés');
+        if (!$avenant->isBrouillon()) {
+            $this->addFlash('danger', 'Seuls les avenants en brouillon peuvent être envoyés');
             return $this->redirectToRoute('admin');
         }
 
