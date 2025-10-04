@@ -70,5 +70,22 @@
 			{% block body %}{% endblock %}
 		</main>
 		{% include 'partials/_footer.html.twig' %}
+
+		{# Bouton Scroll to Top - Glassmorphique #}
+		<div 
+			data-controller="scroll-to-top"
+			data-scroll-to-top-threshold-value="300"
+		>
+			<button 
+				data-scroll-to-top-target="button"
+				data-action="click->scroll-to-top#scrollToTop"
+				class="fixed bottom-6 right-6 z-50 w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full shadow-lg hover:bg-white/20 hover:shadow-xl transition-all duration-300 transform hover:scale-110 opacity-0 pointer-events-none"
+				aria-label="Retour en haut de page"
+			>
+				<svg class="w-6 h-6 text-white mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+				</svg>
+			</button>
+		</div>
 	</body>
 </html>
