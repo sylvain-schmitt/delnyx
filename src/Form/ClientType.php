@@ -9,6 +9,7 @@ use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use App\Entity\ClientStatus;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -88,9 +89,12 @@ class ClientType extends AbstractType
                     'placeholder' => 'France'
                 ]
             ])
-            ->add('statut', ChoiceType::class, [
+            ->add('statut', EnumType::class, [
                 'label' => 'Statut',
-                'choices' => ClientStatus::getChoices(),
+                'class' => ClientStatus::class,
+                'choice_label' => function (ClientStatus $status) {
+                    return $status->getLabel();
+                },
                 'attr' => [
                     'class' => 'form-select'
                 ]
