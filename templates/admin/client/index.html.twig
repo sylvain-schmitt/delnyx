@@ -45,9 +45,9 @@
 								</div>
 							</div>
 							<span class="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap
-																		                            {% if client.statut.value == 'actif' %}bg-green-500/20 text-green-300
-																		                            {% elseif client.statut.value == 'inactif' %}bg-gray-500/20 text-gray-300
-																		                            {% else %}bg-blue-500/20 text-blue-300{% endif %}">
+																											                            {% if client.statut.value == 'actif' %}bg-green-500/20 text-green-300
+																											                            {% elseif client.statut.value == 'inactif' %}bg-gray-500/20 text-gray-300
+																											                            {% else %}bg-blue-500/20 text-blue-300{% endif %}">
 								{{ client.statut.label }}
 							</span>
 						</div>
@@ -86,18 +86,18 @@
 						{% endif %}
 
 					{# Actions #}
-					<div class="flex flex-col lg:flex-row gap-2 mt-4">
+					<div class="flex flex-col xl:flex-row gap-2 mt-4">
 						<a href="{{ path('admin_client_edit', {id: client.id}) }}" class="flex-1 btn-secondary text-center text-sm py-2 flex items-center justify-center gap-1">
 							{{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
-							<span class="hidden md:inline lg:hidden xl:inline">Modifier</span>
-							<span class="md:hidden lg:inline xl:hidden">Éditer</span>
+							<span class="hidden 2xl:inline">Modifier</span>
+							<span class="2xl:hidden">Éditer</span>
 						</a>
 						<form method="post" action="{{ path('admin_client_delete', {id: client.id}) }}" class="flex-1" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce client ?')">
 							<input type="hidden" name="_token" value="{{ csrf_token('delete' ~ client.id) }}">
 							<button type="submit" class="w-full btn-danger text-center text-sm py-2 flex items-center justify-center gap-1">
 								{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
-								<span class="hidden xl:inline">Supprimer</span>
-								<span class="xl:hidden">Suppr.</span>
+								<span class="hidden 2xl:inline">Supprimer</span>
+								<span class="2xl:hidden">Suppr.</span>
 							</button>
 						</form>
 					</div>
