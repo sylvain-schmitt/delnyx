@@ -31,17 +31,17 @@
                      data-delay="{{ loop.index * 0.1 }}s">
                     
                     {# Header de la carte #}
-                    <div class="flex items-start justify-between mb-4">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                                {{ ux_icon('lucide:user', {class: 'w-6 h-6 text-blue-400'}) }}
+                    <div class="flex items-start justify-between gap-3 mb-4">
+                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                            <div class="w-10 h-10 flex-shrink-0 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                                {{ ux_icon('lucide:user', {class: 'w-5 h-5 text-blue-400'}) }}
                             </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-white">{{ client.nomComplet }}</h3>
-                                <p class="text-white/60 text-sm">{{ client.email }}</p>
+                            <div class="min-w-0 flex-1">
+                                <h3 class="text-base font-semibold text-white truncate">{{ client.nomComplet }}</h3>
+                                <p class="text-white/60 text-xs truncate">{{ client.email }}</p>
                             </div>
                         </div>
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                        <span class="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap
                             {% if client.statut.value == 'actif' %}bg-green-500/20 text-green-300
                             {% elseif client.statut.value == 'inactif' %}bg-gray-500/20 text-gray-300
                             {% else %}bg-blue-500/20 text-blue-300{% endif %}">
@@ -79,20 +79,21 @@
                     {% endif %}
 
                     {# Actions #}
-                    <div class="flex gap-2">
+                    <div class="flex flex-col sm:flex-row gap-2 mt-4">
                         <a href="{{ path('admin_client_edit', {id: client.id}) }}" 
-                           class="flex-1 btn-secondary text-center text-sm py-2">
-                            {{ ux_icon('lucide:edit', {class: 'w-4 h-4 mr-1'}) }}
-                            Modifier
+                           class="flex-1 btn-secondary text-center text-sm py-2 flex items-center justify-center gap-1">
+                            {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
+                            <span class="hidden sm:inline">Modifier</span>
+                            <span class="sm:hidden">Éditer</span>
                         </a>
                         <form method="post" action="{{ path('admin_client_delete', {id: client.id}) }}" 
                               class="flex-1" 
                               onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce client ?')">
                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ client.id) }}">
                             <button type="submit" 
-                                    class="w-full btn-danger text-center text-sm py-2">
-                                {{ ux_icon('lucide:trash-2', {class: 'w-4 h-4 mr-1'}) }}
-                                Supprimer
+                                    class="w-full btn-danger text-center text-sm py-2 flex items-center justify-center gap-1">
+                                {{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+                                <span>Supprimer</span>
                             </button>
                         </form>
                     </div>
