@@ -6,12 +6,39 @@
     </div>
     
     {% if total_pages > 1 %}
-        {# TEST SIMPLE #}
-        <div class="bg-white/10 p-4 rounded mt-4 text-white">
-            PAGINATION VISIBLE ! Page {{ current_page }} / {{ total_pages }}
+        {# VERSION SIMPLIFIÉE POUR DEBUG #}
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 mt-6">
+            <div class="flex items-center justify-center gap-2">
+                {% if current_page > 1 %}
+                    <a href="{{ path(route_name, route_params|merge({'page': 1})) }}" 
+                       class="px-4 py-2 bg-white/10 text-white rounded hover:bg-white/20">
+                        « Première
+                    </a>
+                    <a href="{{ path(route_name, route_params|merge({'page': current_page - 1})) }}" 
+                       class="px-4 py-2 bg-white/10 text-white rounded hover:bg-white/20">
+                        ‹ Précédent
+                    </a>
+                {% endif %}
+                
+                <span class="px-4 py-2 text-white font-medium">
+                    Page {{ current_page }} / {{ total_pages }}
+                </span>
+                
+                {% if current_page < total_pages %}
+                    <a href="{{ path(route_name, route_params|merge({'page': current_page + 1})) }}" 
+                       class="px-4 py-2 bg-white/10 text-white rounded hover:bg-white/20">
+                        Suivant ›
+                    </a>
+                    <a href="{{ path(route_name, route_params|merge({'page': total_pages})) }}" 
+                       class="px-4 py-2 bg-white/10 text-white rounded hover:bg-white/20">
+                        Dernière »
+                    </a>
+                {% endif %}
+            </div>
         </div>
         
-        <nav class="flex items-center justify-between mt-8 scroll-animate" aria-label="Pagination">
+        {# ANCIENNE VERSION COMPLEXE - TEMPORAIREMENT DÉSACTIVÉE #}
+        <nav class="hidden flex items-center justify-between mt-8" aria-label="Pagination">
             <div class="flex-1 flex justify-between sm:hidden">
                 {# Version mobile : Précédent / Suivant #}
                 {% if current_page > 1 %}
