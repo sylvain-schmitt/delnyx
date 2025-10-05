@@ -1,5 +1,10 @@
 /* Styles pour les formulaires admin */
 
+/* Form Groups */
+.form-group {
+    @apply space-y-1;
+}
+
 /* Labels */
 .form-label {
     @apply block text-sm font-medium text-white/90 mb-2;

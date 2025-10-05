@@ -39,13 +39,29 @@
             </h3>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {{ form_macros.simple_field(form, 'nom') }}
-                {{ form_macros.simple_field(form, 'prenom') }}
+                <div class="form-group">
+                    {{ form_label(form.nom, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.nom, {'attr': {'class': 'form-input'}}) }}
+                    {{ form_errors(form.nom) }}
+                </div>
+                <div class="form-group">
+                    {{ form_label(form.prenom, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.prenom, {'attr': {'class': 'form-input'}}) }}
+                    {{ form_errors(form.prenom) }}
+                </div>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {{ form_macros.simple_field(form, 'email') }}
-                {{ form_macros.simple_field(form, 'telephone') }}
+                <div class="form-group">
+                    {{ form_label(form.email, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.email, {'attr': {'class': 'form-input'}}) }}
+                    {{ form_errors(form.email) }}
+                </div>
+                <div class="form-group">
+                    {{ form_label(form.telephone, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.telephone, {'attr': {'class': 'form-input'}}) }}
+                    {{ form_errors(form.telephone) }}
+                </div>
             </div>
         </div>
 
@@ -56,12 +72,28 @@
                 Adresse
             </h3>
             
-            {{ form_macros.simple_field(form, 'adresse', 'textarea') }}
+            <div class="form-group">
+                {{ form_label(form.adresse, null, {'label_attr': {'class': 'form-label'}}) }}
+                {{ form_widget(form.adresse, {'attr': {'class': 'form-textarea'}}) }}
+                {{ form_errors(form.adresse) }}
+            </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {{ form_macros.simple_field(form, 'codePostal') }}
-                {{ form_macros.simple_field(form, 'ville') }}
-                {{ form_macros.simple_field(form, 'pays') }}
+                <div class="form-group">
+                    {{ form_label(form.codePostal, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.codePostal, {'attr': {'class': 'form-input'}}) }}
+                    {{ form_errors(form.codePostal) }}
+                </div>
+                <div class="form-group">
+                    {{ form_label(form.ville, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.ville, {'attr': {'class': 'form-input'}}) }}
+                    {{ form_errors(form.ville) }}
+                </div>
+                <div class="form-group">
+                    {{ form_label(form.pays, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.pays, {'attr': {'class': 'form-input'}}) }}
+                    {{ form_errors(form.pays) }}
+                </div>
             </div>
         </div>
 
@@ -72,7 +104,11 @@
                 Informations professionnelles
             </h3>
             
-            {{ form_macros.simple_field(form, 'siret') }}
+            <div class="form-group">
+                {{ form_label(form.siret, null, {'label_attr': {'class': 'form-label'}}) }}
+                {{ form_widget(form.siret, {'attr': {'class': 'form-input'}}) }}
+                {{ form_errors(form.siret) }}
+            </div>
         </div>
 
         {# Statut et notes #}
@@ -83,10 +119,18 @@
             </h3>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {{ form_macros.simple_field(form, 'statut', 'select') }}
+                <div class="form-group">
+                    {{ form_label(form.statut, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.statut, {'attr': {'class': 'form-select'}}) }}
+                    {{ form_errors(form.statut) }}
+                </div>
             </div>
             
-            {{ form_macros.simple_field(form, 'notes', 'textarea') }}
+            <div class="form-group">
+                {{ form_label(form.notes, null, {'label_attr': {'class': 'form-label'}}) }}
+                {{ form_widget(form.notes, {'attr': {'class': 'form-textarea'}}) }}
+                {{ form_errors(form.notes) }}
+            </div>
         </div>
 
         {# Actions #}
