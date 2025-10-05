@@ -47,12 +47,17 @@
                 {% for type, messages in app.flashes %}
                     {% for message in messages %}
                         <div data-flash-messages-target="message" 
-                             class="flash-message flash-message-{{ type }} p-4 rounded-lg border-l-4 backdrop-blur-xl"
+                             class="glass-card optimized-blur p-4 border-l-4 {% if type == 'success' %}border-emerald-500{% else %}border-red-500{% endif %}"
                              data-flash-messages-message-param="{{ loop.index }}">
                             <div class="flex items-center">
-                                <div class="flex-1">
-                                    <p class="font-medium">{{ message }}</p>
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 {% if type == 'success' %}bg-emerald-500/20{% else %}bg-red-500/20{% endif %}">
+                                    {% if type == 'success' %}
+                                        {{ ux_icon('lucide:check-circle', {class: 'w-5 h-5 text-emerald-400'}) }}
+                                    {% else %}
+                                        {{ ux_icon('lucide:alert-circle', {class: 'w-5 h-5 text-red-400'}) }}
+                                    {% endif %}
                                 </div>
+                                <p class="{% if type == 'success' %}text-emerald-300{% else %}text-red-300{% endif %} font-medium flex-1">{{ message|raw }}</p>
                             </div>
                         </div>
                     {% endfor %}
