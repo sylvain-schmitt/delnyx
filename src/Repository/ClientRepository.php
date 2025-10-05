@@ -2,17 +2,17 @@
 
 namespace App\Repository;
 
-use App\Entity\Facture;
+use App\Entity\Client;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<Facture>
+ * @extends ServiceEntityRepository<Client>
  */
-class FactureRepository extends ServiceEntityRepository
+class ClientRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Facture::class);
+        parent::__construct($registry, Client::class);
     }
 }

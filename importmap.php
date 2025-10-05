@@ -32,9 +32,6 @@ return [
     'scroll-to-top' => [
         'path' => './assets/controllers/scroll_to_top_controller.js',
     ],
-    'sidebar' => [
-        'path' => './assets/controllers/sidebar_controller.js',
-    ],
     'dropdown' => [
         'path' => './assets/controllers/dropdown_controller.js',
     ],

@@ -63,7 +63,7 @@ class DashboardController extends AbstractController
 
         $factures = $this->factureRepository->createQueryBuilder('f')
             ->where('f.dateCreation BETWEEN :debut AND :fin')
-            ->andWhere('f.statutEnum = :statut')
+            ->andWhere('f.statut = :statut')
             ->setParameter('debut', $debutMois)
             ->setParameter('fin', $finMois)
             ->setParameter('statut', 'payee')

@@ -11,7 +11,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {# Clients #}
-        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300">
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-white/60 text-sm font-medium">Clients</p>
@@ -30,7 +30,7 @@
         </div>
         
         {# Devis #}
-        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300">
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate animate-delay-100">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-white/60 text-sm font-medium">Devis</p>
@@ -49,7 +49,7 @@
         </div>
         
         {# Factures #}
-        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300">
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate animate-delay-200">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-white/60 text-sm font-medium">Factures</p>
@@ -68,7 +68,7 @@
         </div>
         
         {# CA Mensuel #}
-        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300">
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate animate-delay-300">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-white/60 text-sm font-medium">CA Mensuel</p>
@@ -88,7 +88,7 @@
     </div>
     
     {# Actions Rapides #}
-    <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6">
+    <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100">
         <h2 class="text-xl font-semibold text-white mb-6">Actions Rapides</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <a href="{{ path('admin_client_new') }}" 
@@ -149,7 +149,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {# Devis Récents #}
-        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6">
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-semibold text-white">Devis Récents</h3>
                 <a href="{{ path('admin_devis_index') }}" class="text-blue-400 hover:text-blue-300 text-sm font-medium">
@@ -186,7 +186,7 @@
         </div>
         
         {# Factures Récentes #}
-        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6">
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-300">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-semibold text-white">Factures Récentes</h3>
                 <a href="{{ path('admin_facture_index') }}" class="text-blue-400 hover:text-blue-300 text-sm font-medium">

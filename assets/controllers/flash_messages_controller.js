@@ -14,7 +14,6 @@ export default class extends Controller {
     }
 
     connect() {
-        console.log("💬 Flash Messages Controller connecté")
 
         if (this.autoHideValue) {
             this.scheduleAutoHide()
