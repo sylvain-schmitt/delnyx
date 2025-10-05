@@ -1,0 +1,136 @@
+{% extends 'admin/layout/base.html.twig' %}
+
+{% block title %}{{ title }} - Administration Delnyx{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block body %}
+<div class="space-y-6">
+    
+    {# Header avec breadcrumb #}
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+        <div>
+            <h1 class="text-2xl font-bold text-white">{{ title }}</h1>
+            <nav class="flex items-center space-x-2 text-sm text-white/60 mt-1">
+                <a href="{{ path('admin_dashboard') }}" class="hover:text-white transition-colors duration-200">Dashboard</a>
+                <span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
+                <a href="{{ path('admin_client_index') }}" class="hover:text-white transition-colors duration-200">Clients</a>
+                <span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
+                <span class="text-white">{{ title }}</span>
+            </nav>
+        </div>
+        <a href="{{ path('admin_client_index') }}" 
+           class="btn-secondary flex items-center gap-2">
+            {{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
+            Retour à la liste
+        </a>
+    </div>
+
+    {# Formulaire #}
+    <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100">
+        {{ form_start(form, {'attr': {'class': 'space-y-6'}}) }}
+        
+        {# Informations personnelles #}
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                {{ ux_icon('lucide:user', {class: 'w-5 h-5'}) }}
+                Informations personnelles
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    {{ form_label(form.nom, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.nom) }}
+                    {{ form_errors(form.nom) }}
+                </div>
+                
+                <div>
+                    {{ form_label(form.prenom, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.prenom) }}
+                    {{ form_errors(form.prenom) }}
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    {{ form_label(form.email, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.email) }}
+                    {{ form_errors(form.email) }}
+                </div>
+                
+                <div>
+                    {{ form_label(form.telephone, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.telephone) }}
+                    {{ form_errors(form.telephone) }}
+                </div>
+            </div>
+        </div>
+
+        {# Informations professionnelles #}
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                {{ ux_icon('lucide:building', {class: 'w-5 h-5'}) }}
+                Informations professionnelles
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    {{ form_label(form.entreprise, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.entreprise) }}
+                    {{ form_errors(form.entreprise) }}
+                </div>
+                
+                <div>
+                    {{ form_label(form.siret, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.siret) }}
+                    {{ form_errors(form.siret) }}
+                </div>
+            </div>
+            
+            <div>
+                {{ form_label(form.adresse, null, {'label_attr': {'class': 'form-label'}}) }}
+                {{ form_widget(form.adresse) }}
+                {{ form_errors(form.adresse) }}
+            </div>
+        </div>
+
+        {# Statut et notes #}
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                {{ ux_icon('lucide:settings', {class: 'w-5 h-5'}) }}
+                Paramètres
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    {{ form_label(form.statut, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.statut) }}
+                    {{ form_errors(form.statut) }}
+                </div>
+            </div>
+            
+            <div>
+                {{ form_label(form.notes, null, {'label_attr': {'class': 'form-label'}}) }}
+                {{ form_widget(form.notes) }}
+                {{ form_errors(form.notes) }}
+            </div>
+        </div>
+
+        {# Actions #}
+        <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/20">
+            <button type="submit" class="btn-primary flex items-center justify-center gap-2">
+                {{ ux_icon('lucide:save', {class: 'w-4 h-4'}) }}
+                {{ client.id ? 'Modifier le client' : 'Créer le client' }}
+            </button>
+            
+            <a href="{{ path('admin_client_index') }}" 
+               class="btn-secondary flex items-center justify-center gap-2">
+                {{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
+                Annuler
+            </a>
+        </div>
+
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

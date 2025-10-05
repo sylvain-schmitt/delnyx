@@ -3,8 +3,11 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Client;
+use App\Form\ClientType;
 use App\Repository\ClientRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -12,13 +15,17 @@ use Symfony\Component\Routing\Attribute\Route;
 class ClientController extends AbstractController
 {
     public function __construct(
-        private ClientRepository $clientRepository
+        private ClientRepository $clientRepository,
+        private EntityManagerInterface $entityManager
     ) {}
 
     #[Route('/', name: 'index')]
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $clients = $this->clientRepository->findAll();
+        $clients = $this->clientRepository->findBy(
+            [],
+            ['dateCreation' => 'DESC']
+        );
 
         return $this->render('admin/client/index.html.twig', [
             'clients' => $clients,
@@ -26,8 +33,57 @@ class ClientController extends AbstractController
     }
 
     #[Route('/new', name: 'new')]
-    public function new(): Response
+    public function new(Request $request): Response
     {
-        return $this->render('admin/client/new.html.twig');
+        $client = new Client();
+        $form = $this->createForm(ClientType::class, $client);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->entityManager->persist($client);
+            $this->entityManager->flush();
+
+            $this->addFlash('success', 'Client créé avec succès');
+            return $this->redirectToRoute('admin_client_index');
+        }
+
+        return $this->render('admin/client/form.html.twig', [
+            'client' => $client,
+            'form' => $form,
+            'title' => 'Nouveau Client',
+        ]);
+    }
+
+    #[Route('/{id}/edit', name: 'edit', requirements: ['id' => '\d+'])]
+    public function edit(Request $request, Client $client): Response
+    {
+        $form = $this->createForm(ClientType::class, $client);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->entityManager->flush();
+
+            $this->addFlash('success', 'Client modifié avec succès');
+            return $this->redirectToRoute('admin_client_index');
+        }
+
+        return $this->render('admin/client/form.html.twig', [
+            'client' => $client,
+            'form' => $form,
+            'title' => 'Modifier le Client',
+        ]);
+    }
+
+    #[Route('/{id}/delete', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function delete(Request $request, Client $client): Response
+    {
+        if ($this->isCsrfTokenValid('delete' . $client->getId(), $request->request->get('_token'))) {
+            $this->entityManager->remove($client);
+            $this->entityManager->flush();
+
+            $this->addFlash('success', 'Client supprimé avec succès');
+        }
+
+        return $this->redirectToRoute('admin_client_index');
     }
 }
