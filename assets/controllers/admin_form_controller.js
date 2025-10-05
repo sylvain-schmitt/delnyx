@@ -172,13 +172,20 @@ export default class extends Controller {
 
         if (!allValid) {
             console.log('❌ Validation failed, showing shake animation')
+            console.log('🎯 Element to shake:', this.element)
+            console.log('📦 Element classes before:', this.element.className)
+            
             // Empêcher la soumission si la validation client échoue
             event.preventDefault()
 
             // Animation d'erreur
             this.element.classList.add('animate-shake')
+            console.log('📦 Element classes after:', this.element.className)
+            console.log('🎬 Shake animation started!')
+            
             setTimeout(() => {
                 this.element.classList.remove('animate-shake')
+                console.log('🎬 Shake animation removed')
             }, 600)
             return
         }
