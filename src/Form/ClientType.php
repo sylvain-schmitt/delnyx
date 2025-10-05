@@ -9,6 +9,7 @@ use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use App\Entity\ClientStatus;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -46,12 +47,12 @@ class ClientType extends AbstractType
                     'placeholder' => '06 12 34 56 78'
                 ]
             ])
-            ->add('entreprise', TextType::class, [
-                'label' => 'Entreprise',
+            ->add('ville', TextType::class, [
+                'label' => 'Ville',
                 'required' => false,
                 'attr' => [
                     'class' => 'form-input',
-                    'placeholder' => 'Nom de l\'entreprise'
+                    'placeholder' => 'Ville'
                 ]
             ])
             ->add('siret', TextType::class, [
@@ -71,13 +72,25 @@ class ClientType extends AbstractType
                     'rows' => 3
                 ]
             ])
+            ->add('codePostal', TextType::class, [
+                'label' => 'Code Postal',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-input',
+                    'placeholder' => '75001'
+                ]
+            ])
+            ->add('pays', TextType::class, [
+                'label' => 'Pays',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-input',
+                    'placeholder' => 'France'
+                ]
+            ])
             ->add('statut', ChoiceType::class, [
                 'label' => 'Statut',
-                'choices' => [
-                    'Actif' => 'actif',
-                    'Inactif' => 'inactif',
-                    'Prospect' => 'prospect'
-                ],
+                'choices' => ClientStatus::getChoices(),
                 'attr' => [
                     'class' => 'form-select'
                 ]

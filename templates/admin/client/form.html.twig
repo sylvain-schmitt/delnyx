@@ -66,6 +66,40 @@
             </div>
         </div>
 
+        {# Informations d'adresse #}
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                {{ ux_icon('lucide:map-pin', {class: 'w-5 h-5'}) }}
+                Adresse
+            </h3>
+            
+            <div>
+                {{ form_label(form.adresse, null, {'label_attr': {'class': 'form-label'}}) }}
+                {{ form_widget(form.adresse) }}
+                {{ form_errors(form.adresse) }}
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    {{ form_label(form.codePostal, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.codePostal) }}
+                    {{ form_errors(form.codePostal) }}
+                </div>
+                
+                <div>
+                    {{ form_label(form.ville, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.ville) }}
+                    {{ form_errors(form.ville) }}
+                </div>
+                
+                <div>
+                    {{ form_label(form.pays, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.pays) }}
+                    {{ form_errors(form.pays) }}
+                </div>
+            </div>
+        </div>
+
         {# Informations professionnelles #}
         <div class="space-y-4">
             <h3 class="text-lg font-semibold text-white flex items-center gap-2">
@@ -73,24 +107,10 @@
                 Informations professionnelles
             </h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    {{ form_label(form.entreprise, null, {'label_attr': {'class': 'form-label'}}) }}
-                    {{ form_widget(form.entreprise) }}
-                    {{ form_errors(form.entreprise) }}
-                </div>
-                
-                <div>
-                    {{ form_label(form.siret, null, {'label_attr': {'class': 'form-label'}}) }}
-                    {{ form_widget(form.siret) }}
-                    {{ form_errors(form.siret) }}
-                </div>
-            </div>
-            
             <div>
-                {{ form_label(form.adresse, null, {'label_attr': {'class': 'form-label'}}) }}
-                {{ form_widget(form.adresse) }}
-                {{ form_errors(form.adresse) }}
+                {{ form_label(form.siret, null, {'label_attr': {'class': 'form-label'}}) }}
+                {{ form_widget(form.siret) }}
+                {{ form_errors(form.siret) }}
             </div>
         </div>
 

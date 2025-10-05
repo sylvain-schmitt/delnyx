@@ -41,19 +41,19 @@
                             </div>
                         </div>
                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                            {% if client.statut == 'actif' %}bg-green-500/20 text-green-300
-                            {% elseif client.statut == 'inactif' %}bg-gray-500/20 text-gray-300
+                            {% if client.statut.value == 'actif' %}bg-green-500/20 text-green-300
+                            {% elseif client.statut.value == 'inactif' %}bg-gray-500/20 text-gray-300
                             {% else %}bg-blue-500/20 text-blue-300{% endif %}">
-                            {{ client.statut|title }}
+                            {{ client.statut.label }}
                         </span>
                     </div>
 
                     {# Informations du client #}
                     <div class="space-y-2 mb-4">
-                        {% if client.entreprise %}
+                        {% if client.ville %}
                             <div class="flex items-center text-sm text-white/80">
-                                {{ ux_icon('lucide:building', {class: 'w-4 h-4 mr-2'}) }}
-                                {{ client.entreprise }}
+                                {{ ux_icon('lucide:map-pin', {class: 'w-4 h-4 mr-2'}) }}
+                                {{ client.ville }}{% if client.codePostal %} ({{ client.codePostal }}){% endif %}
                             </div>
                         {% endif %}
                         {% if client.telephone %}
