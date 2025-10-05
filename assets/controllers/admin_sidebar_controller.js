@@ -9,9 +9,6 @@ export default class extends Controller {
     static values = { open: Boolean }
 
     connect() {
-        console.log("Admin sidebar controller connected")
-        console.log("Has sidebar target:", this.hasSidebarTarget)
-        console.log("Has overlay target:", this.hasOverlayTarget)
         this.openValue = false
         this.setupEventListeners()
     }
@@ -81,9 +78,7 @@ export default class extends Controller {
      * Toggle la sidebar (mobile)
      */
     toggle() {
-        console.log("Toggle called, current openValue:", this.openValue)
         this.openValue = !this.openValue
-        console.log("New openValue:", this.openValue)
         this.updateSidebar()
     }
 
@@ -99,12 +94,9 @@ export default class extends Controller {
      * Met à jour l'état de la sidebar
      */
     updateSidebar() {
-        console.log("UpdateSidebar called, openValue:", this.openValue)
         if (this.openValue) {
-            console.log("Opening sidebar...")
             this.open()
         } else {
-            console.log("Closing sidebar...")
             this.closeSidebar()
         }
     }
@@ -113,23 +105,16 @@ export default class extends Controller {
      * Ouvre la sidebar
      */
     open() {
-        console.log("Open method called")
         if (this.hasSidebarTarget) {
-            console.log("Sidebar target found, applying classes")
             this.sidebarTarget.classList.remove('-translate-x-full')
             this.sidebarTarget.classList.add('translate-x-0')
-        } else {
-            console.log("No sidebar target found!")
         }
-
+        
         // Afficher l'overlay sur mobile
         if (this.hasOverlayTarget) {
-            console.log("Overlay target found, showing overlay")
             this.overlayTarget.classList.remove('hidden')
-        } else {
-            console.log("No overlay target found!")
         }
-
+        
         // Empêcher le scroll du body
         document.body.classList.add('overflow-hidden')
     }
@@ -138,23 +123,16 @@ export default class extends Controller {
      * Ferme la sidebar
      */
     closeSidebar() {
-        console.log("CloseSidebar method called")
         if (this.hasSidebarTarget) {
-            console.log("Sidebar target found, applying close classes")
             this.sidebarTarget.classList.add('-translate-x-full')
             this.sidebarTarget.classList.remove('translate-x-0')
-        } else {
-            console.log("No sidebar target found!")
         }
-
+        
         // Masquer l'overlay
         if (this.hasOverlayTarget) {
-            console.log("Overlay target found, hiding overlay")
             this.overlayTarget.classList.add('hidden')
-        } else {
-            console.log("No overlay target found!")
         }
-
+        
         // Restaurer le scroll du body
         document.body.classList.remove('overflow-hidden')
     }
