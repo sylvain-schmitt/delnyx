@@ -42,7 +42,17 @@
     @apply bg-slate-800 text-white;
 }
 
-/* Erreurs de validation Symfony */
+/* Erreurs de validation - Style unifié pour Symfony ET JavaScript */
+.form-error {
+    @apply text-red-400 text-sm mt-1 flex items-center gap-1;
+}
+
+.form-error::before {
+    content: "▲";
+    @apply text-red-400 font-bold;
+}
+
+/* Erreurs Symfony (listes) */
 ul.form-error,
 .form-group ul {
     @apply list-none p-0 m-0 space-y-1;
@@ -57,16 +67,6 @@ ul.form-error li::before,
 .form-group ul li::before {
     content: "▲";
     @apply text-red-400 font-bold;
-}
-
-/* Erreurs JavaScript (pour différencier) */
-.form-error.js-error {
-    @apply text-orange-400;
-}
-
-.form-error.js-error::before {
-    content: "⚠";
-    @apply text-orange-400;
 }
 
 /* Champs avec erreurs */

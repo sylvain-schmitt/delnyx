@@ -51,8 +51,8 @@ export default class extends Controller {
         const fieldName = field.name
         const value = field.value.trim()
 
-        // Suppression des erreurs JavaScript existantes (pas les erreurs Symfony)
-        this.clearJavaScriptErrors(field)
+        // Suppression des erreurs existantes
+        this.clearFieldError(field)
 
         // Validation selon le type de champ
         let isValid = true
@@ -109,14 +109,14 @@ export default class extends Controller {
                 break
         }
 
-        // Application du style selon la validation (sans ajouter d'erreurs visuelles)
+        // Application du style selon la validation
         if (isValid) {
             field.classList.add('is-valid')
             field.classList.remove('is-invalid')
         } else {
             field.classList.add('is-invalid')
             field.classList.remove('is-valid')
-            // Ne pas afficher d'erreur JavaScript, laisser Symfony gérer
+            this.showFieldError(field, errorMessage)
         }
 
         return isValid
@@ -124,7 +124,23 @@ export default class extends Controller {
 
     clearFieldError(field) {
         field.classList.remove('is-valid', 'is-invalid')
-        // Ne pas supprimer les erreurs Symfony, seulement les classes CSS
+        // Suppression des messages d'erreur existants (recherche dans toute la form-group)
+        const formGroup = field.closest('.form-group')
+        if (formGroup) {
+            const existingErrors = formGroup.querySelectorAll('.form-error')
+            existingErrors.forEach(error => error.remove())
+        }
+    }
+
+    showFieldError(field, message) {
+        const errorElement = document.createElement('div')
+        errorElement.className = 'form-error'
+        errorElement.textContent = message
+
+        const formGroup = field.closest('.form-group')
+        if (formGroup) {
+            formGroup.appendChild(errorElement)
+        }
     }
 
     handleSubmit(event) {
