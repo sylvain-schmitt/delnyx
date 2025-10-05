@@ -101,6 +101,11 @@
             {% endfor %}
         </div>
         
+        {# Debug pagination - À RETIRER #}
+        <div class="text-white text-sm mt-4 p-4 bg-red-500/20 rounded">
+            DEBUG: current_page={{ current_page }}, total_pages={{ total_pages }}, total_clients={{ total_clients }}
+        </div>
+        
         {# Pagination #}
         {{ pagination_macro.render(current_page, total_pages, 'admin_client_index') }}
     {% else %}
