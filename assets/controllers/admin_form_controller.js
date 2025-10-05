@@ -144,19 +144,13 @@ export default class extends Controller {
     }
 
     handleSubmit(event) {
-        event.preventDefault()
-        
         // Éviter le double-clic
         if (this.submitTarget.disabled) {
+            event.preventDefault()
             return
         }
 
-        // Nettoyage de toutes les erreurs JavaScript existantes
-        this.fieldTargets.forEach(field => {
-            this.clearFieldError(field)
-        })
-
-        // Validation de tous les champs
+        // Validation côté client (sans empêcher la soumission)
         let allValid = true
         this.fieldTargets.forEach(field => {
             if (!this.validateField(field)) {
@@ -165,6 +159,9 @@ export default class extends Controller {
         })
 
         if (!allValid) {
+            // Empêcher la soumission si la validation client échoue
+            event.preventDefault()
+            
             // Animation d'erreur
             this.element.classList.add('animate-shake')
             setTimeout(() => {
@@ -173,14 +170,11 @@ export default class extends Controller {
             return
         }
 
-        // Animation de chargement et désactivation immédiate
+        // Si la validation client passe, on laisse le formulaire se soumettre normalement
+        // Symfony fera sa propre validation côté serveur
+        // Animation de chargement
         this.submitTarget.classList.add('btn-loading')
         this.submitTarget.disabled = true
         this.submitTarget.textContent = 'Enregistrement...'
-
-        // Soumission du formulaire avec un délai pour éviter le double-clic
-        setTimeout(() => {
-            this.formTarget.submit()
-        }, 100)
     }
 }
