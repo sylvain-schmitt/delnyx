@@ -161,7 +161,7 @@ export default class extends Controller {
         if (!allValid) {
             // Empêcher la soumission si la validation client échoue
             event.preventDefault()
-            
+
             // Animation d'erreur
             this.element.classList.add('animate-shake')
             setTimeout(() => {
