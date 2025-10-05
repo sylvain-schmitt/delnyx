@@ -1,5 +1,10 @@
 {# Macro de pagination glassmorphique #}
 {% macro render(current_page, total_pages, route_name, route_params = {}) %}
+    {# DEBUG - À RETIRER #}
+    <div class="text-white text-sm p-2 bg-yellow-500/20 rounded mb-2">
+        MACRO DEBUG: current_page={{ current_page }}, total_pages={{ total_pages }}, condition={{ total_pages > 1 ? 'TRUE' : 'FALSE' }}
+    </div>
+    
     {% if total_pages > 1 %}
         <nav class="flex items-center justify-between mt-8 scroll-animate" aria-label="Pagination">
             <div class="flex-1 flex justify-between sm:hidden">

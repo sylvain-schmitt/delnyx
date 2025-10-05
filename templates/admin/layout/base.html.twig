@@ -1,90 +1,88 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Administration - Delnyx{% endblock %}</title>
-    
-    {# SEO Meta Tags #}
-    <meta name="description" content="{% block meta_description %}Espace d'administration Delnyx - Gestion des clients, devis, factures et avenants{% endblock %}">
-    <meta name="robots" content="noindex, nofollow">
-    
-    {# Favicon #}
-    <link rel="icon" type="image/png" href="{{ asset('images/favicon/favicon-96x96.png') }}" sizes="96x96"/>
-    <link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon/favicon.svg') }}"/>
-    <link rel="shortcut icon" href="{{ asset('images/favicon/favicon.ico') }}"/>
-    
-    {# Stylesheets #}
-    {% block stylesheets %}
-        <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
-        <link rel="stylesheet" href="{{ asset('styles/admin-forms.css') }}">
-    {% endblock %}
-    
-    {# JavaScripts #}
-    {% block javascripts %}
-        <script src="{{ asset('scripts/particles.min.js') }}"></script>
-        {% block importmap %}
-            {{ importmap('app') }}
-        {% endblock %}
-    {% endblock %}
-</head>
-<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700" data-controller="scroll-animations admin-sidebar flash-messages">
-    
-    {# Sidebar Navigation #}
-    <div>
-        {% include 'admin/layout/_sidebar.html.twig' %}
-    </div>
-    
-    {# Header #}
-    {% include 'admin/layout/_header.html.twig' %}
-    
-    {# Main Content Area #}
-    <div class="lg:pl-64 pt-16">
-        {# Page Content #}
-        <main class="p-6">
-            {# Flash Messages #}
-            <div data-flash-messages-target="container" class="space-y-3">
-                {% for type, messages in app.flashes %}
-                    {% for message in messages %}
-                        <div data-flash-messages-target="message" 
-                             class="glass-card optimized-blur p-4 border-l-4 {% if type == 'success' %}border-emerald-500{% else %}border-red-500{% endif %}"
-                             data-flash-messages-message-param="{{ loop.index }}">
-                            <div class="flex items-center">
-                                <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 {% if type == 'success' %}bg-emerald-500/20{% else %}bg-red-500/20{% endif %}">
-                                    {% if type == 'success' %}
-                                        {{ ux_icon('lucide:check-circle', {class: 'w-5 h-5 text-emerald-400'}) }}
-                                    {% else %}
-                                        {{ ux_icon('lucide:alert-circle', {class: 'w-5 h-5 text-red-400'}) }}
-                                    {% endif %}
-                                </div>
-                                <p class="{% if type == 'success' %}text-emerald-300{% else %}text-red-300{% endif %} font-medium flex-1">{{ message|raw }}</p>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% endfor %}
-            </div>
-            
-            {# Page Content #}
-            {% block body %}{% endblock %}
-        </main>
-    </div>
-    
-    {# Scroll to Top Button #}
-    <div 
-        data-controller="scroll-to-top"
-        data-scroll-to-top-threshold-value="300"
-    >
-        <button 
-            data-scroll-to-top-target="button"
-            data-action="click->scroll-to-top#scrollToTop"
-            class="fixed bottom-6 right-6 z-50 w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full shadow-lg hover:bg-white/20 hover:shadow-xl transition-all duration-300 transform hover:scale-110 opacity-0 pointer-events-none"
-            aria-label="Retour en haut de page"
-        >
-            <svg class="w-6 h-6 text-white mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
-            </svg>
-        </button>
-    </div>
-    
-</body>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>
+			{% block title %}Administration - Delnyx
+			{% endblock %}
+		</title>
+
+		{# SEO Meta Tags #}
+		<meta name="description" content="{% block meta_description %}Espace d'administration Delnyx - Gestion des clients, devis, factures et avenants{% endblock %}">
+		<meta
+		name="robots" content="noindex, nofollow">
+
+		{# Favicon #}
+		<link rel="icon" type="image/png" href="{{ asset('images/favicon/favicon-96x96.png') }}" sizes="96x96"/>
+		<link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon/favicon.svg') }}"/>
+		<link
+		rel="shortcut icon" href="{{ asset('images/favicon/favicon.ico') }}"/>
+
+		{# Stylesheets #}
+		{% block stylesheets %}
+			<link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+			<link rel="stylesheet" href="{{ asset('styles/admin-forms.css') }}">
+		{% endblock %}
+
+		{# JavaScripts #}
+		{% block javascripts %}
+			<script src="{{ asset('scripts/particles.min.js') }}"></script>
+			{% block importmap %}
+				{{ importmap('app') }}
+			{% endblock %}
+		{% endblock %}
+	</head>
+	<body
+		class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700" data-controller="scroll-animations admin-sidebar flash-messages">
+
+		{# Sidebar Navigation #}
+		<div>
+			{% include 'admin/layout/_sidebar.html.twig' %}
+		</div>
+
+		{# Header #}
+		{% include 'admin/layout/_header.html.twig' %}
+
+		{# Main Content Area #}
+		<div
+			class="lg:pl-64 pt-16">
+			{# Page Content #}
+			<main
+				class="p-6">
+				{# Flash Messages #}
+				<div data-flash-messages-target="container" class="space-y-3">
+					{% for type, messages in app.flashes %}
+						{% for message in messages %}
+							<div data-flash-messages-target="message" class="glass-card optimized-blur p-4 border-l-4 {% if type == 'success' %}border-emerald-500{% else %}border-red-500{% endif %}" data-flash-messages-message-param="{{ loop.index }}">
+								<div class="flex items-center">
+									<div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 {% if type == 'success' %}bg-emerald-500/20{% else %}bg-red-500/20{% endif %}">
+										{% if type == 'success' %}
+											{{ ux_icon('lucide:check-circle', {class: 'w-5 h-5 text-emerald-400'}) }}
+										{% else %}
+											{{ ux_icon('lucide:alert-circle', {class: 'w-5 h-5 text-red-400'}) }}
+										{% endif %}
+									</div>
+									<p class="{% if type == 'success' %}text-emerald-300{% else %}text-red-300{% endif %} font-medium flex-1">{{ message|raw }}</p>
+								</div>
+							</div>
+						{% endfor %}
+					{% endfor %}
+				</div>
+
+				{# Page Content #}
+				{% block body %}{% endblock %}
+			</main>
+		</div>
+
+		{# Scroll to Top Button #}
+		<div data-controller="scroll-to-top" data-scroll-to-top-threshold-value="300">
+			<button data-scroll-to-top-target="button" data-action="click->scroll-to-top#scrollToTop" class="fixed bottom-6 right-6 z-50 w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full shadow-lg hover:bg-white/20 hover:shadow-xl transition-all duration-300 transform hover:scale-110 opacity-0 pointer-events-none" aria-label="Retour en haut de page">
+				<svg class="w-6 h-6 text-white mx-auto" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+				</svg>
+			</button>
+		</div>
+
+	</body>
 </html>

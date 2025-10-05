@@ -1,128 +1,131 @@
 {% extends 'admin/layout/base.html.twig' %}
 {% import 'admin/macros/pagination.html.twig' as pagination_macro %}
 
-{% block title %}Clients - Administration Delnyx{% endblock %}
+{% block title %}Clients - Administration Delnyx
+{% endblock %}
 
-{% block page_title %}Clients{% endblock %}
+{% block page_title %}Clients
+{% endblock %}
 
 {% block body %}
-<div class="space-y-6">
-    
-    {# Header avec actions #}
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
-        <div>
-            <h1 class="text-2xl font-bold text-white">Clients</h1>
-            <p class="text-white/60 mt-1">{{ total_clients }} client(s) au total</p>
-        </div>
-        <div class="flex gap-3">
-            <a href="{{ path('admin_client_new') }}" 
-               class="btn-primary flex items-center gap-2">
-                {{ ux_icon('lucide:user-plus', {class: 'w-4 h-4'}) }}
-                Nouveau Client
-            </a>
-        </div>
-    </div>
+	<div
+		class="space-y-6">
 
-    {# Liste des clients #}
-    {% if clients|length > 0 %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {% for client in clients %}
-                <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate" 
-                     data-delay="{{ loop.index * 0.1 }}s">
-                    
-                    {# Header de la carte #}
-                    <div class="flex items-start justify-between gap-3 mb-4">
-                        <div class="flex items-center gap-3 min-w-0 flex-1">
-                            <div class="w-10 h-10 flex-shrink-0 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                                {{ ux_icon('lucide:user', {class: 'w-5 h-5 text-blue-400'}) }}
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <h3 class="text-base font-semibold text-white truncate">{{ client.nomComplet }}</h3>
-                                <p class="text-white/60 text-xs truncate">{{ client.email }}</p>
-                            </div>
-                        </div>
-                        <span class="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap
-                            {% if client.statut.value == 'actif' %}bg-green-500/20 text-green-300
-                            {% elseif client.statut.value == 'inactif' %}bg-gray-500/20 text-gray-300
-                            {% else %}bg-blue-500/20 text-blue-300{% endif %}">
-                            {{ client.statut.label }}
-                        </span>
-                    </div>
+		{# Header avec actions #}
+		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+			<div>
+				<h1 class="text-2xl font-bold text-white">Clients</h1>
+				<p class="text-white/60 mt-1">{{ total_clients }}
+					client(s) au total</p>
+			</div>
+			<div class="flex gap-3">
+				<a href="{{ path('admin_client_new') }}" class="btn-primary flex items-center gap-2">
+					{{ ux_icon('lucide:user-plus', {class: 'w-4 h-4'}) }}
+					Nouveau Client
+				</a>
+			</div>
+		</div>
 
-                    {# Informations du client #}
-                    <div class="space-y-2 mb-4">
-                        {% if client.ville %}
-                            <div class="flex items-center text-sm text-white/80">
-                                {{ ux_icon('lucide:map-pin', {class: 'w-4 h-4 mr-2'}) }}
-                                {{ client.ville }}{% if client.codePostal %} ({{ client.codePostal }}){% endif %}
-                            </div>
-                        {% endif %}
-                        {% if client.telephone %}
-                            <div class="flex items-center text-sm text-white/80">
-                                {{ ux_icon('lucide:phone', {class: 'w-4 h-4 mr-2'}) }}
-                                {{ client.telephone }}
-                            </div>
-                        {% endif %}
-                        {% if client.siret %}
-                            <div class="flex items-center text-sm text-white/80">
-                                {{ ux_icon('lucide:file-text', {class: 'w-4 h-4 mr-2'}) }}
-                                SIRET: {{ client.siret }}
-                            </div>
-                        {% endif %}
-                    </div>
+		{# Liste des clients #}
+		{% if clients|length > 0 %}
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+				{% for client in clients %}
+					<div
+						class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate" data-delay="{{ loop.index * 0.1 }}s">
 
-                    {# Notes si présentes #}
-                    {% if client.notes %}
-                        <div class="mb-4">
-                            <p class="text-sm text-white/60 line-clamp-2">{{ client.notes }}</p>
-                        </div>
-                    {% endif %}
+						{# Header de la carte #}
+						<div class="flex items-start justify-between gap-3 mb-4">
+							<div class="flex items-center gap-3 min-w-0 flex-1">
+								<div class="w-10 h-10 flex-shrink-0 bg-blue-500/20 rounded-lg flex items-center justify-center">
+									{{ ux_icon('lucide:user', {class: 'w-5 h-5 text-blue-400'}) }}
+								</div>
+								<div class="min-w-0 flex-1">
+									<h3 class="text-base font-semibold text-white truncate">{{ client.nomComplet }}</h3>
+									<p class="text-white/60 text-xs truncate">{{ client.email }}</p>
+								</div>
+							</div>
+							<span class="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap
+									                            {% if client.statut.value == 'actif' %}bg-green-500/20 text-green-300
+									                            {% elseif client.statut.value == 'inactif' %}bg-gray-500/20 text-gray-300
+									                            {% else %}bg-blue-500/20 text-blue-300{% endif %}">
+								{{ client.statut.label }}
+							</span>
+						</div>
 
-                    {# Actions #}
-                    <div class="flex flex-col sm:flex-row gap-2 mt-4">
-                        <a href="{{ path('admin_client_edit', {id: client.id}) }}" 
-                           class="flex-1 btn-secondary text-center text-sm py-2 flex items-center justify-center gap-1">
-                            {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
-                            <span class="hidden sm:inline">Modifier</span>
-                            <span class="sm:hidden">Éditer</span>
-                        </a>
-                        <form method="post" action="{{ path('admin_client_delete', {id: client.id}) }}" 
-                              class="flex-1" 
-                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce client ?')">
-                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ client.id) }}">
-                            <button type="submit" 
-                                    class="w-full btn-danger text-center text-sm py-2 flex items-center justify-center gap-1">
-                                {{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
-                                <span>Supprimer</span>
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-        
-        {# Debug pagination - À RETIRER #}
-        <div class="text-white text-sm mt-4 p-4 bg-red-500/20 rounded">
-            DEBUG: current_page={{ current_page }}, total_pages={{ total_pages }}, total_clients={{ total_clients }}
-        </div>
-        
-        {# Pagination #}
-        {{ pagination_macro.render(current_page, total_pages, 'admin_client_index') }}
-    {% else %}
-        {# État vide #}
-        <div class="text-center py-20 scroll-animate">
-            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-12 max-w-md mx-auto">
-                {{ ux_icon('lucide:users', {class: 'w-16 h-16 text-gray-400 mb-6 mx-auto'}) }}
-                <h3 class="text-2xl font-bold text-white mb-4">Aucun client</h3>
-                <p class="text-gray-300 mb-6">
-                    Commencez par ajouter votre premier client.
-                </p>
-                <a href="{{ path('admin_client_new') }}" class="btn-primary">
-                    {{ ux_icon('lucide:user-plus', {class: 'w-4 h-4 mr-2'}) }}
-                    Ajouter un client
-                </a>
-            </div>
-        </div>
-    {% endif %}
-</div>
+						{# Informations du client #}
+						<div class="space-y-2 mb-4">
+							{% if client.ville %}
+								<div class="flex items-center text-sm text-white/80">
+									{{ ux_icon('lucide:map-pin', {class: 'w-4 h-4 mr-2'}) }}
+									{{ client.ville }}
+									{% if client.codePostal %}
+										({{ client.codePostal }})
+									{% endif %}
+								</div>
+							{% endif %}
+							{% if client.telephone %}
+								<div class="flex items-center text-sm text-white/80">
+									{{ ux_icon('lucide:phone', {class: 'w-4 h-4 mr-2'}) }}
+									{{ client.telephone }}
+								</div>
+							{% endif %}
+							{% if client.siret %}
+								<div class="flex items-center text-sm text-white/80">
+									{{ ux_icon('lucide:file-text', {class: 'w-4 h-4 mr-2'}) }}
+									SIRET:
+									{{ client.siret }}
+								</div>
+							{% endif %}
+						</div>
+
+						{# Notes si présentes #}
+						{% if client.notes %}
+							<div class="mb-4">
+								<p class="text-sm text-white/60 line-clamp-2">{{ client.notes }}</p>
+							</div>
+						{% endif %}
+
+						{# Actions #}
+						<div class="flex flex-col sm:flex-row gap-2 mt-4">
+							<a href="{{ path('admin_client_edit', {id: client.id}) }}" class="flex-1 btn-secondary text-center text-sm py-2 flex items-center justify-center gap-1">
+								{{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
+								<span class="hidden sm:inline">Modifier</span>
+								<span class="sm:hidden">Éditer</span>
+							</a>
+							<form method="post" action="{{ path('admin_client_delete', {id: client.id}) }}" class="flex-1" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce client ?')">
+								<input type="hidden" name="_token" value="{{ csrf_token('delete' ~ client.id) }}">
+								<button type="submit" class="w-full btn-danger text-center text-sm py-2 flex items-center justify-center gap-1">
+									{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+									<span>Supprimer</span>
+								</button>
+							</form>
+						</div>
+					</div>
+				{% endfor %}
+			</div>
+
+			{# Debug pagination - À RETIRER #}
+			<div class="text-white text-sm mt-4 p-4 bg-red-500/20 rounded">
+				DEBUG: current_page={{ current_page }}, total_pages={{ total_pages }}, total_clients={{ total_clients }}
+			</div>
+
+			{# Pagination #}
+			{{ pagination_macro.render(current_page, total_pages, 'admin_client_index') }}
+		{% else %}
+			{# État vide #}
+			<div class="text-center py-20 scroll-animate">
+				<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-12 max-w-md mx-auto">
+					{{ ux_icon('lucide:users', {class: 'w-16 h-16 text-gray-400 mb-6 mx-auto'}) }}
+					<h3 class="text-2xl font-bold text-white mb-4">Aucun client</h3>
+					<p class="text-gray-300 mb-6">
+						Commencez par ajouter votre premier client.
+					</p>
+					<a href="{{ path('admin_client_new') }}" class="btn-primary">
+						{{ ux_icon('lucide:user-plus', {class: 'w-4 h-4 mr-2'}) }}
+						Ajouter un client
+					</a>
+				</div>
+			</div>
+		{% endif %}
+	</div>
 {% endblock %}
