@@ -1,0 +1,107 @@
+{# Macro de pagination glassmorphique #}
+{% macro render(current_page, total_pages, route_name, route_params = {}) %}
+    {% if total_pages > 1 %}
+        <nav class="flex items-center justify-between mt-8 scroll-animate" aria-label="Pagination">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {# Version mobile : Précédent / Suivant #}
+                {% if current_page > 1 %}
+                    <a href="{{ path(route_name, route_params|merge({'page': current_page - 1})) }}" 
+                       class="btn-secondary px-4 py-2">
+                        Précédent
+                    </a>
+                {% else %}
+                    <span class="btn-secondary px-4 py-2 opacity-50 cursor-not-allowed">
+                        Précédent
+                    </span>
+                {% endif %}
+                
+                {% if current_page < total_pages %}
+                    <a href="{{ path(route_name, route_params|merge({'page': current_page + 1})) }}" 
+                       class="btn-secondary px-4 py-2 ml-3">
+                        Suivant
+                    </a>
+                {% else %}
+                    <span class="btn-secondary px-4 py-2 ml-3 opacity-50 cursor-not-allowed">
+                        Suivant
+                    </span>
+                {% endif %}
+            </div>
+            
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                {# Info de pagination #}
+                <div>
+                    <p class="text-sm text-white/70">
+                        Page <span class="font-medium text-white">{{ current_page }}</span> sur <span class="font-medium text-white">{{ total_pages }}</span>
+                    </p>
+                </div>
+                
+                {# Numéros de pages #}
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px" aria-label="Pagination">
+                        {# Première page #}
+                        {% if current_page > 1 %}
+                            <a href="{{ path(route_name, route_params|merge({'page': 1})) }}" 
+                               class="relative inline-flex items-center px-3 py-2 rounded-l-lg bg-white/10 backdrop-blur-xl border border-white/20 text-sm font-medium text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200">
+                                {{ ux_icon('lucide:chevrons-left', {class: 'w-4 h-4'}) }}
+                            </a>
+                            <a href="{{ path(route_name, route_params|merge({'page': current_page - 1})) }}" 
+                               class="relative inline-flex items-center px-3 py-2 bg-white/10 backdrop-blur-xl border border-white/20 text-sm font-medium text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200">
+                                {{ ux_icon('lucide:chevron-left', {class: 'w-4 h-4'}) }}
+                            </a>
+                        {% endif %}
+                        
+                        {# Numéros de pages (affichage intelligent) #}
+                        {% set start_page = max(1, current_page - 2) %}
+                        {% set end_page = min(total_pages, current_page + 2) %}
+                        
+                        {# Ajuster si on est au début ou à la fin #}
+                        {% if current_page <= 3 %}
+                            {% set end_page = min(5, total_pages) %}
+                        {% endif %}
+                        {% if current_page > total_pages - 3 %}
+                            {% set start_page = max(1, total_pages - 4) %}
+                        {% endif %}
+                        
+                        {% if start_page > 1 %}
+                            <span class="relative inline-flex items-center px-3 py-2 bg-white/10 backdrop-blur-xl border border-white/20 text-sm font-medium text-white/60">
+                                ...
+                            </span>
+                        {% endif %}
+                        
+                        {% for page in start_page..end_page %}
+                            {% if page == current_page %}
+                                <span class="relative inline-flex items-center px-4 py-2 bg-blue-500/30 border border-blue-400/50 text-sm font-medium text-white z-10">
+                                    {{ page }}
+                                </span>
+                            {% else %}
+                                <a href="{{ path(route_name, route_params|merge({'page': page})) }}" 
+                                   class="relative inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-xl border border-white/20 text-sm font-medium text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200">
+                                    {{ page }}
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if end_page < total_pages %}
+                            <span class="relative inline-flex items-center px-3 py-2 bg-white/10 backdrop-blur-xl border border-white/20 text-sm font-medium text-white/60">
+                                ...
+                            </span>
+                        {% endif %}
+                        
+                        {# Dernière page #}
+                        {% if current_page < total_pages %}
+                            <a href="{{ path(route_name, route_params|merge({'page': current_page + 1})) }}" 
+                               class="relative inline-flex items-center px-3 py-2 bg-white/10 backdrop-blur-xl border border-white/20 text-sm font-medium text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200">
+                                {{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}
+                            </a>
+                            <a href="{{ path(route_name, route_params|merge({'page': total_pages})) }}" 
+                               class="relative inline-flex items-center px-3 py-2 rounded-r-lg bg-white/10 backdrop-blur-xl border border-white/20 text-sm font-medium text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200">
+                                {{ ux_icon('lucide:chevrons-right', {class: 'w-4 h-4'}) }}
+                            </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </nav>
+    {% endif %}
+{% endmacro %}
+

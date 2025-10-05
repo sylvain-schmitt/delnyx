@@ -1,4 +1,5 @@
 {% extends 'admin/layout/base.html.twig' %}
+{% import 'admin/macros/pagination.html.twig' as pagination_macro %}
 
 {% block title %}Clients - Administration Delnyx{% endblock %}
 
@@ -11,7 +12,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
         <div>
             <h1 class="text-2xl font-bold text-white">Clients</h1>
-            <p class="text-white/60 mt-1">{{ clients|length }} client(s) au total</p>
+            <p class="text-white/60 mt-1">{{ total_clients }} client(s) au total</p>
         </div>
         <div class="flex gap-3">
             <a href="{{ path('admin_client_new') }}" 
@@ -98,6 +99,9 @@
                 </div>
             {% endfor %}
         </div>
+        
+        {# Pagination #}
+        {{ pagination_macro.render(current_page, total_pages, 'admin_client_index') }}
     {% else %}
         {# État vide #}
         <div class="text-center py-20 scroll-animate">

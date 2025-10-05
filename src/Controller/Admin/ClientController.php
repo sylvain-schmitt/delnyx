@@ -22,13 +22,31 @@ class ClientController extends AbstractController
     #[Route('/', name: 'index')]
     public function index(Request $request): Response
     {
+        $page = max(1, $request->query->getInt('page', 1));
+        $limit = 12; // 12 clients par page (3x4 grid)
+
+        // Récupérer le nombre total de clients
+        $totalClients = $this->clientRepository->count([]);
+        
+        // Calculer le nombre total de pages
+        $totalPages = (int) ceil($totalClients / $limit);
+        
+        // S'assurer que la page demandée existe
+        $page = min($page, max(1, $totalPages));
+        
+        // Récupérer les clients de la page courante
         $clients = $this->clientRepository->findBy(
             [],
-            ['dateCreation' => 'DESC']
+            ['dateCreation' => 'DESC'],
+            $limit,
+            ($page - 1) * $limit
         );
 
         return $this->render('admin/client/index.html.twig', [
             'clients' => $clients,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
+            'total_clients' => $totalClients,
         ]);
     }
 

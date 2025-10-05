@@ -34,6 +34,8 @@
         "twig/twig": "^2.12|^3.0"
     },
     "require-dev": {
+        "doctrine/doctrine-fixtures-bundle": "*",
+        "fakerphp/faker": "*",
         "symfony/maker-bundle": "^1.64"
     },
     "config": {

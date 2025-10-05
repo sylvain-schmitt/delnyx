@@ -168,13 +168,13 @@ export default class extends Controller {
         this.isSubmitting = true
         this.submitTarget.classList.add('btn-loading')
         this.submitTarget.disabled = true
-        
+
         // Sauvegarder le texte original pour le restaurer si nécessaire
         if (!this.originalSubmitText) {
             this.originalSubmitText = this.submitTarget.textContent
         }
         this.submitTarget.textContent = 'Enregistrement...'
-        
+
         // Le formulaire se soumet normalement (pas de preventDefault)
         // Symfony fera sa validation côté serveur
     }
