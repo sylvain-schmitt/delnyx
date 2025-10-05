@@ -2,13 +2,15 @@ import { Controller } from "@hotwired/stimulus"
 
 /**
  * Contrôleur Stimulus pour la sidebar admin
- * Gère l'ouverture/fermeture de la sidebar sur mobile
+ * Basé sur le navbar_controller pour la cohérence
  */
 export default class extends Controller {
     static targets = ["sidebar", "overlay"]
+    static values = { open: Boolean }
 
     connect() {
         console.log("Admin sidebar controller connected")
+        this.openValue = false
         this.setupEventListeners()
     }
 
@@ -23,10 +25,14 @@ export default class extends Controller {
         // Fermer la sidebar lors du redimensionnement vers desktop
         this.resizeHandler = this.handleResize.bind(this)
         window.addEventListener('resize', this.resizeHandler)
-
+        
         // Fermer la sidebar lors de la navigation Turbo
         this.turboHandler = this.handleTurboNavigation.bind(this)
         document.addEventListener('turbo:before-visit', this.turboHandler)
+        
+        // Fermer la sidebar lors du clic en dehors
+        this.clickHandler = this.handleClickOutside.bind(this)
+        document.addEventListener('click', this.clickHandler)
     }
 
     /**
@@ -38,6 +44,9 @@ export default class extends Controller {
         }
         if (this.turboHandler) {
             document.removeEventListener('turbo:before-visit', this.turboHandler)
+        }
+        if (this.clickHandler) {
+            document.removeEventListener('click', this.clickHandler)
         }
     }
 
@@ -58,13 +67,38 @@ export default class extends Controller {
     }
 
     /**
+     * Gère le clic en dehors
+     */
+    handleClickOutside(event) {
+        if (this.openValue && !this.element.contains(event.target)) {
+            this.close()
+        }
+    }
+
+    /**
      * Toggle la sidebar (mobile)
      */
     toggle() {
-        if (this.isOpen()) {
-            this.close()
-        } else {
+        this.openValue = !this.openValue
+        this.updateSidebar()
+    }
+
+    /**
+     * Ferme la sidebar
+     */
+    close() {
+        this.openValue = false
+        this.updateSidebar()
+    }
+
+    /**
+     * Met à jour l'état de la sidebar
+     */
+    updateSidebar() {
+        if (this.openValue) {
             this.open()
+        } else {
+            this.closeSidebar()
         }
     }
 
@@ -89,7 +123,7 @@ export default class extends Controller {
     /**
      * Ferme la sidebar
      */
-    close() {
+    closeSidebar() {
         if (this.hasSidebarTarget) {
             this.sidebarTarget.classList.add('-translate-x-full')
             this.sidebarTarget.classList.remove('translate-x-0')
@@ -102,12 +136,5 @@ export default class extends Controller {
         
         // Restaurer le scroll du body
         document.body.classList.remove('overflow-hidden')
-    }
-
-    /**
-     * Vérifie si la sidebar est ouverte
-     */
-    isOpen() {
-        return this.hasSidebarTarget && !this.sidebarTarget.classList.contains('-translate-x-full')
     }
 }
