@@ -60,13 +60,7 @@ class ClientFixtures extends Fixture
                 $client->setSiret($faker->numerify('##############'));
             }
             
-            // Statut (distribution réaliste)
-            $statuts = [
-                ClientStatus::PROSPECT => 40, // 40% prospects
-                ClientStatus::ACTIF => 50,    // 50% actifs
-                ClientStatus::INACTIF => 10,  // 10% inactifs
-            ];
-            
+            // Statut (distribution réaliste: 40% prospects, 50% actifs, 10% inactifs)
             $rand = $faker->numberBetween(1, 100);
             if ($rand <= 40) {
                 $client->setStatut(ClientStatus::PROSPECT);
