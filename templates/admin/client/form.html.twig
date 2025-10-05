@@ -29,7 +29,7 @@
 
     {# Formulaire #}
     <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100" data-controller="admin-form">
-        {{ form_start(form, {'attr': {'class': 'space-y-6', 'data-admin-form-target': 'form', 'novalidate': 'novalidate'}}) }}
+        {{ form_start(form, {'attr': {'class': 'space-y-6', 'data-admin-form-target': 'form', 'novalidate': 'novalidate', 'data-action': 'submit->admin-form#handleSubmit'}}) }}
         
         {# Informations personnelles #}
         <div class="space-y-4">
@@ -93,8 +93,7 @@
         <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/20">
             <button type="submit" 
                     class="btn-primary flex items-center justify-center gap-2"
-                    data-admin-form-target="submit"
-                    data-action="click->admin-form#handleSubmit">
+                    data-admin-form-target="submit">
                 {{ ux_icon('lucide:save', {class: 'w-4 h-4'}) }}
                 {{ client.id ? 'Modifier le client' : 'Créer le client' }}
             </button>

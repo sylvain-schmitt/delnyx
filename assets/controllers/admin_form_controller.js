@@ -144,6 +144,8 @@ export default class extends Controller {
     }
 
     handleSubmit(event) {
+        event.preventDefault()
+        
         // Éviter le double-clic
         if (this.submitTarget.disabled) {
             return
