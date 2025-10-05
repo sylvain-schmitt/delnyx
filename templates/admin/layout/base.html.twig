@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Administration - Delnyx{% endblock %}</title>
+    
+    {# SEO Meta Tags #}
+    <meta name="description" content="{% block meta_description %}Espace d'administration Delnyx - Gestion des clients, devis, factures et avenants{% endblock %}">
+    <meta name="robots" content="noindex, nofollow">
+    
+    {# Favicon #}
+    <link rel="icon" type="image/png" href="{{ asset('images/favicon/favicon-96x96.png') }}" sizes="96x96"/>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon/favicon.svg') }}"/>
+    <link rel="shortcut icon" href="{{ asset('images/favicon/favicon.ico') }}"/>
+    
+    {# Stylesheets #}
+    {% block stylesheets %}
+        <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+    {% endblock %}
+    
+    {# JavaScripts #}
+    {% block javascripts %}
+        <script src="{{ asset('scripts/particles.min.js') }}"></script>
+        {% block importmap %}
+            {{ importmap('app') }}
+        {% endblock %}
+    {% endblock %}
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 min-h-screen" data-controller="scroll-animations">
+    
+    {# Sidebar Navigation #}
+    {% include 'admin/layout/_sidebar.html.twig' %}
+    
+    {# Main Content Area #}
+    <div class="lg:pl-64">
+        {# Header #}
+        {% include 'admin/layout/_header.html.twig' %}
+        
+        {# Page Content #}
+        <main class="p-6">
+            {# Flash Messages #}
+            {% for type, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="mb-4 p-4 rounded-lg border-l-4 
+                        {% if type == 'success' %}bg-green-500/20 border-green-500/30 text-green-300
+                        {% elseif type == 'error' %}bg-red-500/20 border-red-500/30 text-red-300
+                        {% elseif type == 'warning' %}bg-yellow-500/20 border-yellow-500/30 text-yellow-300
+                        {% else %}bg-blue-500/20 border-blue-500/30 text-blue-300{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endfor %}
+            
+            {# Page Content #}
+            {% block body %}{% endblock %}
+        </main>
+    </div>
+    
+    {# Scroll to Top Button #}
+    <div 
+        data-controller="scroll-to-top"
+        data-scroll-to-top-threshold-value="300"
+    >
+        <button 
+            data-scroll-to-top-target="button"
+            data-action="click->scroll-to-top#scrollToTop"
+            class="fixed bottom-6 right-6 z-50 w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full shadow-lg hover:bg-white/20 hover:shadow-xl transition-all duration-300 transform hover:scale-110 opacity-0 pointer-events-none"
+            aria-label="Retour en haut de page"
+        >
+            <svg class="w-6 h-6 text-white mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+            </svg>
+        </button>
+    </div>
+    
+</body>
+</html>

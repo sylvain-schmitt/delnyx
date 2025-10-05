@@ -2,66 +2,79 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\Project;
-use App\Entity\Technology;
-use App\Entity\ProjectImage;
 use App\Entity\Client;
 use App\Entity\Devis;
 use App\Entity\Facture;
-use App\Entity\Tarif;
-use App\Entity\Avenant;
-use App\Controller\Admin\ClientCrudController;
-use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
-use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
-use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use App\Repository\ClientRepository;
+use App\Repository\DevisRepository;
+use App\Repository\FactureRepository;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 
-#[AdminDashboard(routePath: '/admin', routeName: 'admin')]
-class DashboardController extends AbstractDashboardController
+#[Route('/admin', name: 'admin_')]
+class DashboardController extends AbstractController
 {
+    public function __construct(
+        private ClientRepository $clientRepository,
+        private DevisRepository $devisRepository,
+        private FactureRepository $factureRepository
+    ) {}
+
+    #[Route('/', name: 'dashboard')]
     public function index(): Response
     {
-        // Redirection vers la liste des clients par défaut
-        $adminUrlGenerator = $this->container->get(AdminUrlGenerator::class);
-        return $this->redirect($adminUrlGenerator->setController(ClientCrudController::class)->generateUrl());
+        // Statistiques générales
+        $stats = [
+            'clients' => $this->clientRepository->count([]),
+            'devis' => $this->devisRepository->count([]),
+            'factures' => $this->factureRepository->count([]),
+            'ca_mensuel' => $this->getCAMensuel(),
+        ];
+
+        // Devis récents (5 derniers)
+        $recent_devis = $this->devisRepository->findBy(
+            [],
+            ['dateCreation' => 'DESC'],
+            5
+        );
+
+        // Factures récentes (5 dernières)
+        $recent_factures = $this->factureRepository->findBy(
+            [],
+            ['dateCreation' => 'DESC'],
+            5
+        );
+
+        return $this->render('admin/dashboard/index.html.twig', [
+            'stats' => $stats,
+            'recent_devis' => $recent_devis,
+            'recent_factures' => $recent_factures,
+        ]);
     }
 
-    public function configureDashboard(): Dashboard
+    /**
+     * Calcule le CA mensuel
+     */
+    private function getCAMensuel(): int
     {
-        return Dashboard::new()
-            ->setFaviconPath('/images/favicon/favicon.ico')
-            ->disableDarkMode()
-            ->renderContentMaximized();
-    }
+        $debutMois = new \DateTime('first day of this month');
+        $finMois = new \DateTime('last day of this month');
 
-    public function configureMenuItems(): iterable
-    {
-        yield MenuItem::linkToDashboard('Dashboard', 'monitor');
+        $factures = $this->factureRepository->createQueryBuilder('f')
+            ->where('f.dateCreation BETWEEN :debut AND :fin')
+            ->andWhere('f.statutEnum = :statut')
+            ->setParameter('debut', $debutMois)
+            ->setParameter('fin', $finMois)
+            ->setParameter('statut', 'payee')
+            ->getQuery()
+            ->getResult();
 
-        yield MenuItem::section('👥 Gestion Commerciale');
-        yield MenuItem::linkToCrud('Clients', 'users', Client::class);
-        yield MenuItem::linkToCrud('Devis', 'file-text', Devis::class);
-        yield MenuItem::linkToCrud('Factures', 'receipt', Facture::class);
-        yield MenuItem::linkToCrud('Tarifs', 'calculator', Tarif::class);
-        yield MenuItem::linkToCrud('Avenants', 'edit', Avenant::class);
+        $ca = 0;
+        foreach ($factures as $facture) {
+            $ca += $facture->getMontantTTC();
+        }
 
-        yield MenuItem::section('📁 Portfolio');
-        yield MenuItem::linkToCrud('Projets', 'folder-open', Project::class);
-        yield MenuItem::linkToCrud('Technologies', 'zap', Technology::class);
-        yield MenuItem::linkToCrud('Images', 'image', ProjectImage::class);
-
-        yield MenuItem::section('🌐 Site');
-        yield MenuItem::linkToUrl('Voir le site', 'external-link', '/');
-        yield MenuItem::linkToUrl('API Platform', 'database', '/api');
-    }
-
-    public function configureAssets(): Assets
-    {
-        return Assets::new()
-            ->addAssetMapperEntry('admin')
-            ->useCustomIconSet('lucide');
+        return $ca;
     }
 }
