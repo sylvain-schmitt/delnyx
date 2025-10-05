@@ -27,11 +27,11 @@ export default class extends Controller {
         // Fermer la sidebar lors du redimensionnement vers desktop
         this.resizeHandler = this.handleResize.bind(this)
         window.addEventListener('resize', this.resizeHandler)
-        
+
         // Fermer la sidebar lors de la navigation Turbo
         this.turboHandler = this.handleTurboNavigation.bind(this)
         document.addEventListener('turbo:before-visit', this.turboHandler)
-        
+
         // Fermer la sidebar lors du clic en dehors
         this.clickHandler = this.handleClickOutside.bind(this)
         document.addEventListener('click', this.clickHandler)
@@ -121,7 +121,7 @@ export default class extends Controller {
         } else {
             console.log("No sidebar target found!")
         }
-        
+
         // Afficher l'overlay sur mobile
         if (this.hasOverlayTarget) {
             console.log("Overlay target found, showing overlay")
@@ -129,7 +129,7 @@ export default class extends Controller {
         } else {
             console.log("No overlay target found!")
         }
-        
+
         // Empêcher le scroll du body
         document.body.classList.add('overflow-hidden')
     }
@@ -146,7 +146,7 @@ export default class extends Controller {
         } else {
             console.log("No sidebar target found!")
         }
-        
+
         // Masquer l'overlay
         if (this.hasOverlayTarget) {
             console.log("Overlay target found, hiding overlay")
@@ -154,7 +154,7 @@ export default class extends Controller {
         } else {
             console.log("No overlay target found!")
         }
-        
+
         // Restaurer le scroll du body
         document.body.classList.remove('overflow-hidden')
     }
