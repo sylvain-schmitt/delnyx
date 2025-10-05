@@ -39,12 +39,20 @@
 
 /* Erreurs de validation */
 .form-error {
-    @apply text-red-400 text-sm mt-1 flex items-center gap-1;
+    @apply text-red-400 text-sm mt-1;
 }
 
-.form-error::before {
+.form-error ul {
+    @apply list-none p-0 m-0;
+}
+
+.form-error li {
+    @apply flex items-center gap-2 text-red-400;
+}
+
+.form-error li::before {
     content: "⚠";
-    @apply text-red-400;
+    @apply text-red-400 font-bold;
 }
 
 /* Champs avec erreurs */
