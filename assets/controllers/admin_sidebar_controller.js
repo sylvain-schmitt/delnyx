@@ -109,12 +109,12 @@ export default class extends Controller {
             this.sidebarTarget.classList.remove('-translate-x-full')
             this.sidebarTarget.classList.add('translate-x-0')
         }
-        
+
         // Afficher l'overlay sur mobile
         if (this.hasOverlayTarget) {
             this.overlayTarget.classList.remove('hidden')
         }
-        
+
         // Empêcher le scroll du body
         document.body.classList.add('overflow-hidden')
     }
@@ -127,12 +127,12 @@ export default class extends Controller {
             this.sidebarTarget.classList.add('-translate-x-full')
             this.sidebarTarget.classList.remove('translate-x-0')
         }
-        
+
         // Masquer l'overlay
         if (this.hasOverlayTarget) {
             this.overlayTarget.classList.add('hidden')
         }
-        
+
         // Restaurer le scroll du body
         document.body.classList.remove('overflow-hidden')
     }

@@ -38,4 +38,7 @@ return [
     'admin-sidebar' => [
         'path' => './assets/controllers/admin_sidebar_controller.js',
     ],
+    'admin-header' => [
+        'path' => './assets/controllers/admin_header_controller.js',
+    ],
 ];
