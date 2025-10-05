@@ -1,13 +1,18 @@
 {# Sidebar Navigation - Glassmorphique #}
 <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white/10 backdrop-blur-xl border-r border-white/20 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out" 
        id="sidebar" 
-       data-controller="admin-sidebar">
+       data-admin-sidebar-target="sidebar">
     
     {# Logo et Brand #}
     <div class="flex items-center justify-between h-16 px-6 border-b border-white/20">
-        <div class="flex items-center space-x-3">
-            <img src="{{ asset('images/logo-delnyx.svg') }}" alt="Logo Delnyx" class="h-8 w-auto">
-        </div>
+        <div class="flex-shrink-0">
+					<a href="{{ path('app_home') }}" class="flex items-center space-x-3 group">
+						<div class="relative">
+							<div class="absolute -inset-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+							<img src="{{ asset('images/logo-delnyx.svg') }}" alt="Delnyx - Développement web freelance Symfony et React" class="h-10 sm:h-12 lg:h-14 w-auto relative z-10 transition-all duration-300 group-hover:scale-110">
+						</div>
+					</a>
+				</div>
         
         {# Mobile Close Button #}
         <button class="lg:hidden text-white/70 hover:text-white transition-colors duration-200"

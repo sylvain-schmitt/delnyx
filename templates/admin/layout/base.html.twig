@@ -30,7 +30,9 @@
 <body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 min-h-screen" data-controller="scroll-animations">
     
     {# Sidebar Navigation #}
-    {% include 'admin/layout/_sidebar.html.twig' %}
+    <div data-controller="admin-sidebar">
+        {% include 'admin/layout/_sidebar.html.twig' %}
+    </div>
     
     {# Main Content Area #}
     <div class="lg:pl-64">

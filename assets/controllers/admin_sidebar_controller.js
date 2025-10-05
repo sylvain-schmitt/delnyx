@@ -5,7 +5,7 @@ import { Controller } from "@hotwired/stimulus"
  * Gère l'ouverture/fermeture de la sidebar sur mobile
  */
 export default class extends Controller {
-    static targets = ["overlay"]
+    static targets = ["sidebar", "overlay"]
 
     connect() {
         console.log("Admin sidebar controller connected")
@@ -23,7 +23,7 @@ export default class extends Controller {
         // Fermer la sidebar lors du redimensionnement vers desktop
         this.resizeHandler = this.handleResize.bind(this)
         window.addEventListener('resize', this.resizeHandler)
-        
+
         // Fermer la sidebar lors de la navigation Turbo
         this.turboHandler = this.handleTurboNavigation.bind(this)
         document.addEventListener('turbo:before-visit', this.turboHandler)
@@ -72,8 +72,10 @@ export default class extends Controller {
      * Ouvre la sidebar
      */
     open() {
-        this.element.classList.remove('-translate-x-full')
-        this.element.classList.add('translate-x-0')
+        if (this.hasSidebarTarget) {
+            this.sidebarTarget.classList.remove('-translate-x-full')
+            this.sidebarTarget.classList.add('translate-x-0')
+        }
         
         // Afficher l'overlay sur mobile
         if (this.hasOverlayTarget) {
@@ -88,8 +90,10 @@ export default class extends Controller {
      * Ferme la sidebar
      */
     close() {
-        this.element.classList.add('-translate-x-full')
-        this.element.classList.remove('translate-x-0')
+        if (this.hasSidebarTarget) {
+            this.sidebarTarget.classList.add('-translate-x-full')
+            this.sidebarTarget.classList.remove('translate-x-0')
+        }
         
         // Masquer l'overlay
         if (this.hasOverlayTarget) {
@@ -104,6 +108,6 @@ export default class extends Controller {
      * Vérifie si la sidebar est ouverte
      */
     isOpen() {
-        return !this.element.classList.contains('-translate-x-full')
+        return this.hasSidebarTarget && !this.sidebarTarget.classList.contains('-translate-x-full')
     }
 }
