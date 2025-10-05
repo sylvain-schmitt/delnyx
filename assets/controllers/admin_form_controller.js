@@ -11,13 +11,17 @@ export default class extends Controller {
     }
 
     connect() {
+        this.isSubmitting = false
         this.setupFormValidation()
         this.setupFieldAnimations()
-        this.setupFormProtection()
+    }
+
+    disconnect() {
+        this.isSubmitting = false
     }
 
     setupFormValidation() {
-        // Validation en temps réel des champs (sans affichage d'erreurs)
+        // Validation en temps réel des champs
         this.fieldTargets.forEach(field => {
             field.addEventListener('blur', () => this.validateField(field))
             field.addEventListener('input', () => this.clearFieldError(field))
@@ -34,16 +38,6 @@ export default class extends Controller {
             field.addEventListener('blur', () => {
                 field.classList.remove('scale-[1.02]', 'shadow-lg', 'shadow-blue-500/25')
             })
-        })
-    }
-
-    setupFormProtection() {
-        // Protection contre les soumissions multiples
-        this.formTarget.addEventListener('submit', (event) => {
-            if (this.submitTarget.disabled) {
-                event.preventDefault()
-                return false
-            }
         })
     }
 
@@ -145,12 +139,12 @@ export default class extends Controller {
 
     handleSubmit(event) {
         // Éviter le double-clic
-        if (this.submitTarget.disabled) {
+        if (this.isSubmitting) {
             event.preventDefault()
             return
         }
 
-        // Validation côté client (sans empêcher la soumission)
+        // Validation côté client
         let allValid = true
         this.fieldTargets.forEach(field => {
             if (!this.validateField(field)) {
@@ -170,11 +164,18 @@ export default class extends Controller {
             return
         }
 
-        // Si la validation client passe, on laisse le formulaire se soumettre normalement
-        // Symfony fera sa propre validation côté serveur
-        // Animation de chargement
+        // Validation client OK : marquer comme en cours et appliquer le style de chargement
+        this.isSubmitting = true
         this.submitTarget.classList.add('btn-loading')
         this.submitTarget.disabled = true
+        
+        // Sauvegarder le texte original pour le restaurer si nécessaire
+        if (!this.originalSubmitText) {
+            this.originalSubmitText = this.submitTarget.textContent
+        }
         this.submitTarget.textContent = 'Enregistrement...'
+        
+        // Le formulaire se soumet normalement (pas de preventDefault)
+        // Symfony fera sa validation côté serveur
     }
 }
