@@ -44,29 +44,29 @@
 
 /* Erreurs de validation - Style unifié pour Symfony ET JavaScript */
 .form-error {
-    @apply text-red-400 text-sm mt-1 flex items-center gap-1;
+    @apply text-red-400 text-sm mt-1 flex items-center;
 }
 
 .form-error::before {
-    content: "▲";
-    @apply text-red-400 font-bold;
+    content: "⚠ ";
+    @apply mr-1;
 }
 
 /* Erreurs Symfony (listes) */
 ul.form-error,
 .form-group ul {
-    @apply list-none p-0 m-0 space-y-1;
+    @apply list-none p-0 m-0;
 }
 
 ul.form-error li,
 .form-group ul li {
-    @apply text-red-400 text-sm flex items-center gap-1;
+    @apply text-red-400 text-sm mt-1 flex items-center;
 }
 
 ul.form-error li::before,
 .form-group ul li::before {
-    content: "▲";
-    @apply text-red-400 font-bold;
+    content: "⚠ ";
+    @apply mr-1;
 }
 
 /* Champs avec erreurs */
@@ -141,6 +141,23 @@ ul.form-error li::before,
 
 .flash-message-exit {
     animation: slideOutRight 0.3s ease-out;
+}
+
+/* Animation shake pour les erreurs de formulaire */
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+.animate-shake {
+    animation: shake 0.6s ease-in-out;
 }
 
 /* Responsive */
