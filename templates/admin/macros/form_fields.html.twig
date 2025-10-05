@@ -4,8 +4,9 @@
     {% set has_errors = field.vars.errors|length > 0 %}
     {% set field_class = field_type == 'textarea' ? 'form-textarea' : (field_type == 'select' ? 'form-select' : 'form-input') %}
     {% set field_class = field_class ~ (has_errors ? ' is-invalid' : '') %}
+    {% set wrapper_class = 'form-group ' ~ options.wrapper_class|default('') %}
     
-    <div class="{{ options.wrapper_class|default('') }}">
+    <div class="{{ wrapper_class }}">
         {{ form_label(field, null, {'label_attr': {'class': 'form-label'}}) }}
         {{ form_widget(field, {'attr': {'class': field_class, 'data-admin-form-target': 'field'}}) }}
         {{ form_errors(field) }}
