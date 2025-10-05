@@ -7,7 +7,7 @@
     
     <div class="{{ options.wrapper_class|default('') }}">
         {{ form_label(field, null, {'label_attr': {'class': 'form-label'}}) }}
-        {{ form_widget(field, {'attr': {'class': field_class}}) }}
+        {{ form_widget(field, {'attr': {'class': field_class, 'data-admin-form-target': 'field'}}) }}
         {{ form_errors(field) }}
     </div>
 {% endmacro %}

@@ -44,4 +44,7 @@ return [
     'flash-messages' => [
         'path' => './assets/controllers/flash_messages_controller.js',
     ],
+    'admin-form' => [
+        'path' => './assets/controllers/admin_form_controller.js',
+    ],
 ];
