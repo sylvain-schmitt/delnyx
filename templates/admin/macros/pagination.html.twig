@@ -6,6 +6,11 @@
     </div>
     
     {% if total_pages > 1 %}
+        {# TEST SIMPLE #}
+        <div class="bg-white/10 p-4 rounded mt-4 text-white">
+            PAGINATION VISIBLE ! Page {{ current_page }} / {{ total_pages }}
+        </div>
+        
         <nav class="flex items-center justify-between mt-8 scroll-animate" aria-label="Pagination">
             <div class="flex-1 flex justify-between sm:hidden">
                 {# Version mobile : Précédent / Suivant #}
