@@ -11,11 +11,6 @@ export default class extends Controller {
     }
 
     connect() {
-        console.log('🔵 Admin form controller connected')
-        console.log('📋 Form target:', this.hasFormTarget)
-        console.log('🎯 Field targets:', this.fieldTargets.length)
-        console.log('🔘 Submit target:', this.hasSubmitTarget)
-
         this.isSubmitting = false
         this.setupFormValidation()
         this.setupFieldAnimations()
@@ -49,8 +44,6 @@ export default class extends Controller {
     validateField(field) {
         const fieldName = field.name
         const value = field.value.trim()
-
-        console.log(`🔎 Validating field: ${fieldName}, value: "${value}"`)
 
         // Suppression des erreurs existantes
         this.clearFieldError(field)
@@ -110,8 +103,6 @@ export default class extends Controller {
                 break
         }
 
-        console.log(`📋 Field validation result: ${isValid ? '✅ VALID' : '❌ INVALID'}`, errorMessage)
-
         // Application du style selon la validation
         if (isValid) {
             field.classList.add('is-valid')
@@ -147,61 +138,43 @@ export default class extends Controller {
     }
 
     handleSubmit(event) {
-        console.log('🚀 handleSubmit triggered')
-        console.log('⏳ isSubmitting:', this.isSubmitting)
-
         // Éviter le double-clic
         if (this.isSubmitting) {
-            console.log('⚠️ Already submitting, preventing...')
             event.preventDefault()
             return
         }
 
-        console.log('✅ Starting validation...')
         // Validation côté client
         let allValid = true
         this.fieldTargets.forEach(field => {
-            const isFieldValid = this.validateField(field)
-            console.log(`🔍 Field ${field.name}: ${isFieldValid ? '✅' : '❌'}`)
-            if (!isFieldValid) {
+            if (!this.validateField(field)) {
                 allValid = false
             }
         })
 
-        console.log('📊 All fields valid:', allValid)
-
         if (!allValid) {
-            console.log('❌ Validation failed, showing shake animation')
-            console.log('🎯 Element to shake:', this.element)
-            console.log('📦 Element classes before:', this.element.className)
-
             // Empêcher la soumission si la validation client échoue
             event.preventDefault()
 
             // Animation d'erreur
             this.element.classList.add('animate-shake')
-            console.log('📦 Element classes after:', this.element.className)
-            console.log('🎬 Shake animation started!')
-
             setTimeout(() => {
                 this.element.classList.remove('animate-shake')
-                console.log('🎬 Shake animation removed')
             }, 600)
             return
         }
 
-        console.log('✅ Validation passed, submitting form...')
         // Validation client OK : marquer comme en cours et appliquer le style de chargement
         this.isSubmitting = true
         this.submitTarget.classList.add('btn-loading')
         this.submitTarget.disabled = true
-
+        
         // Sauvegarder le texte original pour le restaurer si nécessaire
         if (!this.originalSubmitText) {
             this.originalSubmitText = this.submitTarget.textContent
         }
         this.submitTarget.textContent = 'Enregistrement...'
-
+        
         // Le formulaire se soumet normalement (pas de preventDefault)
         // Symfony fera sa validation côté serveur
     }
