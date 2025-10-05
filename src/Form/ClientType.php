@@ -13,7 +13,6 @@ use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use App\Entity\ClientStatus;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Validator\Constraints as Assert;
 
 class ClientType extends AbstractType
 {
@@ -22,15 +21,6 @@ class ClientType extends AbstractType
         $builder
             ->add('nom', TextType::class, [
                 'label' => 'Nom',
-                'constraints' => [
-                    new Assert\NotBlank(['message' => 'Le nom est obligatoire.']),
-                    new Assert\Length([
-                        'min' => 2,
-                        'max' => 100,
-                        'minMessage' => 'Le nom doit contenir au moins {{ limit }} caractères.',
-                        'maxMessage' => 'Le nom ne peut pas dépasser {{ limit }} caractères.'
-                    ])
-                ],
                 'attr' => [
                     'class' => 'form-input',
                     'placeholder' => 'Nom du client'
@@ -38,15 +28,6 @@ class ClientType extends AbstractType
             ])
             ->add('prenom', TextType::class, [
                 'label' => 'Prénom',
-                'constraints' => [
-                    new Assert\NotBlank(['message' => 'Le prénom est obligatoire.']),
-                    new Assert\Length([
-                        'min' => 2,
-                        'max' => 100,
-                        'minMessage' => 'Le prénom doit contenir au moins {{ limit }} caractères.',
-                        'maxMessage' => 'Le prénom ne peut pas dépasser {{ limit }} caractères.'
-                    ])
-                ],
                 'attr' => [
                     'class' => 'form-input',
                     'placeholder' => 'Prénom du client'
@@ -54,14 +35,6 @@ class ClientType extends AbstractType
             ])
             ->add('email', EmailType::class, [
                 'label' => 'Email',
-                'constraints' => [
-                    new Assert\NotBlank(['message' => 'L\'email est obligatoire.']),
-                    new Assert\Email(['message' => 'L\'email {{ value }} n\'est pas valide.']),
-                    new Assert\Length([
-                        'max' => 255,
-                        'maxMessage' => 'L\'email ne peut pas dépasser {{ limit }} caractères.'
-                    ])
-                ],
                 'attr' => [
                     'class' => 'form-input',
                     'placeholder' => 'email@exemple.com'
@@ -70,12 +43,6 @@ class ClientType extends AbstractType
             ->add('telephone', TelType::class, [
                 'label' => 'Téléphone',
                 'required' => false,
-                'constraints' => [
-                    new Assert\Length([
-                        'max' => 20,
-                        'maxMessage' => 'Le téléphone ne peut pas dépasser {{ limit }} caractères.'
-                    ])
-                ],
                 'attr' => [
                     'class' => 'form-input',
                     'placeholder' => '06 12 34 56 78'
@@ -92,13 +59,6 @@ class ClientType extends AbstractType
             ->add('siret', TextType::class, [
                 'label' => 'SIRET',
                 'required' => false,
-                'constraints' => [
-                    new Assert\Length([
-                        'min' => 14,
-                        'max' => 14,
-                        'exactMessage' => 'Le SIRET doit contenir exactement {{ limit }} caractères.'
-                    ])
-                ],
                 'attr' => [
                     'class' => 'form-input',
                     'placeholder' => '12345678901234'
@@ -142,12 +102,6 @@ class ClientType extends AbstractType
             ->add('notes', TextareaType::class, [
                 'label' => 'Notes',
                 'required' => false,
-                'constraints' => [
-                    new Assert\Length([
-                        'max' => 1000,
-                        'maxMessage' => 'Les notes ne peuvent pas dépasser {{ limit }} caractères.'
-                    ])
-                ],
                 'attr' => [
                     'class' => 'form-textarea',
                     'placeholder' => 'Notes sur le client',

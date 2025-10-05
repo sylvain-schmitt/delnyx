@@ -43,19 +43,18 @@
 }
 
 /* Erreurs de validation Symfony */
-.form-error {
-    @apply text-red-400 text-sm mt-1;
+ul.form-error,
+.form-group ul {
+    @apply list-none p-0 m-0 space-y-1;
 }
 
-.form-error ul {
-    @apply list-none p-0 m-0;
+ul.form-error li,
+.form-group ul li {
+    @apply text-red-400 text-sm flex items-center gap-1;
 }
 
-.form-error li {
-    @apply flex items-center gap-2 text-red-400;
-}
-
-.form-error li::before {
+ul.form-error li::before,
+.form-group ul li::before {
     content: "▲";
     @apply text-red-400 font-bold;
 }
@@ -117,6 +116,7 @@
         transform: translateX(100%);
         opacity: 0;
     }
+
     to {
         transform: translateX(0);
         opacity: 1;
@@ -128,6 +128,7 @@
         transform: translateX(0);
         opacity: 1;
     }
+
     to {
         transform: translateX(100%);
         opacity: 0;
@@ -144,9 +145,11 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+
     .form-input,
     .form-textarea,
     .form-select {
-        @apply text-base; /* Évite le zoom sur iOS */
+        @apply text-base;
+        /* Évite le zoom sur iOS */
     }
 }
