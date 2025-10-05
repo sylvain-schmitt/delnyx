@@ -41,4 +41,7 @@ return [
     'admin-header' => [
         'path' => './assets/controllers/admin_header_controller.js',
     ],
+    'flash-messages' => [
+        'path' => './assets/controllers/flash_messages_controller.js',
+    ],
 ];

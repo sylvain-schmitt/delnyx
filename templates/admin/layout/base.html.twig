@@ -17,6 +17,7 @@
     {# Stylesheets #}
     {% block stylesheets %}
         <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+        <link rel="stylesheet" href="{{ asset('styles/admin-forms.css') }}">
     {% endblock %}
     
     {# JavaScripts #}
@@ -27,7 +28,7 @@
         {% endblock %}
     {% endblock %}
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 min-h-screen" data-controller="scroll-animations admin-sidebar">
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 min-h-screen" data-controller="scroll-animations admin-sidebar flash-messages">
     
     {# Sidebar Navigation #}
     <div>
@@ -42,17 +43,21 @@
         {# Page Content #}
         <main class="p-6">
             {# Flash Messages #}
-            {% for type, messages in app.flashes %}
-                {% for message in messages %}
-                    <div class="mb-4 p-4 rounded-lg border-l-4 
-                        {% if type == 'success' %}bg-green-500/20 border-green-500/30 text-green-300
-                        {% elseif type == 'error' %}bg-red-500/20 border-red-500/30 text-red-300
-                        {% elseif type == 'warning' %}bg-yellow-500/20 border-yellow-500/30 text-yellow-300
-                        {% else %}bg-blue-500/20 border-blue-500/30 text-blue-300{% endif %}">
-                        {{ message }}
-                    </div>
+            <div data-flash-messages-target="container" class="space-y-3">
+                {% for type, messages in app.flashes %}
+                    {% for message in messages %}
+                        <div data-flash-messages-target="message" 
+                             class="flash-message flash-message-{{ type }} p-4 rounded-lg border-l-4 backdrop-blur-xl"
+                             data-flash-messages-message-param="{{ loop.index }}">
+                            <div class="flex items-center">
+                                <div class="flex-1">
+                                    <p class="font-medium">{{ message }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
                 {% endfor %}
-            {% endfor %}
+            </div>
             
             {# Page Content #}
             {% block body %}{% endblock %}

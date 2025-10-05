@@ -1,0 +1,23 @@
+{# Macro pour afficher un champ de formulaire avec validation #}
+{% macro form_field(form, field_name, field_type = 'input', options = {}) %}
+    {% set field = form[field_name] %}
+    {% set has_errors = field.vars.errors|length > 0 %}
+    {% set field_class = field_type == 'textarea' ? 'form-textarea' : (field_type == 'select' ? 'form-select' : 'form-input') %}
+    {% set field_class = field_class ~ (has_errors ? ' is-invalid' : '') %}
+    
+    <div class="{{ options.wrapper_class|default('') }}">
+        {{ form_label(field, null, {'label_attr': {'class': 'form-label'}}) }}
+        {{ form_widget(field, {'attr': {'class': field_class}}) }}
+        {% if has_errors %}
+            <div class="form-error">
+                {{ form_errors(field) }}
+            </div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{# Macro pour afficher un champ de formulaire simple #}
+{% macro simple_field(form, field_name, field_type = 'input', wrapper_class = '') %}
+    {% import _self as macros %}
+    {{ macros.form_field(form, field_name, field_type, {'wrapper_class': wrapper_class}) }}
+{% endmacro %}
