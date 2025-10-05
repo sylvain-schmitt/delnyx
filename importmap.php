@@ -35,4 +35,7 @@ return [
     'dropdown' => [
         'path' => './assets/controllers/dropdown_controller.js',
     ],
+    'admin-sidebar' => [
+        'path' => './assets/controllers/admin_sidebar_controller.js',
+    ],
 ];

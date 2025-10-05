@@ -4,8 +4,8 @@
         
         {# Mobile Menu Button #}
         <button class="lg:hidden text-white/70 hover:text-white transition-colors duration-200"
-                data-action="click->navbar#toggle">
-            <img src="{{ asset('icons/lucide/menu.svg') }}" alt="Menu" class="w-6 h-6">
+                data-action="click->admin-sidebar#toggle">
+            {{ ux_icon('lucide:menu', {class: 'w-6 h-6'}) }}
         </button>
         
         {# Page Title #}
