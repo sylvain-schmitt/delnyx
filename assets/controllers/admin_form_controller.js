@@ -17,7 +17,7 @@ export default class extends Controller {
     }
 
     setupFormValidation() {
-        // Validation en temps réel des champs
+        // Validation en temps réel des champs (sans affichage d'erreurs)
         this.fieldTargets.forEach(field => {
             field.addEventListener('blur', () => this.validateField(field))
             field.addEventListener('input', () => this.clearFieldError(field))
@@ -51,8 +51,8 @@ export default class extends Controller {
         const fieldName = field.name
         const value = field.value.trim()
 
-        // Suppression des erreurs existantes
-        this.clearFieldError(field)
+        // Suppression des erreurs JavaScript existantes (pas les erreurs Symfony)
+        this.clearJavaScriptErrors(field)
 
         // Validation selon le type de champ
         let isValid = true
@@ -109,14 +109,14 @@ export default class extends Controller {
                 break
         }
 
-        // Application du style selon la validation
+        // Application du style selon la validation (sans ajouter d'erreurs visuelles)
         if (isValid) {
             field.classList.add('is-valid')
             field.classList.remove('is-invalid')
         } else {
             field.classList.add('is-invalid')
             field.classList.remove('is-valid')
-            this.showFieldError(field, errorMessage)
+            // Ne pas afficher d'erreur JavaScript, laisser Symfony gérer
         }
 
         return isValid
@@ -124,23 +124,7 @@ export default class extends Controller {
 
     clearFieldError(field) {
         field.classList.remove('is-valid', 'is-invalid')
-        // Suppression des messages d'erreur existants (recherche dans toute la form-group)
-        const formGroup = field.closest('.form-group')
-        if (formGroup) {
-            const existingErrors = formGroup.querySelectorAll('.form-error')
-            existingErrors.forEach(error => error.remove())
-        }
-    }
-
-    showFieldError(field, message) {
-        const errorElement = document.createElement('div')
-        errorElement.className = 'form-error'
-        errorElement.textContent = message
-
-        const formGroup = field.closest('.form-group')
-        if (formGroup) {
-            formGroup.appendChild(errorElement)
-        }
+        // Ne pas supprimer les erreurs Symfony, seulement les classes CSS
     }
 
     handleSubmit(event) {
@@ -149,7 +133,7 @@ export default class extends Controller {
             return
         }
 
-        // Nettoyage de toutes les erreurs existantes
+        // Nettoyage de toutes les erreurs JavaScript existantes
         this.fieldTargets.forEach(field => {
             this.clearFieldError(field)
         })

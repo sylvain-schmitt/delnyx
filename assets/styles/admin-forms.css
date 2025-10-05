@@ -42,7 +42,7 @@
     @apply bg-slate-800 text-white;
 }
 
-/* Erreurs de validation */
+/* Erreurs de validation Symfony */
 .form-error {
     @apply text-red-400 text-sm mt-1;
 }
@@ -56,8 +56,18 @@
 }
 
 .form-error li::before {
-    content: "⚠";
+    content: "▲";
     @apply text-red-400 font-bold;
+}
+
+/* Erreurs JavaScript (pour différencier) */
+.form-error.js-error {
+    @apply text-orange-400;
+}
+
+.form-error.js-error::before {
+    content: "⚠";
+    @apply text-orange-400;
 }
 
 /* Champs avec erreurs */
