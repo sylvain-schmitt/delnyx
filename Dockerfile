@@ -50,8 +50,14 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interactio
 
 RUN composer dump-autoload --optimize
 
-RUN mkdir -p var/cache var/log public/uploads/projects/thumbnails \
-    && chmod -R 777 var/ \
+RUN mkdir -p \
+    var/cache \
+    var/log \
+    public/uploads \
+    public/uploads/projects \
+    public/uploads/projects/thumbnails \
+    public/bundles \
+    && chmod -R 777 var/ public/uploads \
     && chown -R www-data:www-data var/ public/uploads || true
 
 RUN echo "opcache.enable=1\n\
