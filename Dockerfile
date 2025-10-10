@@ -26,6 +26,7 @@
 # # Active l’opcache en prod (sera optimisé plus tard)
 # RUN echo "opcache.enable=1\nopcache.memory_consumption=128\nopcache.max_accelerated_files=10000\nopcache.validate_timestamps=0" \
 #     > /usr/local/etc/php/conf.d/opcache.ini
+
 # Dockerfile optimisé pour Coolify
 FROM php:8.3-fpm
 
