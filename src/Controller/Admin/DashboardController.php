@@ -94,7 +94,7 @@ class DashboardController extends AbstractController
     {
         $debutMoisActuel = new \DateTime('first day of this month');
         $finMoisActuel = new \DateTime('last day of this month');
-        
+
         $debutMoisPrecedent = (new \DateTime('first day of last month'));
         $finMoisPrecedent = (new \DateTime('last day of last month'));
 
@@ -124,7 +124,7 @@ class DashboardController extends AbstractController
     {
         $debutMoisActuel = new \DateTime('first day of this month');
         $finMoisActuel = new \DateTime('last day of this month');
-        
+
         $debutMoisPrecedent = (new \DateTime('first day of last month'));
         $finMoisPrecedent = (new \DateTime('last day of last month'));
 
@@ -154,7 +154,7 @@ class DashboardController extends AbstractController
     {
         $debutMoisActuel = new \DateTime('first day of this month');
         $finMoisActuel = new \DateTime('last day of this month');
-        
+
         $debutMoisPrecedent = (new \DateTime('first day of last month'));
         $finMoisPrecedent = (new \DateTime('last day of last month'));
 
@@ -184,7 +184,7 @@ class DashboardController extends AbstractController
     {
         $debutMoisActuel = new \DateTime('first day of this month');
         $finMoisActuel = new \DateTime('last day of this month');
-        
+
         $debutMoisPrecedent = (new \DateTime('first day of last month'));
         $finMoisPrecedent = (new \DateTime('last day of last month'));
 
@@ -245,7 +245,7 @@ class DashboardController extends AbstractController
 
         // Calcul normal du pourcentage
         $percentage = (($current - $previous) / $previous) * 100;
-        
+
         $direction = 'stable';
         if ($percentage > 0.5) {
             $direction = 'up';
