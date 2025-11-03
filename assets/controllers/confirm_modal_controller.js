@@ -19,10 +19,34 @@ export default class extends Controller {
         // Lier la gestion de la touche Escape
         this.boundCloseOnEscape = this.closeOnEscape.bind(this)
         document.addEventListener('keydown', this.boundCloseOnEscape)
+        
+        // Écouter les événements personnalisés pour ouvrir la modale (depuis n'importe où dans le DOM)
+        this.boundOpenModal = this.openModal.bind(this)
+        document.addEventListener('open-confirm-modal', this.boundOpenModal)
+    }
+    
+    /**
+     * Gère l'ouverture via événement personnalisé
+     */
+    openModal(event) {
+        const { url, method, csrfToken, itemName, message } = event.detail
+        
+        this.actionUrlValue = url
+        this.actionMethodValue = method || 'POST'
+        this.csrfTokenValue = csrfToken || ''
+        this.itemNameValue = itemName || 'cet élément'
+        
+        if (this.hasMessageTarget) {
+            this.messageTarget.textContent = message || `Êtes-vous sûr de vouloir supprimer ${this.itemNameValue} ? Cette action est irréversible.`
+        }
+        
+        this.modalTarget.classList.remove('hidden')
+        this.overlayTarget.classList.remove('hidden')
+        document.body.style.overflow = 'hidden'
     }
 
     /**
-     * Ouvre la modale avec les paramètres fournis
+     * Ouvre la modale avec les paramètres fournis (depuis un élément avec data-action)
      */
     open(event) {
         event.preventDefault()
@@ -35,21 +59,11 @@ export default class extends Controller {
         const name = trigger.dataset.itemName || 'cet élément'
         const message = trigger.dataset.message || `Êtes-vous sûr de vouloir supprimer ${name} ? Cette action est irréversible.`
 
-        // Configurer les valeurs
-        this.actionUrlValue = url
-        this.actionMethodValue = method
-        this.csrfTokenValue = token
-        this.itemNameValue = name
-
-        // Mettre à jour le message
-        if (this.hasMessageTarget) {
-            this.messageTarget.textContent = message
-        }
-
-        // Afficher la modale
-        this.modalTarget.classList.remove('hidden')
-        this.overlayTarget.classList.remove('hidden')
-        document.body.style.overflow = 'hidden'
+        // Déclencher l'événement personnalisé
+        const customEvent = new CustomEvent('open-confirm-modal', {
+            detail: { url, method, csrfToken: token, itemName: name, message }
+        })
+        document.dispatchEvent(customEvent)
     }
 
     /**
@@ -105,6 +119,9 @@ export default class extends Controller {
     disconnect() {
         if (this.boundCloseOnEscape) {
             document.removeEventListener('keydown', this.boundCloseOnEscape)
+        }
+        if (this.boundOpenModal) {
+            document.removeEventListener('open-confirm-modal', this.boundOpenModal)
         }
     }
 }
