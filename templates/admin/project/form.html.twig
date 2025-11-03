@@ -63,33 +63,33 @@
 				{{ form_macros.simple_field(form, 'technologies', 'select') }}
 			</div>
 
-            {# Image principale (unique) #}
-            <div class="space-y-4">
-                <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                    {{ ux_icon('lucide:image', {class: 'w-5 h-5'}) }}
-                    Image du projet
-                </h3>
+			{# Image principale (unique) #}
+			<div class="space-y-4">
+				<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+					{{ ux_icon('lucide:image', {class: 'w-5 h-5'}) }}
+					Image du projet
+				</h3>
 
-                {% set main = project.getImagePrincipale() %}
-                {% if main %}
-                    <div class="mb-4">
-                        <img src="{{ main.getImageUrl() }}" alt="{{ main.altText ?? project.titre }}" class="w-full max-w-xs rounded-lg object-cover">
-                        <p class="text-white/60 text-xs mt-2">Image actuelle</p>
-                    </div>
-                {% endif %}
+				{% set main = project.getImagePrincipale() %}
+				{% if main %}
+					<div class="mb-4">
+						<img src="{{ main.getImageUrl() }}" alt="{{ main.altText ?? project.titre }}" class="w-full max-w-xs rounded-lg object-cover">
+						<p class="text-white/60 text-xs mt-2">Image actuelle</p>
+					</div>
+				{% endif %}
 
-                <div class="form-group">
-                    {{ form_label(form.imageFile, null, {'label_attr': {'class': 'form-label'}}) }}
-                    {{ form_widget(form.imageFile, {'attr': {'class': 'form-input file-input', 'data-admin-form-target': 'field'}}) }}
-                    {{ form_errors(form.imageFile) }}
-                </div>
+				<div class="form-group">
+					{{ form_label(form.imageFile, null, {'label_attr': {'class': 'form-label'}}) }}
+					{{ form_widget(form.imageFile, {'attr': {'class': 'form-input file-input', 'data-admin-form-target': 'field'}}) }}
+					{{ form_errors(form.imageFile) }}
+				</div>
 
-                <div class="form-group">
-                    {{ form_label(form.imageAlt, null, {'label_attr': {'class': 'form-label'}}) }}
-                    {{ form_widget(form.imageAlt, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
-                    {{ form_errors(form.imageAlt) }}
-                </div>
-            </div>
+				<div class="form-group">
+					{{ form_label(form.imageAlt, null, {'label_attr': {'class': 'form-label'}}) }}
+					{{ form_widget(form.imageAlt, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+					{{ form_errors(form.imageAlt) }}
+				</div>
+			</div>
 
 			{# Actions #}
 			<div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/20">
@@ -108,5 +108,4 @@
 		</div>
 	</div>
 
-    {# Pas de JS: une seule image #}
 {% endblock %}
