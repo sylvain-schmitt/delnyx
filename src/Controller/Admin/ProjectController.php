@@ -109,14 +109,24 @@ class ProjectController extends AbstractController
     public function delete(Request $request, Project $project): Response
     {
         if ($this->isCsrfTokenValid('delete' . $project->getId(), $request->request->get('_token'))) {
-            // Supprimer les images associées
+            $uploadsBaseDir = $this->getParameter('kernel.project_dir') . '/public';
+            
+            // Supprimer les images associées (fichiers physiques + miniatures)
             foreach ($project->getImages() as $image) {
-                $imagePath = $this->getParameter('kernel.project_dir') . '/public/uploads/projects/' . $image->getFichier();
+                // Supprimer l'image principale
+                $imagePath = $uploadsBaseDir . $image->getImageUrl();
                 if (file_exists($imagePath)) {
-                    unlink($imagePath);
+                    @unlink($imagePath);
+                }
+                
+                // Supprimer la miniature si elle existe
+                $thumbnailPath = $uploadsBaseDir . $image->getThumbnailUrl();
+                if (file_exists($thumbnailPath)) {
+                    @unlink($thumbnailPath);
                 }
             }
 
+            // Supprimer le projet (les ProjectImage seront supprimées en cascade)
             $this->entityManager->remove($project);
             $this->entityManager->flush();
 
