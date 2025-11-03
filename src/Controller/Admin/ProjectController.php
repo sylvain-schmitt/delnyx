@@ -12,15 +12,14 @@ use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\String\Slugger\SluggerInterface;
+use Symfony\Component\String\Slugger\AsciiSlugger;
 
 #[Route('/admin/project', name: 'admin_project_')]
 class ProjectController extends AbstractController
 {
     public function __construct(
         private ProjectRepository $projectRepository,
-        private EntityManagerInterface $entityManager,
-        private SluggerInterface $slugger
+        private EntityManagerInterface $entityManager
     ) {}
 
     #[Route('/', name: 'index')]
@@ -31,13 +30,13 @@ class ProjectController extends AbstractController
 
         // Récupérer le nombre total de projets
         $totalProjects = $this->projectRepository->count([]);
-        
+
         // Calculer le nombre total de pages
         $totalPages = (int) ceil($totalProjects / $limit);
-        
+
         // S'assurer que la page demandée existe
         $page = min($page, max(1, $totalPages));
-        
+
         // Récupérer les projets de la page courante
         $projects = $this->projectRepository->findBy(
             [],
@@ -64,7 +63,7 @@ class ProjectController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             // Traiter les images uploadées
             $this->handleImageUploads($project, $form);
-            
+
             $this->entityManager->persist($project);
             $this->entityManager->flush();
 
@@ -90,7 +89,7 @@ class ProjectController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             // Traiter les nouvelles images uploadées
             $this->handleImageUploads($project, $form);
-            
+
             $this->entityManager->flush();
 
             $this->addFlash('success', 'Projet modifié avec succès');
@@ -137,6 +136,9 @@ class ProjectController extends AbstractController
             mkdir($uploadDir, 0777, true);
         }
 
+        // Créer une instance de slugger
+        $slugger = new AsciiSlugger();
+
         // Parcourir les images du formulaire
         $imagesForm = $form->get('images');
         
@@ -156,7 +158,7 @@ class ProjectController extends AbstractController
 
                 // Générer un nom de fichier unique
                 $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                $safeFilename = $this->slugger->slug($originalFilename);
+                $safeFilename = $slugger->slug($originalFilename);
                 $newFilename = $safeFilename . '-' . uniqid() . '.' . $file->guessExtension();
 
                 try {

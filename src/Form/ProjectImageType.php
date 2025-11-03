@@ -18,7 +18,7 @@ class ProjectImageType extends AbstractType
     {
         $image = $options['data'] ?? null;
         $hasExistingFile = $image instanceof \App\Entity\ProjectImage && $image->getId() && $image->getFichier();
-        
+
         $builder
             ->add('file', FileType::class, [
                 'label' => 'Image',
@@ -69,4 +69,3 @@ class ProjectImageType extends AbstractType
         ]);
     }
 }
-

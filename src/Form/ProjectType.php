@@ -19,7 +19,7 @@ class ProjectType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $isEdit = $options['is_edit'] ?? false;
-        
+
         $builder
             ->add('titre', TextType::class, [
                 'label' => 'Titre',
@@ -92,4 +92,3 @@ class ProjectType extends AbstractType
         ]);
     }
 }
-
