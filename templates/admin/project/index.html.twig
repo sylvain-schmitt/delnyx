@@ -93,14 +93,18 @@
 								<span class="hidden 2xl:inline">Modifier</span>
 								<span class="2xl:hidden">Éditer</span>
 							</a>
-							<form method="post" action="{{ path('admin_project_delete', {id: project.id}) }}" class="flex-1" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')">
-								<input type="hidden" name="_token" value="{{ csrf_token('delete' ~ project.id) }}">
-								<button type="submit" class="w-full btn-danger text-center text-sm py-2 flex items-center justify-center gap-1">
-									{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
-									<span class="hidden 2xl:inline">Supprimer</span>
-									<span class="2xl:hidden">Suppr.</span>
-								</button>
-							</form>
+							<button type="button"
+									data-action="click->confirm-modal#open"
+									data-url="{{ path('admin_project_delete', {id: project.id}) }}"
+									data-method="POST"
+									data-csrf-token="{{ csrf_token('delete' ~ project.id) }}"
+									data-item-name="ce projet"
+									data-message="Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible et supprimera également toutes les images associées."
+									class="flex-1 btn-danger text-center text-sm py-2 flex items-center justify-center gap-1">
+								{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+								<span class="hidden 2xl:inline">Supprimer</span>
+								<span class="2xl:hidden">Suppr.</span>
+							</button>
 						</div>
 					</div>
 				{% endfor %}

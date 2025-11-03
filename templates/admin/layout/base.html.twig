@@ -44,6 +44,10 @@
 		{# Header #}
 		{% include 'admin/layout/_header.html.twig' %}
 
+		{# Modale de confirmation réutilisable #}
+		{% import 'admin/macros/confirm_modal.html.twig' as confirm_modal %}
+		{{ confirm_modal.confirm_modal() }}
+
 		{# Main Content Area #}
 		<div
 			class="lg:pl-64 pt-16">

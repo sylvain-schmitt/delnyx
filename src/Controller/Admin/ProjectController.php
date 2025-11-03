@@ -110,7 +110,7 @@ class ProjectController extends AbstractController
     {
         if ($this->isCsrfTokenValid('delete' . $project->getId(), $request->request->get('_token'))) {
             $uploadsBaseDir = $this->getParameter('kernel.project_dir') . '/public';
-            
+
             // Supprimer les images associées (fichiers physiques + miniatures)
             foreach ($project->getImages() as $image) {
                 // Supprimer l'image principale
@@ -118,7 +118,7 @@ class ProjectController extends AbstractController
                 if (file_exists($imagePath)) {
                     @unlink($imagePath);
                 }
-                
+
                 // Supprimer la miniature si elle existe
                 $thumbnailPath = $uploadsBaseDir . $image->getThumbnailUrl();
                 if (file_exists($thumbnailPath)) {

@@ -11,7 +11,9 @@ app.debug = false;
 // Import des contrôleurs personnalisés
 import PortfolioController from './controllers/portfolio_controller.js';
 import AdminFormController from './controllers/admin_form_controller.js';
+import ConfirmModalController from './controllers/confirm_modal_controller.js';
 
 // Enregistrement des contrôleurs
 app.register('portfolio', PortfolioController);
 app.register('admin-form', AdminFormController);
+app.register('confirm-modal', ConfirmModalController);

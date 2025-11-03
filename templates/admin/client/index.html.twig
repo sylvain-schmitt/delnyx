@@ -95,14 +95,18 @@
 							<span class="hidden 2xl:inline">Modifier</span>
 							<span class="2xl:hidden">Éditer</span>
 						</a>
-						<form method="post" action="{{ path('admin_client_delete', {id: client.id}) }}" class="flex-1" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce client ?')">
-							<input type="hidden" name="_token" value="{{ csrf_token('delete' ~ client.id) }}">
-							<button type="submit" class="w-full btn-danger text-center text-sm py-2 flex items-center justify-center gap-1">
-								{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
-								<span class="hidden 2xl:inline">Supprimer</span>
-								<span class="2xl:hidden">Suppr.</span>
-							</button>
-						</form>
+						<button type="button"
+								data-action="click->confirm-modal#open"
+								data-url="{{ path('admin_client_delete', {id: client.id}) }}"
+								data-method="POST"
+								data-csrf-token="{{ csrf_token('delete' ~ client.id) }}"
+								data-item-name="ce client"
+								data-message="Êtes-vous sûr de vouloir supprimer ce client ? Cette action est irréversible."
+								class="flex-1 btn-danger text-center text-sm py-2 flex items-center justify-center gap-1">
+							{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+							<span class="hidden 2xl:inline">Supprimer</span>
+							<span class="2xl:hidden">Suppr.</span>
+						</button>
 					</div>
 					</div>
 				{% endfor %}
