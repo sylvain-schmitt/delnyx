@@ -1,0 +1,180 @@
+{% extends 'admin/layout/base.html.twig' %}
+{% import 'admin/macros/form_fields.html.twig' as form_macros %}
+
+{% block title %}{{ title }} - Administration Delnyx{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block body %}
+<div class="space-y-6">
+    
+    {# Header avec breadcrumb #}
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+        <div>
+            <h1 class="text-2xl font-bold text-white">{{ title }}</h1>
+            <nav class="flex items-center space-x-2 text-sm text-white/60 mt-1">
+                <a href="{{ path('admin_dashboard') }}" class="hover:text-white transition-colors duration-200">Dashboard</a>
+                <span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
+                <a href="{{ path('admin_project_index') }}" class="hover:text-white transition-colors duration-200">Projets</a>
+                <span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
+                <span class="text-white">{{ title }}</span>
+            </nav>
+        </div>
+        <a href="{{ path('admin_project_index') }}" 
+           class="btn-secondary flex items-center gap-2">
+            {{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
+            Retour à la liste
+        </a>
+    </div>
+
+    {# Formulaire #}
+    <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100">
+        {{ form_start(form, {'attr': {'class': 'space-y-6', 'data-controller': 'admin-form', 'data-admin-form-target': 'form', 'novalidate': 'novalidate', 'data-action': 'submit->admin-form#handleSubmit', 'enctype': 'multipart/form-data'}}) }}
+        
+        {# Informations principales #}
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                {{ ux_icon('lucide:file-text', {class: 'w-5 h-5'}) }}
+                Informations principales
+            </h3>
+            
+            {{ form_macros.simple_field(form, 'titre') }}
+            
+            {{ form_macros.simple_field(form, 'description', 'textarea') }}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {{ form_macros.simple_field(form, 'url') }}
+                {{ form_macros.simple_field(form, 'statut', 'select') }}
+            </div>
+        </div>
+
+        {# Technologies #}
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                {{ ux_icon('lucide:code', {class: 'w-5 h-5'}) }}
+                Technologies
+            </h3>
+            
+            {{ form_macros.simple_field(form, 'technologies', 'select') }}
+        </div>
+
+        {# Images #}
+        <div class="space-y-4" data-controller="collection">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                    {{ ux_icon('lucide:image', {class: 'w-5 h-5'}) }}
+                    Images
+                </h3>
+                <button type="button" 
+                        class="btn-secondary text-sm flex items-center gap-2"
+                        data-action="click->collection#addItem"
+                        data-collection-target="addButton">
+                    {{ ux_icon('lucide:plus', {class: 'w-4 h-4'}) }}
+                    Ajouter une image
+                </button>
+            </div>
+            
+            <div data-collection-target="container" class="space-y-4">
+                {% for imageForm in form.images %}
+                    <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4" data-collection-target="item">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-1 space-y-4">
+                                {# Image existante si édition #}
+                                {% if imageForm.vars.value and imageForm.vars.value.id and imageForm.vars.value.fichier %}
+                                    <div class="mb-4">
+                                        <img src="{{ imageForm.vars.value.getImageUrl() }}" 
+                                             alt="{{ imageForm.vars.value.altText ?? 'Image' }}" 
+                                             class="w-full max-w-xs rounded-lg object-cover">
+                                        <p class="text-white/60 text-xs mt-2">Image actuelle</p>
+                                    </div>
+                                {% endif %}
+                                
+                                {{ form_row(imageForm.file, {'attr': {'class': 'form-input file-input', 'data-collection-target': 'field'}}) }}
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {{ form_row(imageForm.altText, {'attr': {'class': 'form-input', 'data-collection-target': 'field'}}) }}
+                                    {{ form_row(imageForm.ordre, {'attr': {'class': 'form-input', 'data-collection-target': 'field'}}) }}
+                                </div>
+                            </div>
+                            
+                            <button type="button" 
+                                    class="btn-danger flex items-center gap-2"
+                                    data-action="click->collection#removeItem">
+                                {{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            {# Prototype pour les nouvelles images #}
+            <div data-collection-target="prototype" class="hidden">
+                <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4" data-collection-target="item">
+                    <div class="flex items-start gap-4">
+                        <div class="flex-1 space-y-4">
+                            {{ form_row(form.images.vars.prototype.file, {'attr': {'class': 'form-input file-input', 'data-collection-target': 'field'}}) }}
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {{ form_row(form.images.vars.prototype.altText, {'attr': {'class': 'form-input', 'data-collection-target': 'field'}}) }}
+                                {{ form_row(form.images.vars.prototype.ordre, {'attr': {'class': 'form-input', 'data-collection-target': 'field'}}) }}
+                            </div>
+                        </div>
+                        
+                        <button type="button" 
+                                class="btn-danger flex items-center gap-2"
+                                data-action="click->collection#removeItem">
+                            {{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Actions #}
+        <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/20">
+            <button type="submit" 
+                    class="btn-primary flex items-center justify-center gap-2"
+                    data-admin-form-target="submit">
+                {{ ux_icon('lucide:save', {class: 'w-4 h-4'}) }}
+                {{ project.id ? 'Modifier le projet' : 'Créer le projet' }}
+            </button>
+            
+            <a href="{{ path('admin_project_index') }}" 
+               class="btn-secondary flex items-center justify-center gap-2">
+                {{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
+                Annuler
+            </a>
+        </div>
+
+        {{ form_end(form) }}
+    </div>
+</div>
+
+<script>
+    // Gestion simple de la collection d'images
+    document.addEventListener('DOMContentLoaded', function() {
+        const addButton = document.querySelector('[data-action*="addItem"]');
+        const container = document.querySelector('[data-collection-target="container"]');
+        const prototype = document.querySelector('[data-collection-target="prototype"]');
+        
+        if (addButton && container && prototype) {
+            let index = container.children.length;
+            
+            addButton.addEventListener('click', function() {
+                const prototypeHtml = prototype.innerHTML;
+                const newItem = document.createElement('div');
+                newItem.innerHTML = prototypeHtml.replace(/__name__/g, index);
+                container.appendChild(newItem);
+                index++;
+            });
+            
+            container.addEventListener('click', function(e) {
+                if (e.target.closest('[data-action*="removeItem"]')) {
+                    e.target.closest('[data-collection-target="item"]').remove();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
+

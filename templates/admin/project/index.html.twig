@@ -1,0 +1,128 @@
+{% extends 'admin/layout/base.html.twig' %}
+{% import 'admin/macros/pagination.html.twig' as pagination_macro %}
+
+{% block title %}Projets - Administration Delnyx{% endblock %}
+
+{% block page_title %}Projets{% endblock %}
+
+{% block body %}
+	<div class="space-y-6">
+		{# Header avec actions #}
+		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+			<div>
+				<h1 class="text-2xl font-bold text-white">Projets</h1>
+				<p class="text-white/60 mt-1">{{ total_projects }} projet(s) au total</p>
+			</div>
+			<div class="flex gap-3">
+				<a href="{{ path('admin_project_new') }}" class="btn-primary flex items-center gap-2">
+					{{ ux_icon('lucide:folder-plus', {class: 'w-4 h-4'}) }}
+					Nouveau Projet
+				</a>
+			</div>
+		</div>
+
+		{# Liste des projets #}
+		{% if projects|length > 0 %}
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+				{% for project in projects %}
+					<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate flex flex-col" data-delay="{{ loop.index * 0.1 }}s">
+						{# Image principale si disponible #}
+						{% if project.getImagePrincipale() %}
+							<div class="mb-4 -mx-6 -mt-6 rounded-t-xl overflow-hidden">
+								<img src="{{ project.getImagePrincipale().getImageUrl() }}" alt="{{ project.getImagePrincipale().altText ?? project.titre }}" class="w-full h-48 object-cover">
+							</div>
+						{% else %}
+							<div class="mb-4 -mx-6 -mt-6 rounded-t-xl overflow-hidden bg-white/5 h-48 flex items-center justify-center">
+								{{ ux_icon('lucide:image', {class: 'w-12 h-12 text-white/30'}) }}
+							</div>
+						{% endif %}
+
+						{# Header de la carte #}
+						<div class="flex items-start justify-between gap-3 mb-4">
+							<h3 class="text-lg font-semibold text-white flex-1">{{ project.titre }}</h3>
+							<span class="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap
+								{% if project.statut == 'publie' %}bg-green-500/20 text-green-300
+								{% else %}bg-gray-500/20 text-gray-300{% endif %}">
+								{% if project.statut == 'publie' %}Publié{% else %}Brouillon{% endif %}
+							</span>
+						</div>
+
+						{# Description #}
+						<div class="flex-grow mb-4">
+							<p class="text-white/70 text-sm line-clamp-3">{{ project.description|striptags|slice(0, 150) }}{% if project.description|length > 150 %}...{% endif %}</p>
+						</div>
+
+						{# Technologies #}
+						{% if project.technologies|length > 0 %}
+							<div class="flex flex-wrap gap-2 mb-4">
+								{% for tech in project.technologies %}
+									<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium" style="background-color: {{ tech.couleur }}20; color: {{ tech.couleur }}">
+										{% if tech.icone %}
+											{{ ux_icon(tech.icone, {class: 'w-3 h-3 mr-1'}) }}
+										{% endif %}
+										{{ tech.nom }}
+									</span>
+								{% endfor %}
+							</div>
+						{% endif %}
+
+						{# Informations supplémentaires #}
+						<div class="space-y-2 mb-4 flex-grow">
+							{% if project.url %}
+								<div class="flex items-center text-sm text-white/80">
+									{{ ux_icon('lucide:external-link', {class: 'w-4 h-4 mr-2'}) }}
+									<a href="{{ project.url }}" target="_blank" rel="noopener" class="hover:text-white transition-colors truncate">{{ project.url }}</a>
+								</div>
+							{% endif %}
+							<div class="flex items-center text-sm text-white/60">
+								{{ ux_icon('lucide:calendar', {class: 'w-4 h-4 mr-2'}) }}
+								{{ project.dateCreation|date('d/m/Y') }}
+							</div>
+							{% if project.images|length > 0 %}
+								<div class="flex items-center text-sm text-white/60">
+									{{ ux_icon('lucide:image', {class: 'w-4 h-4 mr-2'}) }}
+									{{ project.images|length }} image(s)
+								</div>
+							{% endif %}
+						</div>
+
+						{# Actions #}
+						<div class="flex flex-col xl:flex-row gap-2 mt-4">
+							<a href="{{ path('admin_project_edit', {id: project.id}) }}" class="flex-1 btn-secondary text-center text-sm py-2 flex items-center justify-center gap-1">
+								{{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
+								<span class="hidden 2xl:inline">Modifier</span>
+								<span class="2xl:hidden">Éditer</span>
+							</a>
+							<form method="post" action="{{ path('admin_project_delete', {id: project.id}) }}" class="flex-1" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')">
+								<input type="hidden" name="_token" value="{{ csrf_token('delete' ~ project.id) }}">
+								<button type="submit" class="w-full btn-danger text-center text-sm py-2 flex items-center justify-center gap-1">
+									{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+									<span class="hidden 2xl:inline">Supprimer</span>
+									<span class="2xl:hidden">Suppr.</span>
+								</button>
+							</form>
+						</div>
+					</div>
+				{% endfor %}
+			</div>
+
+			{# Pagination #}
+			{% if total_pages > 1 %}
+				<div class="mt-8">
+					{{ pagination_macro.pagination(current_page, total_pages, 'admin_project_index') }}
+				</div>
+			{% endif %}
+		{% else %}
+			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-12 text-center scroll-animate">
+				{{ ux_icon('lucide:folder-x', {class: 'w-16 h-16 text-white/30 mx-auto mb-4'}) }}
+				<h3 class="text-xl font-semibold text-white mb-2">Aucun projet</h3>
+				<p class="text-white/60 mb-6">Commencez par créer votre premier projet</p>
+				<a href="{{ path('admin_project_new') }}" class="btn-primary inline-flex items-center gap-2">
+					{{ ux_icon('lucide:folder-plus', {class: 'w-4 h-4'}) }}
+					Nouveau Projet
+				</a>
+			</div>
+		{% endif %}
+	</div>
+{% endblock %}
+
