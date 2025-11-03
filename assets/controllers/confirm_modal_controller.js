@@ -19,27 +19,27 @@ export default class extends Controller {
         // Lier la gestion de la touche Escape
         this.boundCloseOnEscape = this.closeOnEscape.bind(this)
         document.addEventListener('keydown', this.boundCloseOnEscape)
-        
+
         // Écouter les événements personnalisés pour ouvrir la modale (depuis n'importe où dans le DOM)
         this.boundOpenModal = this.openModal.bind(this)
         document.addEventListener('open-confirm-modal', this.boundOpenModal)
     }
-    
+
     /**
      * Gère l'ouverture via événement personnalisé
      */
     openModal(event) {
         const { url, method, csrfToken, itemName, message } = event.detail
-        
+
         this.actionUrlValue = url
         this.actionMethodValue = method || 'POST'
         this.csrfTokenValue = csrfToken || ''
         this.itemNameValue = itemName || 'cet élément'
-        
+
         if (this.hasMessageTarget) {
             this.messageTarget.textContent = message || `Êtes-vous sûr de vouloir supprimer ${this.itemNameValue} ? Cette action est irréversible.`
         }
-        
+
         this.modalTarget.classList.remove('hidden')
         this.overlayTarget.classList.remove('hidden')
         document.body.style.overflow = 'hidden'
@@ -50,7 +50,7 @@ export default class extends Controller {
      */
     open(event) {
         event.preventDefault()
-        
+
         // Récupérer les données depuis l'élément qui déclenche l'action
         const trigger = event.currentTarget
         const url = trigger.dataset.url || trigger.getAttribute('href') || trigger.closest('form')?.action
