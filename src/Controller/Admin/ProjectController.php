@@ -61,8 +61,8 @@ class ProjectController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Traiter les images uploadées
-            $this->handleImageUploads($project, $form);
+            // Traiter l'image principale uploadée (unique)
+            $this->handleMainImageUpload($project, $form);
 
             $this->entityManager->persist($project);
             $this->entityManager->flush();
@@ -87,8 +87,8 @@ class ProjectController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Traiter les nouvelles images uploadées
-            $this->handleImageUploads($project, $form);
+            // Traiter une nouvelle image principale si fournie
+            $this->handleMainImageUpload($project, $form);
 
             $this->entityManager->flush();
 
@@ -125,72 +125,61 @@ class ProjectController extends AbstractController
     }
 
     /**
-     * Gère l'upload des images pour un projet
+     * Gère l'upload d'une image principale unique pour le projet
      */
-    private function handleImageUploads(Project $project, $form): void
+    private function handleMainImageUpload(Project $project, $form): void
     {
+        $file = $form->get('imageFile')->getData();
+        $alt = $form->get('imageAlt')->getData();
+
+        if (!$file) {
+            // Pas d'upload => on met juste à jour l'alt éventuel sur l'image existante
+            $main = $project->getImagePrincipale();
+            if ($main && $alt !== null) {
+                $main->setAltText($alt);
+            }
+            return;
+        }
+
         $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/projects';
-        
-        // Créer le dossier s'il n'existe pas
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
 
-        // Créer une instance de slugger
         $slugger = new AsciiSlugger();
 
-        // Parcourir les images du formulaire
-        $imagesForm = $form->get('images');
-        
-        foreach ($imagesForm as $imageForm) {
-            $image = $imageForm->getData();
-            $file = $imageForm->get('file')->getData();
+        // Générer un nom unique
+        $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeFilename = $slugger->slug($originalFilename);
+        $newFilename = $safeFilename . '-' . uniqid() . '.' . $file->guessExtension();
 
-            // Si un fichier est uploadé
-            if ($file) {
-                // Supprimer l'ancien fichier si l'image existe déjà
-                if ($image->getId() && $image->getFichier()) {
-                    $oldFilePath = $uploadDir . '/' . $image->getFichier();
-                    if (file_exists($oldFilePath)) {
-                        unlink($oldFilePath);
-                    }
-                }
+        try {
+            $file->move($uploadDir, $newFilename);
+        } catch (FileException $e) {
+            $this->addFlash('error', 'Erreur lors de l\'upload de l\'image: ' . $e->getMessage());
+            return;
+        }
 
-                // Générer un nom de fichier unique
-                $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                $safeFilename = $slugger->slug($originalFilename);
-                $newFilename = $safeFilename . '-' . uniqid() . '.' . $file->guessExtension();
-
-                try {
-                    // Déplacer le fichier
-                    $file->move($uploadDir, $newFilename);
-                    $image->setFichier($newFilename);
-                } catch (FileException $e) {
-                    $this->addFlash('error', 'Erreur lors de l\'upload de l\'image: ' . $e->getMessage());
+        // Mettre à jour / créer l'image principale
+        $main = $project->getImagePrincipale();
+        if (!$main) {
+            $main = new ProjectImage();
+            $main->setProjet($project);
+            $main->setOrdre(0);
+            $project->addImage($main);
+        } else {
+            // Supprimer l'ancien fichier si nécessaire
+            if ($main->getFichier()) {
+                $oldFile = $uploadDir . '/' . $main->getFichier();
+                if (file_exists($oldFile)) {
+                    @unlink($oldFile);
                 }
             }
+        }
 
-            // Si l'image n'a pas de fichier et qu'elle est nouvelle, on la supprime
-            if (!$image->getFichier() && !$image->getId()) {
-                $project->removeImage($image);
-                continue;
-            }
-
-            // Associer l'image au projet si ce n'est pas déjà fait
-            if ($image->getProjet() !== $project) {
-                $image->setProjet($project);
-            }
-
-            // Si l'ordre n'est pas défini, utiliser la prochaine valeur disponible
-            if ($image->getOrdre() === null) {
-                $maxOrdre = 0;
-                foreach ($project->getImages() as $existingImage) {
-                    if ($existingImage !== $image && $existingImage->getOrdre() >= $maxOrdre) {
-                        $maxOrdre = $existingImage->getOrdre() + 1;
-                    }
-                }
-                $image->setOrdre($maxOrdre);
-            }
+        $main->setFichier($newFilename);
+        if ($alt !== null) {
+            $main->setAltText($alt);
         }
     }
 }

@@ -52,6 +52,7 @@ class ProjectImageType extends AbstractType
             ->add('ordre', IntegerType::class, [
                 'label' => 'Ordre d\'affichage',
                 'required' => false,
+                'empty_data' => '0',
                 'attr' => [
                     'class' => 'form-input',
                     'min' => 0,
