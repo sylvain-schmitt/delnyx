@@ -13,6 +13,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\AsciiSlugger;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 
 #[Route('/admin/project', name: 'admin_project_')]
 class ProjectController extends AbstractController
@@ -142,8 +144,11 @@ class ProjectController extends AbstractController
         }
 
         $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/projects';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
+        // Ne tente pas de créer le dossier si l'environnement ne le permet pas
+        // On vérifie simplement qu'il est présent et inscriptible (comme avec EasyAdmin)
+        if (!is_dir($uploadDir) || !is_writable($uploadDir)) {
+            $this->addFlash('error', "Le dossier d'upload n'est pas accessible en écriture: " . $uploadDir);
+            return;
         }
 
         $slugger = new AsciiSlugger();

@@ -101,6 +101,33 @@ export default class extends Controller {
                     errorMessage = 'Maximum 1000 caractères'
                 }
                 break
+
+            case fieldName.includes('titre'):
+                if (!value) {
+                    isValid = false
+                    errorMessage = 'Ce champ est obligatoire'
+                } else if (value.length < 2) {
+                    isValid = false
+                    errorMessage = 'Au moins 2 caractères requis'
+                } else if (value.length > 100) {
+                    isValid = false
+                    errorMessage = 'Maximum 100 caractères'
+                }
+                break
+
+            case fieldName.includes('description'):
+                if (!value) {
+                    isValid = false
+                    errorMessage = 'Ce champ est obligatoire'
+                } else if (value.length < 10) {
+                    isValid = false
+                    errorMessage = 'Au moins 10 caractères requis'
+                } else if (value.length > 1000) {
+                    isValid = false
+                    errorMessage = 'Maximum 5000 caractères'
+                }
+                break
+    
         }
 
         // Application du style selon la validation
