@@ -122,7 +122,7 @@ export default class extends Controller {
                 } else if (value.length < 10) {
                     isValid = false
                     errorMessage = 'Au moins 10 caractères requis'
-                } else if (value.length > 1000) {
+                } else if (value.length > 5000) {
                     isValid = false
                     errorMessage = 'Maximum 5000 caractères'
                 }

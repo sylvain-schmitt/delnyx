@@ -58,7 +58,7 @@
 				<div data-flash-messages-target="container" class="space-y-3">
 					{% for type, messages in app.flashes %}
 						{% for message in messages %}
-							<div data-flash-messages-target="message" class="glass-card optimized-blur p-4 border-l-4 {% if type == 'success' %}border-emerald-500{% else %}border-red-500{% endif %}" data-flash-messages-message-param="{{ loop.index }}">
+							<div data-flash-messages-target="message" class="glass-card optimized-blur p-4 border-l-4 mb-4 {% if type == 'success' %}border-emerald-500{% else %}border-red-500{% endif %}" data-flash-messages-message-param="{{ loop.index }}">
 								<div class="flex items-center">
 									<div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 {% if type == 'success' %}bg-emerald-500/20{% else %}bg-red-500/20{% endif %}">
 										{% if type == 'success' %}
