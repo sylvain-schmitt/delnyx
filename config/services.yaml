@@ -29,8 +29,3 @@ services:
         tags:
             - { name: 'doctrine.event_listener', event: 'postPersist' }
             - { name: 'doctrine.event_listener', event: 'postUpdate' }
-
-    # Configuration des fixtures pour l'injection de dépendances
-    App\DataFixtures\ProjectFixtures:
-        arguments:
-            $kernel: '@kernel'

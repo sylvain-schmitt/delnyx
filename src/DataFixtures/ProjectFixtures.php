@@ -10,16 +10,9 @@ use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Factory;
 use Symfony\Component\HttpClient\HttpClient;
-use Symfony\Component\HttpKernel\KernelInterface;
 
 class ProjectFixtures extends Fixture implements DependentFixtureInterface
 {
-    private KernelInterface $kernel;
-
-    public function __construct(KernelInterface $kernel)
-    {
-        $this->kernel = $kernel;
-    }
 
     public function load(ObjectManager $manager): void
     {
@@ -208,7 +201,9 @@ class ProjectFixtures extends Fixture implements DependentFixtureInterface
      */
     private function createProjectImage(Project $project, $faker): ?ProjectImage
     {
-        $projectDir = $this->kernel->getProjectDir();
+        // Obtenir le projectDir en remontant depuis le dossier des fixtures
+        // src/DataFixtures -> src -> project root
+        $projectDir = dirname(__DIR__, 2);
         $uploadDir = $projectDir . '/public/uploads/projects';
         
         // Vérifier que le dossier existe et est accessible
