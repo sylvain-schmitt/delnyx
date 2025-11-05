@@ -1,115 +1,58 @@
-{# Macro de pagination glassmorphique #}
-{% macro render(current_page, total_pages, route_name, route_params = {}) %}
+{# Macro de pagination élégante (style portfolio) #}
+{% macro render(current_page, total_pages, route_name, route_params = {}, limit = 12, total_items = null) %}
 	{% if total_pages > 1 %}
-		<div
-			class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-4 mt-6">
-			{# Version Mobile #}
-			<div class="flex items-center justify-between sm:hidden">
+		<div class="mt-16 flex justify-center">
+			<nav class="flex items-center space-x-2" aria-label="Pagination">
+				{# Bouton Précédent #}
 				{% if current_page > 1 %}
-					<a href="{{ path(route_name, route_params|merge({'page': current_page - 1})) }}" class="px-3 py-2 bg-white/10 text-white text-sm rounded hover:bg-white/20 transition-colors duration-200">
-						‹ Précédent
+					<a href="{{ path(route_name, route_params|merge({'page': current_page - 1})) }}" class="px-4 py-2 text-sm font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors duration-300 flex items-center gap-2">
+						{{ ux_icon('lucide:chevron-left', {class: 'w-4 h-4'}) }}
+						Précédent
 					</a>
-				{% else %}
-					<span class="px-3 py-2 bg-white/5 text-white/40 text-sm rounded cursor-not-allowed">
-						‹ Précédent
-					</span>
 				{% endif %}
 
-				<span class="px-3 py-2 text-white text-sm font-medium">
-					{{ current_page }}
-					/
-					{{ total_pages }}
-				</span>
+				{# Pages #}
+				{% for page in range(max(1, current_page - 2), min(total_pages, current_page + 2)) %}
+					{% if page == current_page %}
+						<span class="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg">
+							{{ page }}
+						</span>
+					{% else %}
+						<a href="{{ path(route_name, route_params|merge({'page': page})) }}" class="px-4 py-2 text-sm font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors duration-300">
+							{{ page }}
+						</a>
+					{% endif %}
+				{% endfor %}
 
+				{# Bouton Suivant #}
 				{% if current_page < total_pages %}
-					<a href="{{ path(route_name, route_params|merge({'page': current_page + 1})) }}" class="px-3 py-2 bg-white/10 text-white text-sm rounded hover:bg-white/20 transition-colors duration-200">
-						Suivant ›
+					<a href="{{ path(route_name, route_params|merge({'page': current_page + 1})) }}" class="px-4 py-2 text-sm font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors duration-300 flex items-center gap-2">
+						Suivant
+						{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}
 					</a>
+				{% endif %}
+			</nav>
+		</div>
+
+		{# Informations sur la pagination #}
+		{% if total_items is not null %}
+			<div class="mt-4 text-center text-sm text-white/60">
+				Affichage de
+				{{ ((current_page - 1) * limit) + 1 }}
+				à
+				{{ min(current_page * limit, total_items) }}
+				sur
+				{{ total_items }}
+				{% if route_name starts with 'admin_client' %}
+					client(s)
+				{% elseif route_name starts with 'admin_project' %}
+					projet(s)
+				{% elseif route_name starts with 'admin_technology' %}
+					technologie(s)
 				{% else %}
-					<span class="px-3 py-2 bg-white/5 text-white/40 text-sm rounded cursor-not-allowed">
-						Suivant ›
-					</span>
+					élément(s)
 				{% endif %}
 			</div>
-
-			{# Version Desktop #}
-			<div class="hidden sm:flex flex-col items-center justify-center gap-3">
-				<div class="text-sm text-white/70">
-					Page
-					<span class="font-medium text-white">{{ current_page }}</span>
-					sur
-					<span class="font-medium text-white">{{ total_pages }}</span>
-				</div>
-
-				<div
-					class="flex items-center gap-2">
-					{# Première page #}
-					{% if current_page > 1 %}
-						<a href="{{ path(route_name, route_params|merge({'page': 1})) }}" class="px-3 py-2 bg-white/10 text-white/80 text-sm rounded hover:bg-white/20 hover:text-white transition-all duration-200 flex items-center gap-1">
-							{{ ux_icon('lucide:chevrons-left', {class: 'w-4 h-4'}) }}
-						</a>
-						<a href="{{ path(route_name, route_params|merge({'page': current_page - 1})) }}" class="px-3 py-2 bg-white/10 text-white/80 text-sm rounded hover:bg-white/20 hover:text-white transition-all duration-200 flex items-center gap-1">
-							{{ ux_icon('lucide:chevron-left', {class: 'w-4 h-4'}) }}
-						</a>
-					{% else %}
-						<span class="px-3 py-2 bg-white/5 text-white/40 text-sm rounded cursor-not-allowed flex items-center gap-1">
-							{{ ux_icon('lucide:chevrons-left', {class: 'w-4 h-4'}) }}
-						</span>
-						<span class="px-3 py-2 bg-white/5 text-white/40 text-sm rounded cursor-not-allowed flex items-center gap-1">
-							{{ ux_icon('lucide:chevron-left', {class: 'w-4 h-4'}) }}
-						</span>
-					{% endif %}
-
-					{# Numéros de pages (affichage intelligent) #}
-					{% set start_page = max(1, current_page - 2) %}
-					{% set end_page = min(total_pages, current_page + 2) %}
-
-					{# Ajuster si on est au début ou à la fin #}
-					{% if current_page <= 3 %}
-						{% set end_page = min(5, total_pages) %}
-					{% endif %}
-					{% if current_page > total_pages - 3 %}
-						{% set start_page = max(1, total_pages - 4) %}
-					{% endif %}
-
-					{% if start_page > 1 %}
-						<span class="px-2 text-white/60 text-sm">...</span>
-					{% endif %}
-
-					{% for page in start_page..end_page %}
-						{% if page == current_page %}
-							<span class="px-4 py-2 bg-blue-500/30 border border-blue-400/50 text-white text-sm font-medium rounded">
-								{{ page }}
-							</span>
-						{% else %}
-							<a href="{{ path(route_name, route_params|merge({'page': page})) }}" class="px-4 py-2 bg-white/10 text-white/80 text-sm rounded hover:bg-white/20 hover:text-white transition-all duration-200">
-								{{ page }}
-							</a>
-						{% endif %}
-					{% endfor %}
-
-					{% if end_page < total_pages %}
-						<span class="px-2 text-white/60 text-sm">...</span>
-					{% endif %}
-
-					{# Dernière page #}
-					{% if current_page < total_pages %}
-						<a href="{{ path(route_name, route_params|merge({'page': current_page + 1})) }}" class="px-3 py-2 bg-white/10 text-white/80 text-sm rounded hover:bg-white/20 hover:text-white transition-all duration-200 flex items-center gap-1">
-							{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}
-						</a>
-						<a href="{{ path(route_name, route_params|merge({'page': total_pages})) }}" class="px-3 py-2 bg-white/10 text-white/80 text-sm rounded hover:bg-white/20 hover:text-white transition-all duration-200 flex items-center gap-1">
-							{{ ux_icon('lucide:chevrons-right', {class: 'w-4 h-4'}) }}
-						</a>
-					{% else %}
-						<span class="px-3 py-2 bg-white/5 text-white/40 text-sm rounded cursor-not-allowed flex items-center gap-1">
-							{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}
-						</span>
-						<span class="px-3 py-2 bg-white/5 text-white/40 text-sm rounded cursor-not-allowed flex items-center gap-1">
-							{{ ux_icon('lucide:chevrons-right', {class: 'w-4 h-4'}) }}
-						</span>
-					{% endif %}
-				</div>
-			</div>
-		</div>
+		{% endif %}
 	{% endif %}
 {% endmacro %}
