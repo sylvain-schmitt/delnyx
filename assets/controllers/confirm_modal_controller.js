@@ -14,6 +14,12 @@ export default class extends Controller {
     }
 
     connect() {
+        // Vérifier que les targets existent avant de les utiliser
+        if (!this.hasModalTarget || !this.hasOverlayTarget) {
+            console.warn('⚠️ Confirm modal: targets manquants. Vérifiez que la modale est bien incluse dans le template.')
+            return
+        }
+        
         // Initialiser la modale comme fermée
         this.close()
         // Lier la gestion de la touche Escape

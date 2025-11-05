@@ -12,8 +12,10 @@ app.debug = false;
 import PortfolioController from './controllers/portfolio_controller.js';
 import AdminFormController from './controllers/admin_form_controller.js';
 import ConfirmModalController from './controllers/confirm_modal_controller.js';
+import TechnologyPreviewController from './controllers/technology_preview_controller.js';
 
 // Enregistrement des contrôleurs
 app.register('portfolio', PortfolioController);
 app.register('admin-form', AdminFormController);
 app.register('confirm-modal', ConfirmModalController);
+app.register('technology-preview', TechnologyPreviewController);

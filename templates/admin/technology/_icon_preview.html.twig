@@ -1,0 +1,5 @@
+{% if iconName %}
+	{{ ux_icon(iconName, {class: 'w-6 h-6', style: 'color: ' ~ color ~ ';'}) }}
+{% else %}
+	{{ ux_icon('lucide:code', {class: 'w-6 h-6', style: 'color: ' ~ color ~ ';'}) }}
+{% endif %}

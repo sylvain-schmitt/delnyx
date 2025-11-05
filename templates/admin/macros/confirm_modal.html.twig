@@ -1,8 +1,7 @@
 {# Macro pour afficher une modale de confirmation réutilisable #}
+{# Note: Le contrôleur confirm-modal est sur le body dans base.html.twig #}
 {% macro confirm_modal() %}
-<div data-controller="confirm-modal" 
-     data-action="keydown@window->confirm-modal#closeOnEscape">
-    
+<div>
     {# Overlay #}
     <div data-confirm-modal-target="overlay" 
          data-action="click->confirm-modal#closeOnOverlay"

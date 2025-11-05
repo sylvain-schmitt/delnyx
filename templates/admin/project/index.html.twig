@@ -1,17 +1,21 @@
 {% extends 'admin/layout/base.html.twig' %}
 {% import 'admin/macros/pagination.html.twig' as pagination_macro %}
 
-{% block title %}Projets - Administration Delnyx{% endblock %}
+{% block title %}Projets - Administration Delnyx
+{% endblock %}
 
-{% block page_title %}Projets{% endblock %}
+{% block page_title %}Projets
+{% endblock %}
 
 {% block body %}
-	<div class="space-y-6">
+	<div
+		class="space-y-6">
 		{# Header avec actions #}
 		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
 			<div>
 				<h1 class="text-2xl font-bold text-white">Projets</h1>
-				<p class="text-white/60 mt-1">{{ total_projects }} projet(s) au total</p>
+				<p class="text-white/60 mt-1">{{ total_projects }}
+					projet(s) au total</p>
 			</div>
 			<div class="flex gap-3">
 				<a href="{{ path('admin_project_new') }}" class="btn-primary flex items-center gap-2">
@@ -25,7 +29,8 @@
 		{% if projects|length > 0 %}
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 				{% for project in projects %}
-					<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate flex flex-col" data-delay="{{ loop.index * 0.1 }}s">
+					<div
+						class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate flex flex-col" data-delay="{{ loop.index * 0.1 }}s">
 						{# Image principale si disponible #}
 						{% if project.getImagePrincipale() %}
 							<div class="mb-4 -mx-6 -mt-6 rounded-t-xl overflow-hidden">
@@ -41,26 +46,30 @@
 						<div class="flex items-start justify-between gap-3 mb-4">
 							<h3 class="text-lg font-semibold text-white flex-1">{{ project.titre }}</h3>
 							<span class="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap
-								{% if project.statut == 'publie' %}bg-green-500/20 text-green-300
-								{% else %}bg-gray-500/20 text-gray-300{% endif %}">
-								{% if project.statut == 'publie' %}Publié{% else %}Brouillon{% endif %}
+																	{% if project.statut == 'publie' %}bg-green-500/20 text-green-300
+																	{% else %}bg-gray-500/20 text-gray-300{% endif %}">
+								{% if project.statut == 'publie' %}Publié{% else %}Brouillon
+								{% endif %}
 							</span>
 						</div>
 
 						{# Description #}
 						<div class="flex-grow mb-4">
-							<p class="text-white/70 text-sm line-clamp-3">{{ project.description|striptags|slice(0, 150) }}{% if project.description|length > 150 %}...{% endif %}</p>
+							<p class="text-white/70 text-sm line-clamp-3">{{ project.description|striptags|slice(0, 150) }}
+								{% if project.description|length > 150 %}...
+								{% endif %}
+							</p>
 						</div>
 
 						{# Technologies #}
 						{% if project.technologies|length > 0 %}
 							<div class="flex flex-wrap gap-2 mb-4">
 								{% for tech in project.technologies %}
-									<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium" style="background-color: {{ tech.couleur }}20; color: {{ tech.couleur }}">
-										{% if tech.icone %}
-											{{ ux_icon(tech.icone, {class: 'w-3 h-3 mr-1'}) }}
-										{% endif %}
+									<span class="px-3 py-1 rounded-full text-xs font-medium flex items-center text-white backdrop-blur-sm" style="background-color: {{ tech.couleur }}20; border: 1px solid {{ tech.couleur }};">
 										{{ tech.nom }}
+										{% if tech.icone %}
+											{{ ux_icon(tech.icone, {class: 'w-3 h-3 ml-1'}) }}
+										{% endif %}
 									</span>
 								{% endfor %}
 							</div>
@@ -81,7 +90,8 @@
 							{% if project.images|length > 0 %}
 								<div class="flex items-center text-sm text-white/60">
 									{{ ux_icon('lucide:image', {class: 'w-4 h-4 mr-2'}) }}
-									{{ project.images|length }} image(s)
+									{{ project.images|length }}
+									image(s)
 								</div>
 							{% endif %}
 						</div>
@@ -93,14 +103,7 @@
 								<span class="hidden 2xl:inline">Modifier</span>
 								<span class="2xl:hidden">Éditer</span>
 							</a>
-							<button type="button"
-									data-action="click->confirm-modal#open"
-									data-url="{{ path('admin_project_delete', {id: project.id}) }}"
-									data-method="POST"
-									data-csrf-token="{{ csrf_token('delete' ~ project.id) }}"
-									data-item-name="ce projet"
-									data-message="Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible et supprimera également toutes les images associées."
-									class="flex-1 btn-danger text-center text-sm py-2 flex items-center justify-center gap-1">
+							<button type="button" data-action="click->confirm-modal#open" data-url="{{ path('admin_project_delete', {id: project.id}) }}" data-method="POST" data-csrf-token="{{ csrf_token('delete' ~ project.id) }}" data-item-name="ce projet" data-message="Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible et supprimera également toutes les images associées." class="flex-1 btn-danger text-center text-sm py-2 flex items-center justify-center gap-1">
 								{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
 								<span class="hidden 2xl:inline">Supprimer</span>
 								<span class="2xl:hidden">Suppr.</span>
@@ -129,4 +132,3 @@
 		{% endif %}
 	</div>
 {% endblock %}
-
