@@ -17,7 +17,7 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Patch;
 
 #[ORM\Entity]
-#[ORM\Table(name: 'factures')]
+#[ORM\Table(name: 'invoices')]
 #[ApiResource(
     operations: [
         new Get(),
@@ -27,97 +27,97 @@ use ApiPlatform\Metadata\Patch;
         new Patch(),
         new Delete()
     ],
-    normalizationContext: ['groups' => ['facture:read']],
-    denormalizationContext: ['groups' => ['facture:write']],
+    normalizationContext: ['groups' => ['invoice:read']],
+    denormalizationContext: ['groups' => ['invoice:write']],
     paginationItemsPerPage: 20
 )]
-class Facture
+class Invoice
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER)]
-    #[Groups(['facture:read'])]
+    #[Groups(['invoice:read'])]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, unique: true)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     #[Assert\Length(max: 50)]
     private ?string $numero = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[Groups(['facture:read'])]
+    #[Groups(['invoice:read'])]
     private ?\DateTimeInterface $dateCreation = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     #[Assert\NotBlank]
     private ?\DateTimeInterface $dateEcheance = null;
 
     #[ORM\Column(type: Types::STRING, length: 20)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     #[Assert\NotBlank]
     private ?string $statut = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     #[Assert\PositiveOrZero]
     private ?string $montantHT = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     #[Assert\PositiveOrZero]
     private ?string $montantTVA = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     #[Assert\PositiveOrZero]
     private ?string $montantTTC = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     #[Assert\PositiveOrZero]
     private ?string $montantAcompte = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     private ?string $conditionsPaiement = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     #[Assert\PositiveOrZero]
     private ?int $delaiPaiement = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     #[Assert\PositiveOrZero]
     private ?string $penalitesRetard = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     private ?string $notes = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     private ?\DateTimeInterface $datePaiement = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     private ?\DateTimeInterface $dateEnvoi = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['facture:read'])]
+    #[Groups(['invoice:read'])]
     private ?\DateTimeInterface $dateModification = null;
 
     // Relations
-    #[ORM\OneToOne(targetEntity: Devis::class, inversedBy: 'facture')]
+    #[ORM\OneToOne(targetEntity: Quote::class, inversedBy: 'invoice')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     #[Assert\NotBlank]
-    private ?Devis $devis = null;
+    private ?Quote $quote = null;
 
-    #[ORM\ManyToOne(targetEntity: Client::class, inversedBy: 'factures')]
+    #[ORM\ManyToOne(targetEntity: Client::class, inversedBy: 'invoices')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['facture:read', 'facture:write'])]
+    #[Groups(['invoice:read', 'invoice:write'])]
     #[Assert\NotBlank]
     private ?Client $client = null;
 
@@ -125,7 +125,7 @@ class Facture
     {
         $this->dateCreation = new \DateTime();
         $this->dateModification = new \DateTime();
-        $this->statut = FactureStatus::BROUILLON->value;
+        $this->statut = InvoiceStatus::DRAFT->value;
     }
 
     public function getId(): ?int
@@ -178,12 +178,12 @@ class Facture
         return $this;
     }
 
-    public function getStatutEnum(): ?FactureStatus
+    public function getStatutEnum(): ?InvoiceStatus
     {
-        return $this->statut ? FactureStatus::from($this->statut) : null;
+        return $this->statut ? InvoiceStatus::from($this->statut) : null;
     }
 
-    public function setStatutEnum(FactureStatus $statut): self
+    public function setStatutEnum(InvoiceStatus $statut): self
     {
         $this->statut = $statut->value;
         $this->dateModification = new \DateTime();
@@ -311,14 +311,14 @@ class Facture
         return $this;
     }
 
-    public function getDevis(): ?Devis
+    public function getQuote(): ?Quote
     {
-        return $this->devis;
+        return $this->quote;
     }
 
-    public function setDevis(?Devis $devis): self
+    public function setQuote(?Quote $quote): self
     {
-        $this->devis = $devis;
+        $this->quote = $quote;
         return $this;
     }
 
@@ -351,7 +351,7 @@ class Facture
      */
     public function isEnRetard(): bool
     {
-        if (!$this->dateEcheance || $this->statut === FactureStatus::PAYEE->value) {
+        if (!$this->dateEcheance || $this->statut === InvoiceStatus::PAID->value) {
             return false;
         }
 
@@ -396,7 +396,7 @@ class Facture
      */
     public function isPayee(): bool
     {
-        return $this->statut === FactureStatus::PAYEE->value;
+        return $this->statut === InvoiceStatus::PAID->value;
     }
 
     /**
@@ -405,8 +405,8 @@ class Facture
     public function canBeModified(): bool
     {
         return in_array($this->statut, [
-            FactureStatus::BROUILLON->value,
-            FactureStatus::ENVOYEE->value
+            InvoiceStatus::DRAFT->value,
+            InvoiceStatus::SENT->value
         ]);
     }
 
@@ -416,8 +416,8 @@ class Facture
     public function canBeCancelled(): bool
     {
         return !in_array($this->statut, [
-            FactureStatus::PAYEE->value,
-            FactureStatus::ANNULEE->value
+            InvoiceStatus::PAID->value,
+            InvoiceStatus::CANCELLED->value
         ]);
     }
 
@@ -480,6 +480,6 @@ class Facture
     public function __toString(): string
     {
         $client = $this->getClient() ? $this->getClient()->getNomComplet() : 'Client inconnu';
-        return sprintf('%s - %s (%s)', $this->numero ?? 'Facture #' . $this->id, $client, $this->getMontantTTCFormate());
+        return sprintf('%s - %s (%s)', $this->numero ?? 'Invoice #' . $this->id, $client, $this->getMontantTTCFormate());
     }
 }

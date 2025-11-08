@@ -21,7 +21,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity]
-#[ORM\Table(name: 'devis')]
+#[ORM\Table(name: 'quotes')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
@@ -31,8 +31,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new Put(),
         new Delete()
     ],
-    normalizationContext: ['groups' => ['devis:read']],
-    denormalizationContext: ['groups' => ['devis:write']]
+    normalizationContext: ['groups' => ['quote:read']],
+    denormalizationContext: ['groups' => ['quote:write']]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'numero' => 'partial',
@@ -44,44 +44,44 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiFilter(OrderFilter::class, properties: ['dateCreation', 'dateValidite', 'montantTTC'])]
 #[ApiFilter(DateFilter::class, properties: ['dateCreation', 'dateValidite', 'dateAcceptation'])]
 #[ApiFilter(RangeFilter::class, properties: ['montantHT', 'montantTTC'])]
-class Devis
+class Quote
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER)]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, unique: true)]
     #[Assert\NotBlank(message: 'Le numéro du devis est obligatoire')]
     #[Assert\Length(max: 50, maxMessage: 'Le numéro ne peut pas dépasser {{ limit }} caractères')]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?string $numero = null;
 
-    #[ORM\ManyToOne(targetEntity: Client::class, inversedBy: 'devis')]
+    #[ORM\ManyToOne(targetEntity: Client::class, inversedBy: 'quotes')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull(message: 'Le client est obligatoire')]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?Client $client = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?\DateTimeInterface $dateCreation = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?\DateTimeInterface $dateValidite = null;
 
-    #[ORM\Column(type: Types::STRING, length: 20, enumType: DevisStatus::class)]
+    #[ORM\Column(type: Types::STRING, length: 20, enumType: QuoteStatus::class)]
     #[Assert\NotNull(message: 'Le statut est obligatoire')]
-    #[Groups(['devis:write'])]
-    private ?DevisStatus $statut = null;
+    #[Groups(['quote:write'])]
+    private ?QuoteStatus $statut = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Assert\NotBlank(message: 'Le montant HT est obligatoire')]
     #[Assert\Type(type: 'numeric', message: 'Le montant HT doit être un nombre')]
     #[Assert\GreaterThanOrEqual(value: 0, message: 'Le montant HT ne peut pas être négatif')]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private string $montantHT = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, options: ['default' => 20.00])]
@@ -89,14 +89,14 @@ class Devis
     #[Assert\Type(type: 'numeric', message: 'Le taux de TVA doit être un nombre')]
     #[Assert\GreaterThanOrEqual(value: 0, message: 'Le taux de TVA ne peut pas être négatif')]
     #[Assert\LessThanOrEqual(value: 100, message: 'Le taux de TVA ne peut pas dépasser 100%')]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private string $tauxTVA = '20.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Assert\NotBlank(message: 'Le montant TTC est obligatoire')]
     #[Assert\Type(type: 'numeric', message: 'Le montant TTC doit être un nombre')]
     #[Assert\GreaterThanOrEqual(value: 0, message: 'Le montant TTC ne peut pas être négatif')]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private string $montantTTC = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, options: ['default' => 30.00])]
@@ -104,27 +104,27 @@ class Devis
     #[Assert\Type(type: 'numeric', message: 'Le pourcentage d\'acompte doit être un nombre')]
     #[Assert\GreaterThanOrEqual(value: 0, message: 'Le pourcentage d\'acompte ne peut pas être négatif')]
     #[Assert\LessThanOrEqual(value: 100, message: 'Le pourcentage d\'acompte ne peut pas dépasser 100%')]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private string $acomptePourcentage = '30.00';
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?string $conditionsPaiement = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?string $delaiLivraison = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?string $notes = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?\DateTimeInterface $dateAcceptation = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?string $signatureClient = null;
 
     // ===== NOUVELLES MENTIONS OBLIGATOIRES (2026-2027) =====
@@ -132,47 +132,47 @@ class Devis
     #[ORM\Column(type: Types::STRING, length: 9, nullable: true)]
     #[Assert\Length(exactly: 9, exactMessage: 'Le SIREN doit contenir exactement 9 chiffres')]
     #[Assert\Regex(pattern: '/^[0-9]{9}$/', message: 'Le SIREN ne peut contenir que des chiffres')]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?string $sirenClient = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?string $adresseLivraison = null;
 
     #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => 'services'])]
     #[Assert\NotBlank(message: 'Le type d\'opérations est obligatoire')]
     #[Assert\Choice(choices: ['biens', 'services', 'mixte'], message: 'Le type d\'opérations doit être \'biens\', \'services\' ou \'mixte\'')]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private string $typeOperations = 'services';
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private bool $paiementTvaSurDebits = false;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[Groups(['devis:read', 'devis:write'])]
+    #[Groups(['quote:read', 'quote:write'])]
     private ?\DateTimeInterface $dateModification = null;
 
 
     /**
-     * Facture générée à partir de ce devis
+     * Invoice générée à partir de ce quote
      */
-    #[ORM\OneToOne(targetEntity: Facture::class, mappedBy: 'devis')]
-    #[Groups(['devis:read'])]
-    private ?Facture $facture = null;
+    #[ORM\OneToOne(targetEntity: Invoice::class, mappedBy: 'quote')]
+    #[Groups(['quote:read'])]
+    private ?Invoice $invoice = null;
 
     /**
-     * Tarifs associés à ce devis (plusieurs tarifs possibles)
+     * Tariffs associés à ce quote (plusieurs tarifs possibles)
      */
-    #[ORM\ManyToMany(targetEntity: Tarif::class)]
-    #[ORM\JoinTable(name: 'devis_tarifs')]
-    #[Groups(['devis:read', 'devis:write'])]
-    private \Doctrine\Common\Collections\Collection $tarifs;
+    #[ORM\ManyToMany(targetEntity: Tariff::class)]
+    #[ORM\JoinTable(name: 'quote_tariffs')]
+    #[Groups(['quote:read', 'quote:write'])]
+    private \Doctrine\Common\Collections\Collection $tariffs;
 
     public function __construct()
     {
-        $this->tarifs = new \Doctrine\Common\Collections\ArrayCollection();
-        $this->statut = DevisStatus::BROUILLON;
+        $this->tariffs = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->statut = QuoteStatus::DRAFT;
         $this->dateCreation = new \DateTime();
         $this->dateModification = new \DateTime();
     }
@@ -228,12 +228,12 @@ class Devis
         return $this;
     }
 
-    public function getStatut(): ?DevisStatus
+    public function getStatut(): ?QuoteStatus
     {
         return $this->statut;
     }
 
-    public function setStatut(?DevisStatus $statut): self
+    public function setStatut(?QuoteStatus $statut): self
     {
         $this->statut = $statut;
         return $this;
@@ -391,42 +391,42 @@ class Devis
     }
 
 
-    public function getFacture(): ?Facture
+    public function getInvoice(): ?Invoice
     {
-        return $this->facture;
+        return $this->invoice;
     }
 
-    public function setFacture(?Facture $facture): self
+    public function setInvoice(?Invoice $invoice): self
     {
-        $this->facture = $facture;
+        $this->invoice = $invoice;
         return $this;
     }
 
-    public function getTarifs(): \Doctrine\Common\Collections\Collection
+    public function getTariffs(): \Doctrine\Common\Collections\Collection
     {
-        return $this->tarifs;
+        return $this->tariffs;
     }
 
-    public function addTarif(Tarif $tarif): self
+    public function addTariff(Tariff $tariff): self
     {
-        if (!$this->tarifs->contains($tarif)) {
-            $this->tarifs[] = $tarif;
+        if (!$this->tariffs->contains($tariff)) {
+            $this->tariffs[] = $tariff;
             $this->calculerMontantsDepuisTarifs();
         }
         return $this;
     }
 
-    public function removeTarif(Tarif $tarif): self
+    public function removeTariff(Tariff $tariff): self
     {
-        if ($this->tarifs->removeElement($tarif)) {
+        if ($this->tariffs->removeElement($tariff)) {
             $this->calculerMontantsDepuisTarifs();
         }
         return $this;
     }
 
-    public function setTarifs(\Doctrine\Common\Collections\Collection $tarifs): self
+    public function setTariffs(\Doctrine\Common\Collections\Collection $tariffs): self
     {
-        $this->tarifs = $tarifs;
+        $this->tariffs = $tariffs;
         $this->calculerMontantsDepuisTarifs();
         return $this;
     }
@@ -436,15 +436,15 @@ class Devis
      */
     public function calculerMontantsDepuisTarifs(): void
     {
-        if ($this->tarifs->isEmpty()) {
+        if ($this->tariffs->isEmpty()) {
             return;
         }
 
         $totalHT = 0;
 
         // Somme de tous les tarifs sélectionnés (convertir centimes en euros)
-        foreach ($this->tarifs as $tarif) {
-            $prixEnCentimes = (float) $tarif->getPrix();
+        foreach ($this->tariffs as $tariff) {
+            $prixEnCentimes = (float) $tariff->getPrix();
             $prixEnEuros = $prixEnCentimes / 100;
             $totalHT += $prixEnEuros;
         }
@@ -474,7 +474,7 @@ class Devis
         $this->tauxTVA = $tauxTVA;
 
         // Recalculer les montants si des tarifs sont déjà sélectionnés
-        if (!$this->tarifs->isEmpty()) {
+        if (!$this->tariffs->isEmpty()) {
             $this->calculerMontantsDepuisTarifs();
         }
 
@@ -486,7 +486,7 @@ class Devis
     /**
      * Retourne le libellé du statut pour l'API
      */
-    #[Groups(['devis:read'])]
+    #[Groups(['quote:read'])]
     public function getStatutLabel(): string
     {
         return $this->statut?->getLabel() ?? 'Inconnu';
@@ -495,16 +495,16 @@ class Devis
     /**
      * Retourne la valeur du statut pour l'API
      */
-    #[Groups(['devis:read'])]
+    #[Groups(['quote:read'])]
     public function getStatutValue(): string
     {
-        return $this->statut?->value ?? 'inconnu';
+        return $this->statut?->value ?? 'draft';
     }
 
     /**
      * Calcule le montant de l'acompte
      */
-    #[Groups(['devis:read'])]
+    #[Groups(['quote:read'])]
     public function getMontantAcompte(): string
     {
         $montantTTC = (float) $this->montantTTC;
@@ -520,7 +520,7 @@ class Devis
     /**
      * Calcule le montant de la TVA
      */
-    #[Groups(['devis:read'])]
+    #[Groups(['quote:read'])]
     public function getMontantTVA(): string
     {
         $montantTTC = (float) $this->montantTTC;
@@ -536,7 +536,7 @@ class Devis
     /**
      * Retourne l'adresse complète du client
      */
-    #[Groups(['devis:read'])]
+    #[Groups(['quote:read'])]
     public function getAdresseClientComplete(): ?string
     {
         return $this->client?->getAdresseComplete();
@@ -580,7 +580,7 @@ class Devis
     /**
      * Retourne le type d'opérations en français
      */
-    #[Groups(['devis:read'])]
+    #[Groups(['quote:read'])]
     public function getTypeOperationsLabel(): string
     {
         return match ($this->typeOperations) {
@@ -607,7 +607,7 @@ class Devis
     public function __toString(): string
     {
         $client = $this->getClient() ? $this->getClient()->getNomComplet() : 'Client inconnu';
-        return sprintf('%s - %s (%s)', $this->numero ?? 'Devis #' . $this->id, $client, $this->getMontantTTCFormate());
+        return sprintf('%s - %s (%s)', $this->numero ?? 'Quote #' . $this->id, $client, $this->getMontantTTCFormate());
     }
 
     /**

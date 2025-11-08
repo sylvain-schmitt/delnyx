@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace App\Entity;
 
 /**
- * Enum pour les statuts des factures
+ * Enum pour les statuts des factures (invoices)
  */
-enum FactureStatus: string
+enum InvoiceStatus: string
 {
-    case BROUILLON = 'brouillon';
-    case ENVOYEE = 'envoyee';
-    case PAYEE = 'payee';
-    case EN_RETARD = 'en_retard';
-    case ANNULEE = 'annulee';
+    case DRAFT = 'draft';
+    case SENT = 'sent';
+    case PAID = 'paid';
+    case OVERDUE = 'overdue';
+    case CANCELLED = 'cancelled';
 
     /**
      * Retourne le libellé du statut
@@ -21,11 +21,11 @@ enum FactureStatus: string
     public function getLabel(): string
     {
         return match ($this) {
-            self::BROUILLON => 'Brouillon',
-            self::ENVOYEE => 'Envoyée',
-            self::PAYEE => 'Payée',
-            self::EN_RETARD => 'En retard',
-            self::ANNULEE => 'Annulée',
+            self::DRAFT => 'Brouillon',
+            self::SENT => 'Envoyée',
+            self::PAID => 'Payée',
+            self::OVERDUE => 'En retard',
+            self::CANCELLED => 'Annulée',
         };
     }
 
@@ -35,11 +35,11 @@ enum FactureStatus: string
     public function getColor(): string
     {
         return match ($this) {
-            self::BROUILLON => 'secondary',
-            self::ENVOYEE => 'info',
-            self::PAYEE => 'success',
-            self::EN_RETARD => 'danger',
-            self::ANNULEE => 'dark',
+            self::DRAFT => 'secondary',
+            self::SENT => 'info',
+            self::PAID => 'success',
+            self::OVERDUE => 'danger',
+            self::CANCELLED => 'dark',
         };
     }
 
@@ -73,7 +73,7 @@ enum FactureStatus: string
      */
     public function isModifiable(): bool
     {
-        return $this === self::BROUILLON;
+        return $this === self::DRAFT;
     }
 
     /**
@@ -81,6 +81,7 @@ enum FactureStatus: string
      */
     public function isEmitted(): bool
     {
-        return in_array($this, [self::ENVOYEE, self::PAYEE, self::EN_RETARD, self::ANNULEE]);
+        return in_array($this, [self::SENT, self::PAID, self::OVERDUE, self::CANCELLED]);
     }
 }
+

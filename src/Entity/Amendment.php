@@ -18,13 +18,13 @@ use ApiPlatform\Metadata\Delete;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
- * Entité Avenant pour gérer les modifications des devis émis
+ * Entité Amendment pour gérer les modifications des quotes émis
  * 
- * CONTRAINTE LÉGALE : Un avenant ne peut être créé que pour un devis existant.
- * Les factures ne peuvent pas être modifiées par des avenants.
+ * CONTRAINTE LÉGALE : Un amendment ne peut être créé que pour un quote existant.
+ * Les invoices ne peuvent pas être modifiées par des amendments.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'avenants')]
+#[ORM\Table(name: 'amendments')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
@@ -34,90 +34,90 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new Put(),
         new Delete(),
     ],
-    normalizationContext: ['groups' => ['avenant:read']],
-    denormalizationContext: ['groups' => ['avenant:write']],
+    normalizationContext: ['groups' => ['amendment:read']],
+    denormalizationContext: ['groups' => ['amendment:write']],
     paginationItemsPerPage: 20
 )]
-class Avenant
+class Amendment
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER)]
-    #[Groups(['avenant:read'])]
+    #[Groups(['amendment:read'])]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::STRING, length: 20)]
-    #[Groups(['avenant:read', 'avenant:write'])]
+    #[Groups(['amendment:read', 'amendment:write'])]
     #[Assert\NotBlank]
     private ?string $numero = null;
 
     // ===== RELATION OBLIGATOIRE AVEC UN DEVIS =====
-    #[ORM\ManyToOne(targetEntity: Devis::class)]
-    #[ORM\JoinColumn(name: 'devis_id', referencedColumnName: 'id', nullable: false)]
-    #[Groups(['avenant:read', 'avenant:write'])]
-    #[Assert\NotNull(message: "Un avenant doit être lié à un devis")]
-    private ?Devis $devis = null;
+    #[ORM\ManyToOne(targetEntity: Quote::class)]
+    #[ORM\JoinColumn(name: 'quote_id', referencedColumnName: 'id', nullable: false)]
+    #[Groups(['amendment:read', 'amendment:write'])]
+    #[Assert\NotNull(message: "Un amendment doit être lié à un quote")]
+    private ?Quote $quote = null;
 
     // ===== SYSTÈME DE TARIFS POUR L'AVENANT =====
-    #[ORM\ManyToMany(targetEntity: Tarif::class)]
-    #[ORM\JoinTable(name: 'avenant_tarifs')]
-    #[Groups(['avenant:read', 'avenant:write'])]
-    private Collection $tarifs;
+    #[ORM\ManyToMany(targetEntity: Tariff::class)]
+    #[ORM\JoinTable(name: 'amendment_tariffs')]
+    #[Groups(['amendment:read', 'amendment:write'])]
+    private Collection $tariffs;
 
     #[ORM\Column(type: Types::TEXT)]
-    #[Groups(['avenant:read', 'avenant:write'])]
+    #[Groups(['amendment:read', 'amendment:write'])]
     #[Assert\NotBlank]
     private ?string $motif = null;
 
     #[ORM\Column(type: Types::TEXT)]
-    #[Groups(['avenant:read', 'avenant:write'])]
+    #[Groups(['amendment:read', 'amendment:write'])]
     #[Assert\NotBlank]
     private ?string $modifications = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['avenant:read', 'avenant:write'])]
+    #[Groups(['amendment:read', 'amendment:write'])]
     private ?string $justification = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[Groups(['avenant:read'])]
+    #[Groups(['amendment:read'])]
     private ?\DateTimeInterface $dateCreation = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['avenant:read', 'avenant:write'])]
+    #[Groups(['amendment:read', 'amendment:write'])]
     private ?\DateTimeInterface $dateValidation = null;
 
     #[ORM\Column(type: Types::STRING, length: 20)]
-    #[Groups(['avenant:read', 'avenant:write'])]
+    #[Groups(['amendment:read', 'amendment:write'])]
     #[Assert\NotBlank]
     private ?string $statut = 'brouillon'; // brouillon, valide, rejete, envoye
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['avenant:read', 'avenant:write'])]
+    #[Groups(['amendment:read', 'amendment:write'])]
     private ?string $notes = null;
 
     // ===== NOUVEAUX CHAMPS POUR LES MONTANTS DE L'AVENANT =====
 
     #[ORM\Column(type: Types::INTEGER)]
-    #[Groups(['avenant:read', 'avenant:write'])]
+    #[Groups(['amendment:read', 'amendment:write'])]
     private ?int $montantHT = 0;
 
     #[ORM\Column(type: Types::INTEGER)]
-    #[Groups(['avenant:read', 'avenant:write'])]
+    #[Groups(['amendment:read', 'amendment:write'])]
     private ?int $montantTVA = 0;
 
     #[ORM\Column(type: Types::INTEGER)]
-    #[Groups(['avenant:read', 'avenant:write'])]
+    #[Groups(['amendment:read', 'amendment:write'])]
     private ?int $montantTTC = 0;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2)]
-    #[Groups(['avenant:read', 'avenant:write'])]
+    #[Groups(['amendment:read', 'amendment:write'])]
     private ?string $tauxTVA = '0.00';
 
     public function __construct()
     {
         $this->dateCreation = new \DateTime();
         $this->statut = 'brouillon';
-        $this->tarifs = new ArrayCollection();
+        $this->tariffs = new ArrayCollection();
         $this->montantHT = 0;
         $this->montantTVA = 0;
         $this->montantTTC = 0;
@@ -140,43 +140,43 @@ class Avenant
         return $this;
     }
 
-    public function getDevis(): ?Devis
+    public function getQuote(): ?Quote
     {
-        return $this->devis;
+        return $this->quote;
     }
 
-    public function setDevis(?Devis $devis): static
+    public function setQuote(?Quote $quote): static
     {
-        $this->devis = $devis;
+        $this->quote = $quote;
 
-        // Propager automatiquement le tauxTVA du devis vers l'avenant
-        if ($devis && $devis->getTauxTVA()) {
-            $this->setTauxTVA($devis->getTauxTVA());
+        // Propager automatiquement le tauxTVA du quote vers l'amendment
+        if ($quote && $quote->getTauxTVA()) {
+            $this->setTauxTVA($quote->getTauxTVA());
         }
 
         return $this;
     }
 
     /**
-     * @return Collection<int, Tarif>
+     * @return Collection<int, Tariff>
      */
-    public function getTarifs(): Collection
+    public function getTariffs(): Collection
     {
-        return $this->tarifs;
+        return $this->tariffs;
     }
 
-    public function addTarif(Tarif $tarif): static
+    public function addTariff(Tariff $tariff): static
     {
-        if (!$this->tarifs->contains($tarif)) {
-            $this->tarifs->add($tarif);
+        if (!$this->tariffs->contains($tariff)) {
+            $this->tariffs->add($tariff);
             $this->calculerMontantsDepuisTarifs();
         }
         return $this;
     }
 
-    public function removeTarif(Tarif $tarif): static
+    public function removeTariff(Tariff $tariff): static
     {
-        if ($this->tarifs->removeElement($tarif)) {
+        if ($this->tariffs->removeElement($tariff)) {
             $this->calculerMontantsDepuisTarifs();
         }
         return $this;
@@ -315,9 +315,9 @@ class Avenant
         // On travaille en centimes pour éviter les flottants
         $montantHTCents = 0;
 
-        foreach ($this->tarifs as $tarif) {
+        foreach ($this->tariffs as $tariff) {
             // getPrix() renvoie le prix stocké (attendu en centimes). On force le cast en entier.
-            $montantHTCents += (int) $tarif->getPrix();
+            $montantHTCents += (int) $tariff->getPrix();
         }
 
         // Affectations strictes en int
@@ -406,21 +406,21 @@ class Avenant
 
     public function getDocumentInfo(): string
     {
-        if (!$this->devis) {
+        if (!$this->quote) {
             return 'Devis inconnu';
         }
 
         return sprintf(
-            'Devis %s - %s (%s)',
-            $this->devis->getNumero(),
-            $this->devis->getClient()?->getNomComplet() ?? 'Client inconnu',
-            $this->devis->getMontantTTCFormate()
+            'Quote %s - %s (%s)',
+            $this->quote->getNumero(),
+            $this->quote->getClient()?->getNomComplet() ?? 'Client inconnu',
+            $this->quote->getMontantTTCFormate()
         );
     }
 
     public function __toString(): string
     {
-        return $this->numero ?? 'Avenant #' . $this->id;
+        return $this->numero ?? 'Amendment #' . $this->id;
     }
 
     /**
@@ -428,19 +428,19 @@ class Avenant
      */
     public function getDevisTarifsResume(): string
     {
-        if ($this->devis === null) {
+        if ($this->quote === null) {
             return '';
         }
 
-        $tarifs = $this->devis->getTarifs();
-        if ($tarifs === null || $tarifs->count() === 0) {
+        $tariffs = $this->quote->getTariffs();
+        if ($tariffs === null || $tariffs->count() === 0) {
             return 'Aucun tarif sur le devis d\'origine.';
         }
 
         $lines = [];
-        foreach ($tarifs as $tarif) {
-            $nom = method_exists($tarif, 'getNom') ? (string) $tarif->getNom() : '';
-            $prix = method_exists($tarif, 'getPrixTTCFormate') ? (string) $tarif->getPrixTTCFormate() : '';
+        foreach ($tariffs as $tariff) {
+            $nom = method_exists($tariff, 'getNom') ? (string) $tariff->getNom() : '';
+            $prix = method_exists($tariff, 'getPrixTTCFormate') ? (string) $tariff->getPrixTTCFormate() : '';
             $lines[] = trim($nom . ' — ' . $prix);
         }
 

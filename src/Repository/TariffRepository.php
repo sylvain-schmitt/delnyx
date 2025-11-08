@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
-use App\Entity\Tarif;
+use App\Entity\Tariff;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * Repository pour l'entité Tarif
+ * Repository pour l'entité Tariff
  */
-class TarifRepository extends ServiceEntityRepository
+class TariffRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Tarif::class);
+        parent::__construct($registry, Tariff::class);
     }
 
     /**
@@ -50,9 +50,9 @@ class TarifRepository extends ServiceEntityRepository
     }
 
     /**
-     * Retourne les tarifs pour les devis (actifs et forfait uniquement)
+     * Retourne les tarifs pour les quotes (actifs et forfait uniquement)
      */
-    public function findForDevis(): array
+    public function findForQuotes(): array
     {
         return $this->createQueryBuilder('t')
             ->where('t.actif = :actif')
@@ -65,3 +65,4 @@ class TarifRepository extends ServiceEntityRepository
             ->getResult();
     }
 }
+

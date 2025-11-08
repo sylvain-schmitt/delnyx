@@ -3,11 +3,11 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Client;
-use App\Entity\Devis;
-use App\Entity\Facture;
+use App\Entity\Quote;
+use App\Entity\Invoice;
 use App\Repository\ClientRepository;
-use App\Repository\DevisRepository;
-use App\Repository\FactureRepository;
+use App\Repository\QuoteRepository;
+use App\Repository\InvoiceRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -17,8 +17,8 @@ class DashboardController extends AbstractController
 {
     public function __construct(
         private ClientRepository $clientRepository,
-        private DevisRepository $devisRepository,
-        private FactureRepository $factureRepository
+        private QuoteRepository $quoteRepository,
+        private InvoiceRepository $invoiceRepository
     ) {}
 
     #[Route('/', name: 'dashboard')]
@@ -27,28 +27,28 @@ class DashboardController extends AbstractController
         // Statistiques générales
         $stats = [
             'clients' => $this->clientRepository->count([]),
-            'devis' => $this->devisRepository->count([]),
-            'factures' => $this->factureRepository->count([]),
+            'quotes' => $this->quoteRepository->count([]),
+            'invoices' => $this->invoiceRepository->count([]),
             'ca_mensuel' => $this->getCAMensuel(),
         ];
 
         // Calculs de croissance
         $growth = [
             'clients' => $this->getClientsGrowth(),
-            'devis' => $this->getDevisGrowth(),
-            'factures' => $this->getFacturesGrowth(),
+            'quotes' => $this->getQuotesGrowth(),
+            'invoices' => $this->getInvoicesGrowth(),
             'ca' => $this->getCAGrowth(),
         ];
 
-        // Devis récents (5 derniers)
-        $recent_devis = $this->devisRepository->findBy(
+        // Quotes récents (5 derniers)
+        $recent_quotes = $this->quoteRepository->findBy(
             [],
             ['dateCreation' => 'DESC'],
             5
         );
 
-        // Factures récentes (5 dernières)
-        $recent_factures = $this->factureRepository->findBy(
+        // Invoices récentes (5 dernières)
+        $recent_invoices = $this->invoiceRepository->findBy(
             [],
             ['dateCreation' => 'DESC'],
             5
@@ -57,8 +57,8 @@ class DashboardController extends AbstractController
         return $this->render('admin/dashboard/index.html.twig', [
             'stats' => $stats,
             'growth' => $growth,
-            'recent_devis' => $recent_devis,
-            'recent_factures' => $recent_factures,
+            'recent_quotes' => $recent_quotes,
+            'recent_invoices' => $recent_invoices,
         ]);
     }
 
@@ -70,18 +70,18 @@ class DashboardController extends AbstractController
         $debutMois = new \DateTime('first day of this month');
         $finMois = new \DateTime('last day of this month');
 
-        $factures = $this->factureRepository->createQueryBuilder('f')
-            ->where('f.dateCreation BETWEEN :debut AND :fin')
-            ->andWhere('f.statut = :statut')
+        $invoices = $this->invoiceRepository->createQueryBuilder('i')
+            ->where('i.dateCreation BETWEEN :debut AND :fin')
+            ->andWhere('i.statut = :statut')
             ->setParameter('debut', $debutMois)
             ->setParameter('fin', $finMois)
-            ->setParameter('statut', 'payee')
+            ->setParameter('statut', 'paid')
             ->getQuery()
             ->getResult();
 
         $ca = 0;
-        foreach ($factures as $facture) {
-            $ca += $facture->getMontantTTC();
+        foreach ($invoices as $invoice) {
+            $ca += $invoice->getMontantTTC();
         }
 
         return $ca;
@@ -118,9 +118,9 @@ class DashboardController extends AbstractController
     }
 
     /**
-     * Calcule la croissance du nombre de devis
+     * Calcule la croissance du nombre de quotes
      */
-    private function getDevisGrowth(): array
+    private function getQuotesGrowth(): array
     {
         $debutMoisActuel = new \DateTime('first day of this month');
         $finMoisActuel = new \DateTime('last day of this month');
@@ -128,29 +128,29 @@ class DashboardController extends AbstractController
         $debutMoisPrecedent = (new \DateTime('first day of last month'));
         $finMoisPrecedent = (new \DateTime('last day of last month'));
 
-        $devisMoisActuel = $this->devisRepository->createQueryBuilder('d')
-            ->select('COUNT(d.id)')
-            ->where('d.dateCreation BETWEEN :debut AND :fin')
+        $quotesMoisActuel = $this->quoteRepository->createQueryBuilder('q')
+            ->select('COUNT(q.id)')
+            ->where('q.dateCreation BETWEEN :debut AND :fin')
             ->setParameter('debut', $debutMoisActuel)
             ->setParameter('fin', $finMoisActuel)
             ->getQuery()
             ->getSingleScalarResult();
 
-        $devisMoisPrecedent = $this->devisRepository->createQueryBuilder('d')
-            ->select('COUNT(d.id)')
-            ->where('d.dateCreation BETWEEN :debut AND :fin')
+        $quotesMoisPrecedent = $this->quoteRepository->createQueryBuilder('q')
+            ->select('COUNT(q.id)')
+            ->where('q.dateCreation BETWEEN :debut AND :fin')
             ->setParameter('debut', $debutMoisPrecedent)
             ->setParameter('fin', $finMoisPrecedent)
             ->getQuery()
             ->getSingleScalarResult();
 
-        return $this->calculateGrowth($devisMoisActuel, $devisMoisPrecedent);
+        return $this->calculateGrowth($quotesMoisActuel, $quotesMoisPrecedent);
     }
 
     /**
-     * Calcule la croissance du nombre de factures
+     * Calcule la croissance du nombre de invoices
      */
-    private function getFacturesGrowth(): array
+    private function getInvoicesGrowth(): array
     {
         $debutMoisActuel = new \DateTime('first day of this month');
         $finMoisActuel = new \DateTime('last day of this month');
@@ -158,23 +158,23 @@ class DashboardController extends AbstractController
         $debutMoisPrecedent = (new \DateTime('first day of last month'));
         $finMoisPrecedent = (new \DateTime('last day of last month'));
 
-        $facturesMoisActuel = $this->factureRepository->createQueryBuilder('f')
-            ->select('COUNT(f.id)')
-            ->where('f.dateCreation BETWEEN :debut AND :fin')
+        $invoicesMoisActuel = $this->invoiceRepository->createQueryBuilder('i')
+            ->select('COUNT(i.id)')
+            ->where('i.dateCreation BETWEEN :debut AND :fin')
             ->setParameter('debut', $debutMoisActuel)
             ->setParameter('fin', $finMoisActuel)
             ->getQuery()
             ->getSingleScalarResult();
 
-        $facturesMoisPrecedent = $this->factureRepository->createQueryBuilder('f')
-            ->select('COUNT(f.id)')
-            ->where('f.dateCreation BETWEEN :debut AND :fin')
+        $invoicesMoisPrecedent = $this->invoiceRepository->createQueryBuilder('i')
+            ->select('COUNT(i.id)')
+            ->where('i.dateCreation BETWEEN :debut AND :fin')
             ->setParameter('debut', $debutMoisPrecedent)
             ->setParameter('fin', $finMoisPrecedent)
             ->getQuery()
             ->getSingleScalarResult();
 
-        return $this->calculateGrowth($facturesMoisActuel, $facturesMoisPrecedent);
+        return $this->calculateGrowth($invoicesMoisActuel, $invoicesMoisPrecedent);
     }
 
     /**
@@ -189,33 +189,33 @@ class DashboardController extends AbstractController
         $finMoisPrecedent = (new \DateTime('last day of last month'));
 
         // CA mois actuel
-        $facturesMoisActuel = $this->factureRepository->createQueryBuilder('f')
-            ->where('f.dateCreation BETWEEN :debut AND :fin')
-            ->andWhere('f.statut = :statut')
+        $invoicesMoisActuel = $this->invoiceRepository->createQueryBuilder('i')
+            ->where('i.dateCreation BETWEEN :debut AND :fin')
+            ->andWhere('i.statut = :statut')
             ->setParameter('debut', $debutMoisActuel)
             ->setParameter('fin', $finMoisActuel)
-            ->setParameter('statut', 'payee')
+            ->setParameter('statut', 'paid')
             ->getQuery()
             ->getResult();
 
         $caMoisActuel = 0;
-        foreach ($facturesMoisActuel as $facture) {
-            $caMoisActuel += $facture->getMontantTTC();
+        foreach ($invoicesMoisActuel as $invoice) {
+            $caMoisActuel += $invoice->getMontantTTC();
         }
 
         // CA mois précédent
-        $facturesMoisPrecedent = $this->factureRepository->createQueryBuilder('f')
-            ->where('f.dateCreation BETWEEN :debut AND :fin')
-            ->andWhere('f.statut = :statut')
+        $invoicesMoisPrecedent = $this->invoiceRepository->createQueryBuilder('i')
+            ->where('i.dateCreation BETWEEN :debut AND :fin')
+            ->andWhere('i.statut = :statut')
             ->setParameter('debut', $debutMoisPrecedent)
             ->setParameter('fin', $finMoisPrecedent)
-            ->setParameter('statut', 'payee')
+            ->setParameter('statut', 'paid')
             ->getQuery()
             ->getResult();
 
         $caMoisPrecedent = 0;
-        foreach ($facturesMoisPrecedent as $facture) {
-            $caMoisPrecedent += $facture->getMontantTTC();
+        foreach ($invoicesMoisPrecedent as $invoice) {
+            $caMoisPrecedent += $invoice->getMontantTTC();
         }
 
         return $this->calculateGrowth($caMoisActuel, $caMoisPrecedent);

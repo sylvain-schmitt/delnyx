@@ -3,18 +3,18 @@
 namespace App\Entity;
 
 /**
- * Enum pour les statuts des devis
+ * Enum pour les statuts des devis (quotes)
  * 
  * @package App\Entity
  */
-enum DevisStatus: string
+enum QuoteStatus: string
 {
-    case BROUILLON = 'brouillon';
-    case ENVOYE = 'envoye';
-    case ACCEPTE = 'accepte';
-    case REFUSE = 'refuse';
-    case EXPIRE = 'expire';
-    case ANNULE = 'annule';
+    case DRAFT = 'draft';
+    case SENT = 'sent';
+    case ACCEPTED = 'accepted';
+    case REFUSED = 'refused';
+    case EXPIRED = 'expired';
+    case CANCELLED = 'cancelled';
 
     /**
      * Retourne le libellé du statut
@@ -22,12 +22,12 @@ enum DevisStatus: string
     public function getLabel(): string
     {
         return match ($this) {
-            self::BROUILLON => 'Brouillon',
-            self::ENVOYE => 'Envoyé',
-            self::ACCEPTE => 'Accepté',
-            self::REFUSE => 'Refusé',
-            self::EXPIRE => 'Expiré',
-            self::ANNULE => 'Annulé',
+            self::DRAFT => 'Brouillon',
+            self::SENT => 'Envoyé',
+            self::ACCEPTED => 'Accepté',
+            self::REFUSED => 'Refusé',
+            self::EXPIRED => 'Expiré',
+            self::CANCELLED => 'Annulé',
         };
     }
 
@@ -37,12 +37,12 @@ enum DevisStatus: string
     public function getColor(): string
     {
         return match ($this) {
-            self::BROUILLON => 'secondary',
-            self::ENVOYE => 'info',
-            self::ACCEPTE => 'success',
-            self::REFUSE => 'danger',
-            self::EXPIRE => 'warning',
-            self::ANNULE => 'dark',
+            self::DRAFT => 'secondary',
+            self::SENT => 'info',
+            self::ACCEPTED => 'success',
+            self::REFUSED => 'danger',
+            self::EXPIRED => 'warning',
+            self::CANCELLED => 'dark',
         };
     }
 
@@ -75,7 +75,7 @@ enum DevisStatus: string
      */
     public function isFinal(): bool
     {
-        return in_array($this, [self::ACCEPTE, self::REFUSE, self::EXPIRE, self::ANNULE]);
+        return in_array($this, [self::ACCEPTED, self::REFUSED, self::EXPIRED, self::CANCELLED]);
     }
 
     /**
@@ -83,7 +83,7 @@ enum DevisStatus: string
      */
     public function canBeSent(): bool
     {
-        return $this === self::BROUILLON;
+        return $this === self::DRAFT;
     }
 
     /**
@@ -91,7 +91,7 @@ enum DevisStatus: string
      */
     public function canBeAccepted(): bool
     {
-        return $this === self::ENVOYE;
+        return $this === self::SENT;
     }
 
     /**
@@ -100,7 +100,7 @@ enum DevisStatus: string
      */
     public function isModifiable(): bool
     {
-        return $this === self::BROUILLON;
+        return $this === self::DRAFT;
     }
 
     /**
@@ -108,6 +108,7 @@ enum DevisStatus: string
      */
     public function isEmitted(): bool
     {
-        return in_array($this, [self::ENVOYE, self::ACCEPTE, self::REFUSE, self::EXPIRE, self::ANNULE]);
+        return in_array($this, [self::SENT, self::ACCEPTED, self::REFUSED, self::EXPIRED, self::CANCELLED]);
     }
 }
+

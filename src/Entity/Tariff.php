@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Repository\TarifRepository;
+use App\Repository\TariffRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -20,37 +20,37 @@ use Symfony\Component\Serializer\Annotation\Groups;
 /**
  * Entité Tarif - Grille tarifaire des services Delnyx
  */
-#[ORM\Entity(repositoryClass: TarifRepository::class)]
-#[ORM\Table(name: 'tarifs')]
+#[ORM\Entity(repositoryClass: TariffRepository::class)]
+#[ORM\Table(name: 'tariffs')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
         new GetCollection(
             paginationEnabled: true,
             paginationItemsPerPage: 50,
-            normalizationContext: ['groups' => ['tarif:read']]
+            normalizationContext: ['groups' => ['tariff:read']]
         ),
-        new Get(normalizationContext: ['groups' => ['tarif:read', 'tarif:detail']]),
-        new Post(denormalizationContext: ['groups' => ['tarif:write']]),
-        new Put(denormalizationContext: ['groups' => ['tarif:write']]),
-        new Patch(denormalizationContext: ['groups' => ['tarif:write']]),
+        new Get(normalizationContext: ['groups' => ['tariff:read', 'tariff:detail']]),
+        new Post(denormalizationContext: ['groups' => ['tariff:write']]),
+        new Put(denormalizationContext: ['groups' => ['tariff:write']]),
+        new Patch(denormalizationContext: ['groups' => ['tariff:write']]),
         new Delete()
     ],
-    normalizationContext: ['groups' => ['tarif:read']],
-    denormalizationContext: ['groups' => ['tarif:write']]
+    normalizationContext: ['groups' => ['tariff:read']],
+    denormalizationContext: ['groups' => ['tariff:write']]
 )]
-class Tarif
+class Tariff
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER)]
-    #[Groups(['tarif:read'])]
+    #[Groups(['tariff:read'])]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::STRING, length: 100)]
     #[Assert\NotBlank(message: 'Le nom du tarif est obligatoire')]
     #[Assert\Length(min: 2, max: 100, minMessage: 'Le nom doit contenir au moins {{ limit }} caractères', maxMessage: 'Le nom ne peut pas dépasser {{ limit }} caractères')]
-    #[Groups(['tarif:read', 'tarif:write'])]
+    #[Groups(['tariff:read', 'tariff:write'])]
     private ?string $nom = null;
 
     #[ORM\Column(type: Types::STRING, length: 50)]
@@ -61,18 +61,18 @@ class Tarif
         'application_gestion' => 'Application de gestion',
         'maintenance' => 'Maintenance & Support'
     ], message: 'La catégorie doit être sélectionnée')]
-    #[Groups(['tarif:read', 'tarif:write'])]
+    #[Groups(['tariff:read', 'tariff:write'])]
     private ?string $categorie = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['tarif:read', 'tarif:write'])]
+    #[Groups(['tariff:read', 'tariff:write'])]
     private ?string $description = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     #[Assert\NotBlank(message: 'Le prix est obligatoire')]
     #[Assert\Type(type: 'numeric', message: 'Le prix doit être un nombre')]
     #[Assert\GreaterThanOrEqual(value: 0, message: 'Le prix ne peut pas être négatif')]
-    #[Groups(['tarif:read', 'tarif:write'])]
+    #[Groups(['tariff:read', 'tariff:write'])]
     private string $prix = '0.00';
 
     #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => 'forfait'])]
@@ -83,27 +83,27 @@ class Tarif
         'an' => 'Par an',
         'heure' => 'Par heure'
     ], message: 'L\'unité doit être sélectionnée')]
-    #[Groups(['tarif:read', 'tarif:write'])]
+    #[Groups(['tariff:read', 'tariff:write'])]
     private string $unite = 'forfait';
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => true])]
-    #[Groups(['tarif:read', 'tarif:write'])]
+    #[Groups(['tariff:read', 'tariff:write'])]
     private bool $actif = true;
 
     #[ORM\Column(type: Types::INTEGER, options: ['default' => 0])]
-    #[Groups(['tarif:read', 'tarif:write'])]
+    #[Groups(['tariff:read', 'tariff:write'])]
     private int $ordre = 0;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['tarif:read', 'tarif:write'])]
+    #[Groups(['tariff:read', 'tariff:write'])]
     private ?string $caracteristiques = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[Groups(['tarif:read'])]
+    #[Groups(['tariff:read'])]
     private ?\DateTimeInterface $dateCreation = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[Groups(['tarif:read'])]
+    #[Groups(['tariff:read'])]
     private ?\DateTimeInterface $dateModification = null;
 
     public function __construct()
@@ -234,7 +234,7 @@ class Tarif
     /**
      * Retourne le libellé de la catégorie
      */
-    #[Groups(['tarif:read'])]
+    #[Groups(['tariff:read'])]
     public function getCategorieLabel(): string
     {
         return match ($this->categorie) {
@@ -249,7 +249,7 @@ class Tarif
     /**
      * Retourne le libellé de l'unité
      */
-    #[Groups(['tarif:read'])]
+    #[Groups(['tariff:read'])]
     public function getUniteLabel(): string
     {
         return match ($this->unite) {
@@ -264,7 +264,7 @@ class Tarif
     /**
      * Retourne le prix formaté avec l'unité
      */
-    #[Groups(['tarif:read'])]
+    #[Groups(['tariff:read'])]
     public function getPrixFormate(): string
     {
         // Convertir les centimes en euros (MoneyField stocke en centimes)
@@ -283,7 +283,7 @@ class Tarif
     /**
      * Retourne le prix TTC formaté avec l'unité
      */
-    #[Groups(['tarif:read'])]
+    #[Groups(['tariff:read'])]
     public function getPrixTTCFormate(): string
     {
         // Calculer le prix TTC (HT + TVA)
