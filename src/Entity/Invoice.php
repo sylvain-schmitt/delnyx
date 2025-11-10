@@ -115,6 +115,24 @@ class Invoice
     #[Groups(['invoice:read', 'invoice:write'])]
     private ?string $companyId = null;
 
+    // ===== CHAMPS PDP (Plateforme de Dématérialisation Partenaire) =====
+
+    #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
+    #[Groups(['invoice:read'])]
+    private ?string $pdpStatus = null; // ACCEPTED, REJECTED, PENDING
+
+    #[ORM\Column(type: Types::STRING, length: 100, nullable: true)]
+    #[Groups(['invoice:read'])]
+    private ?string $pdpProvider = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['invoice:read'])]
+    private ?\DateTimeInterface $pdpTransmissionDate = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['invoice:read'])]
+    private ?string $pdpResponse = null; // Réponse de la PDP (JSON ou texte)
+
     // Relations
     #[ORM\OneToOne(targetEntity: Quote::class, inversedBy: 'invoice')]
     #[ORM\JoinColumn(nullable: false)]
@@ -342,6 +360,50 @@ class Invoice
     public function setCompanyId(string $companyId): self
     {
         $this->companyId = $companyId;
+        return $this;
+    }
+
+    public function getPdpStatus(): ?string
+    {
+        return $this->pdpStatus;
+    }
+
+    public function setPdpStatus(?string $pdpStatus): self
+    {
+        $this->pdpStatus = $pdpStatus;
+        return $this;
+    }
+
+    public function getPdpProvider(): ?string
+    {
+        return $this->pdpProvider;
+    }
+
+    public function setPdpProvider(?string $pdpProvider): self
+    {
+        $this->pdpProvider = $pdpProvider;
+        return $this;
+    }
+
+    public function getPdpTransmissionDate(): ?\DateTimeInterface
+    {
+        return $this->pdpTransmissionDate;
+    }
+
+    public function setPdpTransmissionDate(?\DateTimeInterface $pdpTransmissionDate): self
+    {
+        $this->pdpTransmissionDate = $pdpTransmissionDate;
+        return $this;
+    }
+
+    public function getPdpResponse(): ?string
+    {
+        return $this->pdpResponse;
+    }
+
+    public function setPdpResponse(?string $pdpResponse): self
+    {
+        $this->pdpResponse = $pdpResponse;
         return $this;
     }
 
