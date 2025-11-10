@@ -129,6 +129,10 @@ class Quote
     #[Groups(['quote:read', 'quote:write'])]
     private ?string $signatureClient = null;
 
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['quote:read', 'quote:write'])]
+    private ?\DateTimeInterface $dateSignature = null;
+
     // ===== NOUVELLES MENTIONS OBLIGATOIRES (2026-2027) =====
 
     #[ORM\Column(type: Types::STRING, length: 9, nullable: true)]
@@ -344,6 +348,17 @@ class Quote
     public function setSignatureClient(?string $signatureClient): self
     {
         $this->signatureClient = $signatureClient;
+        return $this;
+    }
+
+    public function getDateSignature(): ?\DateTimeInterface
+    {
+        return $this->dateSignature;
+    }
+
+    public function setDateSignature(?\DateTimeInterface $dateSignature): self
+    {
+        $this->dateSignature = $dateSignature;
         return $this;
     }
 

@@ -11,6 +11,7 @@ enum QuoteStatus: string
 {
     case DRAFT = 'draft';
     case SENT = 'sent';
+    case SIGNED = 'signed';
     case ACCEPTED = 'accepted';
     case REFUSED = 'refused';
     case EXPIRED = 'expired';
@@ -24,6 +25,7 @@ enum QuoteStatus: string
         return match ($this) {
             self::DRAFT => 'Brouillon',
             self::SENT => 'Envoyé',
+            self::SIGNED => 'Signé',
             self::ACCEPTED => 'Accepté',
             self::REFUSED => 'Refusé',
             self::EXPIRED => 'Expiré',
@@ -39,6 +41,7 @@ enum QuoteStatus: string
         return match ($this) {
             self::DRAFT => 'secondary',
             self::SENT => 'info',
+            self::SIGNED => 'primary',
             self::ACCEPTED => 'success',
             self::REFUSED => 'danger',
             self::EXPIRED => 'warning',
@@ -75,7 +78,7 @@ enum QuoteStatus: string
      */
     public function isFinal(): bool
     {
-        return in_array($this, [self::ACCEPTED, self::REFUSED, self::EXPIRED, self::CANCELLED]);
+        return in_array($this, [self::SIGNED, self::ACCEPTED, self::REFUSED, self::EXPIRED, self::CANCELLED]);
     }
 
     /**
@@ -100,7 +103,7 @@ enum QuoteStatus: string
      */
     public function isModifiable(): bool
     {
-        return $this === self::DRAFT;
+        return $this === self::DRAFT || $this === self::SENT;
     }
 
     /**
@@ -108,7 +111,7 @@ enum QuoteStatus: string
      */
     public function isEmitted(): bool
     {
-        return in_array($this, [self::SENT, self::ACCEPTED, self::REFUSED, self::EXPIRED, self::CANCELLED]);
+        return in_array($this, [self::SENT, self::SIGNED, self::ACCEPTED, self::REFUSED, self::EXPIRED, self::CANCELLED]);
     }
 }
 
