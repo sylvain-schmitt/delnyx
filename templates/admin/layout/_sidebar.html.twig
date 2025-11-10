@@ -41,9 +41,9 @@
         </a>
         
         {# Devis #}
-        <a href="{{ path('admin_devis_index') }}" 
+        <a href="{{ path('admin_quote_index') }}" 
            class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
-           {{ app.request.attributes.get('_route') starts with 'admin_devis' ? 'bg-white/20 text-white' : '' }}">
+           {{ app.request.attributes.get('_route') starts with 'admin_quote' ? 'bg-white/20 text-white' : '' }}">
             {{ ux_icon('lucide:file-text', {class: 'w-5 h-5'}) }}
             <span class="font-medium">Devis</span>
         </a>
