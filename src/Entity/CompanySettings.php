@@ -109,11 +109,10 @@ class CompanySettings
     #[Groups(['company_settings:read', 'company_settings:write'])]
     private ?string $ville = null;
 
-    #[ORM\Column(type: Types::STRING, length: 255)]
-    #[Assert\NotBlank(message: 'L\'email est obligatoire')]
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
     #[Assert\Email(message: 'L\'email n\'est pas valide')]
     #[Groups(['company_settings:read', 'company_settings:write'])]
-    private ?string $email = null;
+    private ?string $email = null; // Optionnel : si vide, utiliser l'email du User
 
     #[ORM\Column(type: Types::STRING, length: 20, nullable: true)]
     #[Groups(['company_settings:read', 'company_settings:write'])]
@@ -128,6 +127,12 @@ class CompanySettings
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['company_settings:write'])] // Pas en read pour sécurité
     private ?string $signatureApiKey = null;
+
+    // ===== LOGO ENTREPRISE =====
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?string $logoPath = null; // Chemin vers le fichier logo
 
     public function getId(): ?int
     {
@@ -307,7 +312,7 @@ class CompanySettings
         return $this->email;
     }
 
-    public function setEmail(string $email): static
+    public function setEmail(?string $email): static
     {
         $this->email = $email;
 
@@ -350,6 +355,18 @@ class CompanySettings
         return $this;
     }
 
+    public function getLogoPath(): ?string
+    {
+        return $this->logoPath;
+    }
+
+    public function setLogoPath(?string $logoPath): static
+    {
+        $this->logoPath = $logoPath;
+
+        return $this;
+    }
+
     /**
      * Vérifie si la facturation électronique est activée
      */
@@ -372,4 +389,3 @@ class CompanySettings
         );
     }
 }
-

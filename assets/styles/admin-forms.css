@@ -19,13 +19,59 @@
     @apply bg-white/10;
 }
 
+/* Gestion de l'autofill du navigateur pour conserver le design sombre */
+.form-input:-webkit-autofill,
+.form-input:-webkit-autofill:hover,
+.form-input:-webkit-autofill:focus,
+.form-input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.05) inset !important;
+    -webkit-text-fill-color: rgb(255, 255, 255) !important;
+    box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.05) inset !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+.form-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.1) inset !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
 /* Textarea */
 .form-textarea {
     @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 resize-vertical;
+    background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 .form-textarea:focus {
     @apply bg-white/10;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Gestion de l'autofill pour les textareas - style plus subtil */
+.form-textarea:-webkit-autofill,
+.form-textarea:-webkit-autofill:hover,
+.form-textarea:-webkit-autofill:focus,
+.form-textarea:-webkit-autofill:active {
+    -webkit-text-fill-color: rgb(255, 255, 255) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    transition: background-color 5000s ease-in-out 0s, color 5000s ease-in-out 0s;
+    -webkit-box-shadow: none !important;
+    box-shadow: none !important;
+}
+
+.form-textarea:-webkit-autofill:focus {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Style du resize handle pour qu'il soit discret */
+.form-textarea::-webkit-resizer {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 0 0 0.5rem 0;
 }
 
 /* Select */
@@ -35,6 +81,38 @@
 
 .form-select:focus {
     @apply bg-white/10;
+}
+
+/* Gestion de l'autofill pour les selects */
+.form-select:-webkit-autofill,
+.form-select:-webkit-autofill:hover,
+.form-select:-webkit-autofill:focus,
+.form-select:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.05) inset !important;
+    -webkit-text-fill-color: rgb(255, 255, 255) !important;
+    box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.05) inset !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+.form-select:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.1) inset !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Checkbox */
+.form-checkbox {
+    @apply w-4 h-4 text-blue-500 bg-white/5 border-0 rounded focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-0 cursor-pointer transition-all duration-200;
+}
+
+.form-checkbox:checked {
+    @apply bg-blue-500;
+}
+
+.form-checkbox:focus {
+    @apply ring-2 ring-blue-500/50 outline-none;
 }
 
 /* Options pour select */
@@ -74,6 +152,13 @@ ul.form-error li::before,
 .form-textarea.is-invalid,
 .form-select.is-invalid {
     @apply border-red-500/50 ring-2 ring-red-500/20;
+}
+
+/* Champs valides */
+.form-input.is-valid,
+.form-textarea.is-valid,
+.form-select.is-valid {
+    @apply border-green-500/50 ring-2 ring-green-500/20;
 }
 
 /* Messages flash */

@@ -9,6 +9,7 @@
     <div class="{{ wrapper_class }}">
         {{ form_label(field, null, {'label_attr': {'class': 'form-label'}}) }}
         {{ form_widget(field, {'attr': {'class': field_class, 'data-admin-form-target': 'field'}}) }}
+        {{ form_help(field) }}
         {{ form_errors(field) }}
     </div>
 {% endmacro %}

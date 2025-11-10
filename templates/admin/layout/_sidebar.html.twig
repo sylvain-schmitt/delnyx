@@ -56,14 +56,6 @@
             <span class="font-medium">Factures</span>
         </a>
         
-        {# Avenants #}
-        <a href="{{ path('admin_avenant_index') }}" 
-           class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
-           {{ app.request.attributes.get('_route') starts with 'admin_avenant' ? 'bg-white/20 text-white' : '' }}">
-            {{ ux_icon('lucide:edit', {class: 'w-5 h-5'}) }}
-            <span class="font-medium">Avenants</span>
-        </a>
-        
         {# Tarifs #}
         <a href="{{ path('admin_tarif_index') }}" 
            class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
