@@ -95,6 +95,11 @@ class Amendment
     #[Groups(['amendment:read', 'amendment:write'])]
     private ?string $notes = null;
 
+    #[ORM\Column(length: 36)]
+    #[Assert\NotBlank(message: 'Le company_id est obligatoire')]
+    #[Groups(['amendment:read', 'amendment:write'])]
+    private ?string $companyId = null;
+
     // ===== NOUVEAUX CHAMPS POUR LES MONTANTS DE L'AVENANT =====
 
     #[ORM\Column(type: Types::INTEGER)]
@@ -245,6 +250,17 @@ class Amendment
     public function setStatut(string $statut): static
     {
         $this->statut = $statut;
+        return $this;
+    }
+
+    public function getCompanyId(): ?string
+    {
+        return $this->companyId;
+    }
+
+    public function setCompanyId(string $companyId): static
+    {
+        $this->companyId = $companyId;
         return $this;
     }
 

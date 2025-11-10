@@ -6,6 +6,8 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 use ApiPlatform\Metadata\ApiResource;
@@ -108,6 +110,11 @@ class Invoice
     #[Groups(['invoice:read'])]
     private ?\DateTimeInterface $dateModification = null;
 
+    #[ORM\Column(length: 36)]
+    #[Assert\NotBlank(message: 'Le company_id est obligatoire')]
+    #[Groups(['invoice:read', 'invoice:write'])]
+    private ?string $companyId = null;
+
     // Relations
     #[ORM\OneToOne(targetEntity: Quote::class, inversedBy: 'invoice')]
     #[ORM\JoinColumn(nullable: false)]
@@ -121,11 +128,27 @@ class Invoice
     #[Assert\NotBlank]
     private ?Client $client = null;
 
+    /**
+     * @var Collection<int, InvoiceLine>
+     */
+    #[ORM\OneToMany(targetEntity: InvoiceLine::class, mappedBy: 'invoice', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['invoice:read', 'invoice:write'])]
+    private Collection $lines;
+
+    /**
+     * @var Collection<int, CreditNote>
+     */
+    #[ORM\OneToMany(targetEntity: CreditNote::class, mappedBy: 'invoice')]
+    #[Groups(['invoice:read'])]
+    private Collection $creditNotes;
+
     public function __construct()
     {
         $this->dateCreation = new \DateTime();
         $this->dateModification = new \DateTime();
         $this->statut = InvoiceStatus::DRAFT->value;
+        $this->lines = new ArrayCollection();
+        $this->creditNotes = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -311,6 +334,17 @@ class Invoice
         return $this;
     }
 
+    public function getCompanyId(): ?string
+    {
+        return $this->companyId;
+    }
+
+    public function setCompanyId(string $companyId): self
+    {
+        $this->companyId = $companyId;
+        return $this;
+    }
+
     public function getQuote(): ?Quote
     {
         return $this->quote;
@@ -481,5 +515,65 @@ class Invoice
     {
         $client = $this->getClient() ? $this->getClient()->getNomComplet() : 'Client inconnu';
         return sprintf('%s - %s (%s)', $this->numero ?? 'Invoice #' . $this->id, $client, $this->getMontantTTCFormate());
+    }
+
+    /**
+     * @return Collection<int, InvoiceLine>
+     */
+    public function getLines(): Collection
+    {
+        return $this->lines;
+    }
+
+    public function addLine(InvoiceLine $line): static
+    {
+        if (!$this->lines->contains($line)) {
+            $this->lines->add($line);
+            $line->setInvoice($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLine(InvoiceLine $line): static
+    {
+        if ($this->lines->removeElement($line)) {
+            // set the owning side to null (unless already changed)
+            if ($line->getInvoice() === $this) {
+                $line->setInvoice(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, CreditNote>
+     */
+    public function getCreditNotes(): Collection
+    {
+        return $this->creditNotes;
+    }
+
+    public function addCreditNote(CreditNote $creditNote): static
+    {
+        if (!$this->creditNotes->contains($creditNote)) {
+            $this->creditNotes->add($creditNote);
+            $creditNote->setInvoice($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCreditNote(CreditNote $creditNote): static
+    {
+        if ($this->creditNotes->removeElement($creditNote)) {
+            // set the owning side to null (unless already changed)
+            if ($creditNote->getInvoice() === $this) {
+                $creditNote->setInvoice(null);
+            }
+        }
+
+        return $this;
     }
 }

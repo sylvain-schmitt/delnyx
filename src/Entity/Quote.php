@@ -15,6 +15,8 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use ApiPlatform\Doctrine\Orm\Filter\RangeFilter;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\DBAL\Types\Types;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -153,6 +155,10 @@ class Quote
     #[Groups(['quote:read', 'quote:write'])]
     private ?\DateTimeInterface $dateModification = null;
 
+    #[ORM\Column(length: 36)]
+    #[Assert\NotBlank(message: 'Le company_id est obligatoire')]
+    #[Groups(['quote:read', 'quote:write'])]
+    private ?string $companyId = null;
 
     /**
      * Invoice générée à partir de ce quote
@@ -169,12 +175,20 @@ class Quote
     #[Groups(['quote:read', 'quote:write'])]
     private \Doctrine\Common\Collections\Collection $tariffs;
 
+    /**
+     * @var Collection<int, QuoteLine>
+     */
+    #[ORM\OneToMany(targetEntity: QuoteLine::class, mappedBy: 'quote', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['quote:read', 'quote:write'])]
+    private Collection $lines;
+
     public function __construct()
     {
         $this->tariffs = new \Doctrine\Common\Collections\ArrayCollection();
         $this->statut = QuoteStatus::DRAFT;
         $this->dateCreation = new \DateTime();
         $this->dateModification = new \DateTime();
+        $this->lines = new ArrayCollection();
     }
 
     // ===== GETTERS ET SETTERS =====
@@ -390,6 +404,16 @@ class Quote
         return $this;
     }
 
+    public function getCompanyId(): ?string
+    {
+        return $this->companyId;
+    }
+
+    public function setCompanyId(string $companyId): self
+    {
+        $this->companyId = $companyId;
+        return $this;
+    }
 
     public function getInvoice(): ?Invoice
     {
@@ -683,5 +707,35 @@ class Quote
     public function setDateModificationValue(): void
     {
         $this->dateModification = new \DateTime();
+    }
+
+    /**
+     * @return Collection<int, QuoteLine>
+     */
+    public function getLines(): Collection
+    {
+        return $this->lines;
+    }
+
+    public function addLine(QuoteLine $line): static
+    {
+        if (!$this->lines->contains($line)) {
+            $this->lines->add($line);
+            $line->setQuote($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLine(QuoteLine $line): static
+    {
+        if ($this->lines->removeElement($line)) {
+            // set the owning side to null (unless already changed)
+            if ($line->getQuote() === $this) {
+                $line->setQuote(null);
+            }
+        }
+
+        return $this;
     }
 }
