@@ -46,6 +46,7 @@ class QuoteType extends AbstractType
                 'class' => Client::class,
                 'choice_label' => 'nomComplet',
                 'required' => true,
+                'placeholder' => 'Rechercher un client...',
                 'query_builder' => function (EntityRepository $er) {
                     return $er->createQueryBuilder('c')
                         ->orderBy('c.nom', 'ASC');

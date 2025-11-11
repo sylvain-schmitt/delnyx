@@ -66,13 +66,14 @@
 							<p class="text-sm text-white/60 mb-1">Statut</p>
 							{% set status = quote.statut %}
 							<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-																		                            {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-																		                            {% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
-																		                            {% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
-																		                            {% elseif status.value == 'accepted' %}bg-green-500/20 text-green-300
-																		                            {% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
-																		                            {% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
-																		                            {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+								{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+								{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+								{% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
+								{% elseif status.value == 'accepted' %}bg-green-500/20 text-green-300
+								{% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
+								{% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
+								{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+								{% else %}bg-gray-500/20 text-gray-300{% endif %}">
 								{{ status.label }}
 							</span>
 						</div>
@@ -315,6 +316,20 @@
 								{{ ux_icon('lucide:file-edit', {class: 'w-4 h-4'}) }}
 								Créer un avenant
 							</a>
+						{% endif %}
+
+						{% if quote.statut.value == 'draft' and not quote.invoice %}
+							<button type="button" 
+									data-action="click->confirm-modal#open"
+									data-url="{{ path('admin_quote_cancel', {id: quote.id}) }}"
+									data-method="POST"
+									data-csrf-token="{{ csrf_token('cancel' ~ quote.id) }}"
+									data-item-name="ce devis"
+									data-message="Êtes-vous sûr de vouloir annuler ce devis ? Le numéro sera conservé pour la traçabilité comptable (conformité légale française)."
+									class="w-full btn-secondary flex items-center justify-center gap-2 text-red-400 hover:text-red-300">
+								{{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
+								Annuler le devis
+							</button>
 						{% endif %}
 
 						<a href="#" class="w-full btn-secondary flex items-center justify-center gap-2">

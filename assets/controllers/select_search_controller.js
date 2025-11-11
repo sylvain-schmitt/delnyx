@@ -37,17 +37,16 @@ export default class extends Controller {
         const allOptions = Array.from(select.options)
         
         // Fonction pour filtrer et afficher les options
-        const filterOptions = (searchTerm) => {
-            const term = searchTerm.toLowerCase().trim()
+        const filterOptions = (searchTerm, showAll = false) => {
+            const term = searchTerm ? searchTerm.toLowerCase().trim() : ''
             optionsContainer.innerHTML = ''
             
-            if (term === '') {
-                optionsContainer.classList.add('hidden')
-                return
-            }
-            
+            // Si showAll est true ou si le terme est vide, afficher toutes les options (sauf l'option vide)
             const filtered = allOptions.filter(option => {
                 if (option.value === '') return false // Ignorer l'option vide
+                if (showAll || term === '') {
+                    return true // Afficher toutes les options
+                }
                 return option.text.toLowerCase().includes(term)
             })
             
@@ -84,7 +83,19 @@ export default class extends Controller {
         
         // Écouter la saisie dans l'input de recherche
         searchInput.addEventListener('input', (e) => {
-            filterOptions(e.target.value)
+            filterOptions(e.target.value, false)
+        })
+        
+        // Ouvrir le menu au focus (afficher toutes les options)
+        searchInput.addEventListener('focus', () => {
+            filterOptions('', true)
+        })
+        
+        // Ouvrir le menu au clic (afficher toutes les options si vide)
+        searchInput.addEventListener('click', () => {
+            if (searchInput.value === '' || searchInput.value === searchInput.placeholder) {
+                filterOptions('', true)
+            }
         })
         
         // Fermer le menu si on clique en dehors
@@ -109,10 +120,12 @@ export default class extends Controller {
         // Afficher la valeur sélectionnée dans l'input de recherche
         const updateSearchInput = () => {
             const selectedOption = allOptions.find(opt => opt.value === select.value)
-            if (selectedOption) {
+            if (selectedOption && select.value && select.value !== '') {
                 searchInput.value = selectedOption.text
             } else {
+                // Si aucune valeur sélectionnée, afficher le placeholder
                 searchInput.value = ''
+                searchInput.placeholder = 'Rechercher un client...'
             }
         }
         
@@ -156,6 +169,12 @@ export default class extends Controller {
         
         // Initialiser l'input avec la valeur actuelle
         updateSearchInput()
+        
+        // Si aucune valeur n'est sélectionnée au démarrage, s'assurer que le placeholder est visible
+        if (!select.value || select.value === '') {
+            searchInput.value = ''
+            searchInput.placeholder = 'Rechercher un client...'
+        }
         
         // Insérer les éléments dans le wrapper
         wrapper.appendChild(searchInput)

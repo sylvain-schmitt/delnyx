@@ -35,9 +35,20 @@ class QuoteController extends AbstractController
     {
         $page = max(1, $request->query->getInt('page', 1));
         $limit = 15; // 15 devis par page
+        $includeCancelled = $request->query->getBoolean('include_cancelled', false);
 
-        // Récupérer le nombre total de devis
-        $totalQuotes = $this->quoteRepository->count([]);
+        // Construire la requête avec exclusion des devis annulés par défaut
+        $qb = $this->quoteRepository->createQueryBuilder('q');
+
+        if (!$includeCancelled) {
+            $qb->where('q.statut != :cancelled')
+                ->setParameter('cancelled', QuoteStatus::CANCELLED);
+        }
+
+        // Récupérer le nombre total de devis (hors annulés si non demandé)
+        $totalQuotes = (int) $qb->select('COUNT(q.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
 
         // Calculer le nombre total de pages
         $totalPages = (int) ceil($totalQuotes / $limit);
@@ -46,18 +57,19 @@ class QuoteController extends AbstractController
         $page = min($page, max(1, $totalPages));
 
         // Récupérer les devis de la page courante
-        $quotes = $this->quoteRepository->findBy(
-            [],
-            ['dateCreation' => 'DESC'],
-            $limit,
-            ($page - 1) * $limit
-        );
+        $quotes = $qb->select('q')
+            ->orderBy('q.dateCreation', 'DESC')
+            ->setMaxResults($limit)
+            ->setFirstResult(($page - 1) * $limit)
+            ->getQuery()
+            ->getResult();
 
         return $this->render('admin/quote/index.html.twig', [
             'quotes' => $quotes,
             'current_page' => $page,
             'total_pages' => $totalPages,
             'total_quotes' => $totalQuotes,
+            'include_cancelled' => $includeCancelled,
         ]);
     }
 
@@ -137,14 +149,14 @@ class QuoteController extends AbstractController
                     // Associer les lignes au devis et calculer les totaux
                     foreach ($quote->getLines() as $line) {
                         $line->setQuote($quote);
-                        
+
                         // Définir automatiquement isCustom : true si aucun tarif, false si tarif sélectionné
                         if ($line->getTariff()) {
                             $line->setIsCustom(false);
                         } else {
                             $line->setIsCustom(true);
                         }
-                        
+
                         // Gestion TVA: si désactivée globalement -> forcer 0 par ligne
                         if ($companyId) {
                             $companySettings = $companySettings ?? $this->companySettingsRepository->findByCompanyId($companyId);
@@ -238,6 +250,12 @@ class QuoteController extends AbstractController
             return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
         }
 
+        // Vérifier si le devis est annulé (ne peut pas être modifié)
+        if ($quote->getStatut() === QuoteStatus::CANCELLED) {
+            $this->addFlash('error', 'Ce devis est annulé et ne peut plus être modifié.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
         // Récupérer CompanySettings pour le formulaire
         $companySettings = null;
         if ($quote->getCompanyId()) {
@@ -271,14 +289,14 @@ class QuoteController extends AbstractController
                     // Associer les lignes au devis et calculer les totaux
                     foreach ($quote->getLines() as $line) {
                         $line->setQuote($quote);
-                        
+
                         // Définir automatiquement isCustom : true si aucun tarif, false si tarif sélectionné
                         if ($line->getTariff()) {
                             $line->setIsCustom(false);
                         } else {
                             $line->setIsCustom(true);
                         }
-                        
+
                         // Gestion TVA: récup config
                         $companySettings = null;
                         $tvaEnabled = true;
@@ -287,9 +305,17 @@ class QuoteController extends AbstractController
                             $tvaEnabled = $companySettings ? (method_exists($companySettings, 'isTvaEnabled') ? $companySettings->isTvaEnabled() : true) : true;
                         }
 
+                        // Ne pas réinitialiser les taux de TVA des lignes existantes lors de l'édition
+                        // Seulement appliquer un taux par défaut si la ligne n'en a pas encore
                         if (!$tvaEnabled) {
-                            $line->setTvaRate('0');
+                            // Si TVA désactivée et ligne sans taux : forcer à 0
+                            // Sinon, préserver le taux existant pour l'historique
+                            if (!$line->getTvaRate()) {
+                                $line->setTvaRate('0');
+                            }
                         } else {
+                            // Si TVA activée : appliquer le taux global seulement si la ligne n'a pas de taux
+                            // et que usePerLineTva est false
                             if (!$quote->isUsePerLineTva() && !$line->getTvaRate()) {
                                 $line->setTvaRate($quote->getTauxTVA());
                             }
@@ -338,20 +364,40 @@ class QuoteController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}/delete', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function delete(Request $request, Quote $quote): Response
+    #[Route('/{id}/cancel', name: 'cancel', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function cancel(Request $request, Quote $quote): Response
     {
-        // Vérifier si le devis est signé (ne peut pas être supprimé)
-        if ($quote->getStatut() === QuoteStatus::SIGNED) {
-            $this->addFlash('error', 'Ce devis est signé et ne peut plus être supprimé.');
+        // Conformité légale française : on n'efface jamais un devis, on l'annule
+        // Cela préserve la numérotation séquentielle et la traçabilité comptable
+
+        // Vérifier si le devis peut être annulé
+        // Les devis signés, acceptés, ou ayant généré une facture ne peuvent pas être annulés
+        if ($quote->getStatut() === QuoteStatus::SIGNED || $quote->getStatut() === QuoteStatus::ACCEPTED) {
+            $this->addFlash('error', 'Ce devis est ' . strtolower($quote->getStatut()->getLabel()) . ' et ne peut plus être annulé.');
             return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
         }
 
-        if ($this->isCsrfTokenValid('delete' . $quote->getId(), $request->request->get('_token'))) {
-            $this->entityManager->remove($quote);
+        // Vérifier si une facture a été générée depuis ce devis
+        if ($quote->getInvoice()) {
+            $this->addFlash('error', 'Ce devis a généré une facture et ne peut plus être annulé.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        // Vérifier si le devis est déjà annulé
+        if ($quote->getStatut() === QuoteStatus::CANCELLED) {
+            $this->addFlash('info', 'Ce devis est déjà annulé.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        if ($this->isCsrfTokenValid('cancel' . $quote->getId(), $request->request->get('_token'))) {
+            // Annuler le devis au lieu de le supprimer (conformité légale)
+            $quote->setStatut(QuoteStatus::CANCELLED);
+            $quote->setDateModification(new \DateTime());
             $this->entityManager->flush();
 
-            $this->addFlash('success', 'Devis supprimé avec succès');
+            $this->addFlash('success', 'Devis annulé avec succès. Le numéro est conservé pour la traçabilité comptable.');
+        } else {
+            $this->addFlash('error', 'Token de sécurité invalide.');
         }
 
         return $this->redirectToRoute('admin_quote_index');

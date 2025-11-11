@@ -469,6 +469,35 @@ export default class extends Controller {
             }
         })
 
+        // Validation spécifique pour les formulaires de devis : vérifier qu'au moins une ligne existe
+        const isQuoteForm = this.element.closest('[data-controller*="quote-form"]') !== null
+        if (isQuoteForm) {
+            const linesContainer = this.element.querySelector('[data-quote-form-target="linesContainer"]')
+            if (linesContainer) {
+                // Compter les lignes existantes (exclure le template caché)
+                const existingLines = Array.from(linesContainer.children).filter(line => {
+                    // Exclure les éléments template et les lignes vides
+                    return line.tagName !== 'TEMPLATE' && 
+                           line.querySelector('input[name*="[description]"], input[name*="[quantity]"], input[name*="[unitPrice]"]')
+                })
+                
+                if (existingLines.length === 0) {
+                    // Aucune ligne : empêcher la soumission et afficher une erreur
+                    event.preventDefault()
+                    event.stopPropagation()
+                    event.stopImmediatePropagation()
+                    
+                    // Afficher un message d'erreur
+                    this.showLinesError(linesContainer)
+                    
+                    // Animation d'erreur
+                    this.animateError()
+                    
+                    return false
+                }
+            }
+        }
+
         // Validation côté client (exclure les champs de type file)
         let allValid = true
         allFields.forEach(field => {
@@ -585,5 +614,89 @@ export default class extends Controller {
 
         // Le formulaire se soumet normalement (pas de preventDefault)
         // Symfony fera sa validation côté serveur
+    }
+
+    /**
+     * Affiche une erreur pour indiquer qu'au moins une ligne est requise
+     */
+    showLinesError(linesContainer) {
+        // Supprimer l'erreur précédente si elle existe
+        const existingError = linesContainer.parentElement.querySelector('.lines-error-message')
+        if (existingError) {
+            existingError.remove()
+        }
+
+        // Créer le message d'erreur
+        const errorDiv = document.createElement('div')
+        errorDiv.className = 'lines-error-message mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg'
+        errorDiv.innerHTML = `
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 bg-red-500/20">
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <p class="text-red-300 font-medium">Au moins une ligne de devis est requise.</p>
+                    <p class="text-red-200 text-sm mt-1">Veuillez cliquer sur "Ajouter une ligne" pour ajouter au moins une ligne avant de soumettre le formulaire.</p>
+                </div>
+            </div>
+        `
+
+        // Insérer l'erreur avant le conteneur de lignes
+        linesContainer.parentElement.insertBefore(errorDiv, linesContainer)
+
+        // Faire défiler vers l'erreur
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+
+    /**
+     * Applique l'animation d'erreur sur le formulaire
+     */
+    animateError() {
+        const formElement = this.formTarget || this.element
+
+        // Trouver le conteneur parent avec data-controller="quote-form"
+        let container = null
+        let currentElement = formElement.parentElement
+        while (currentElement && !container) {
+            const controllers = currentElement.getAttribute('data-controller')
+            if (controllers && controllers.includes('quote-form')) {
+                container = currentElement
+                break
+            }
+            currentElement = currentElement.parentElement
+        }
+
+        // Si pas trouvé, utiliser le parent direct
+        if (!container) {
+            container = formElement.parentElement
+        }
+
+        // Appliquer l'animation sur le conteneur principal
+        if (container) {
+            // Retirer d'abord les autres animations qui pourraient interférer
+            container.classList.remove('animate-delay-100', 'animate-fade-up')
+            // Forcer le reflow pour s'assurer que l'animation se déclenche
+            void container.offsetHeight
+            // Ajouter la classe avec un léger délai pour forcer le re-render
+            requestAnimationFrame(() => {
+                container.classList.add('animate-shake')
+            })
+            setTimeout(() => {
+                container.classList.remove('animate-shake')
+                // Restaurer les animations originales
+                container.classList.add('animate-delay-100', 'animate-fade-up')
+            }, 600)
+        }
+
+        // Aussi sur le formulaire lui-même
+        void formElement.offsetHeight
+        requestAnimationFrame(() => {
+            formElement.classList.add('animate-shake')
+        })
+        setTimeout(() => {
+            formElement.classList.remove('animate-shake')
+        }, 600)
     }
 }
