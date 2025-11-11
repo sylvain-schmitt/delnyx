@@ -121,40 +121,33 @@
 						<p class="text-white/60 text-sm">Ajouter un client</p>
 					</div>
 				</a>
-
-				{# TODO: Mettre à jour les routes quand les controllers seront créés #}
-				{# <a href="{{ path('admin_quote_new') }}" 
-								               class="flex items-center space-x-3 p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 group">
-								                <div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center group-hover:bg-green-500/30 transition-colors duration-300">
-								                    {{ ux_icon('lucide:file-plus', {class: 'w-5 h-5 text-green-400'}) }}
-								                </div>
-								                <div>
-								                    <p class="text-white font-medium">Nouveau Devis</p>
-								                    <p class="text-white/60 text-sm">Créer un devis</p>
-								                </div>
-								            </a>
-								            
-								            <a href="{{ path('admin_invoice_new') }}" 
-								               class="flex items-center space-x-3 p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 group">
-								                <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center group-hover:bg-purple-500/30 transition-colors duration-300">
-								                    {{ ux_icon('lucide:receipt', {class: 'w-5 h-5 text-purple-400'}) }}
-								                </div>
-								                <div>
-								                    <p class="text-white font-medium">Nouvelle Facture</p>
-								                    <p class="text-white/60 text-sm">Créer une facture</p>
-								                </div>
-								            </a>
-								            
-								            <a href="{{ path('admin_tariff_new') }}" 
-								               class="flex items-center space-x-3 p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 group">
-								                <div class="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center group-hover:bg-yellow-500/30 transition-colors duration-300">
-								                    {{ ux_icon('lucide:badge-euro', {class: 'w-5 h-5 text-yellow-400'}) }}
-								                </div>
-								                <div>
-								                    <p class="text-white font-medium">Nouveau Tarif</p>
-								                    <p class="text-white/60 text-sm">Ajouter un tarif</p>
-								                </div>
-								            </a> #}
+				<a href="{{ path('admin_quote_new') }}" class="flex items-center space-x-3 p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 group">
+					<div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center group-hover:bg-green-500/30 transition-colors duration-300">
+						{{ ux_icon('lucide:file-plus', {class: 'w-5 h-5 text-green-400'}) }}
+					</div>
+					<div>
+						<p class="text-white font-medium">Nouveau Devis</p>
+						<p class="text-white/60 text-sm">Créer un devis</p>
+					</div>
+				</a>
+				{# <a href="{{ path('admin_invoice_new') }}" class="flex items-center space-x-3 p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 group">
+					<div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center group-hover:bg-purple-500/30 transition-colors duration-300">
+						{{ ux_icon('lucide:receipt', {class: 'w-5 h-5 text-purple-400'}) }}
+					</div>
+					<div>
+						<p class="text-white font-medium">Nouvelle Facture</p>
+						<p class="text-white/60 text-sm">Créer une facture</p>
+					</div>
+				</a>
+				<a href="{{ path('admin_tariff_new') }}" class="flex items-center space-x-3 p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 group">
+					<div class="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center group-hover:bg-yellow-500/30 transition-colors duration-300">
+						{{ ux_icon('lucide:badge-euro', {class: 'w-5 h-5 text-yellow-400'}) }}
+					</div>
+					<div>
+						<p class="text-white font-medium">Nouveau Tarif</p>
+						<p class="text-white/60 text-sm">Ajouter un tarif</p>
+					</div>
+				</a>#}
 			</div>
 		</div>
 
@@ -166,10 +159,9 @@
 			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
 				<div class="flex items-center justify-between mb-6">
 					<h3 class="text-lg font-semibold text-white">Devis Récents</h3>
-					{# TODO: Mettre à jour la route quand le controller sera créé #}
-					{# <a href="{{ path('admin_quote_index') }}" class="text-blue-400 hover:text-blue-300 text-sm font-medium">
-										                    Voir tout
-										                </a> #}
+					<a href="{{ path('admin_quote_index') }}" class="text-blue-400 hover:text-blue-300 text-sm font-medium">
+						Voir tout
+					</a>
 				</div>
 				<div class="space-y-4">
 					{% for quote in recent_quotes|default([]) %}
@@ -186,10 +178,10 @@
 							<div class="text-right">
 								<p class="text-white font-medium">{{ quote.montantTTCFormate }}</p>
 								<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-								    {% if quote.statut.value == 'draft' %}bg-gray-500/20 text-gray-300
-									{% elseif quote.statut.value == 'sent' %}bg-blue-500/20 text-blue-300
-									{% elseif quote.statut.value == 'accepted' %}bg-green-500/20 text-green-300
-									{% else %}bg-red-500/20 text-red-300{% endif %}">
+																		    {% if quote.statut.value == 'draft' %}bg-gray-500/20 text-gray-300
+																			{% elseif quote.statut.value == 'sent' %}bg-blue-500/20 text-blue-300
+																			{% elseif quote.statut.value == 'accepted' %}bg-green-500/20 text-green-300
+																			{% else %}bg-red-500/20 text-red-300{% endif %}">
 									{{ quote.statut.label }}
 								</span>
 							</div>
@@ -204,8 +196,8 @@
 					<h3 class="text-lg font-semibold text-white">Factures Récentes</h3>
 					{# TODO: Mettre à jour la route quand le controller sera créé #}
 					{# <a href="{{ path('admin_invoice_index') }}" class="text-blue-400 hover:text-blue-300 text-sm font-medium">
-										                    Voir tout
-										                </a> #}
+															                    Voir tout
+															                </a> #}
 				</div>
 				<div class="space-y-4">
 					{% for invoice in recent_invoices|default([]) %}
@@ -222,12 +214,12 @@
 							<div class="text-right">
 								<p class="text-white font-medium">{{ invoice.montantTTCFormate }}</p>
 								<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-									{% if invoice.statut == 'draft' %}bg-gray-500/20 text-gray-300
-									{% elseif invoice.statut == 'sent' %}bg-blue-500/20 text-blue-300
-									{% elseif invoice.statut == 'paid' %}bg-green-500/20 text-green-300
-									{% elseif invoice.statut == 'overdue' %}bg-red-500/20 text-red-300
-									{% elseif invoice.statut == 'cancelled' %}bg-gray-500/20 text-gray-300
-									{% else %}bg-red-500/20 text-red-300{% endif %}">
+																			{% if invoice.statut == 'draft' %}bg-gray-500/20 text-gray-300
+																			{% elseif invoice.statut == 'sent' %}bg-blue-500/20 text-blue-300
+																			{% elseif invoice.statut == 'paid' %}bg-green-500/20 text-green-300
+																			{% elseif invoice.statut == 'overdue' %}bg-red-500/20 text-red-300
+																			{% elseif invoice.statut == 'cancelled' %}bg-gray-500/20 text-gray-300
+																			{% else %}bg-red-500/20 text-red-300{% endif %}">
 									{{ invoice.getStatutEnum().label }}
 								</span>
 							</div>

@@ -726,7 +726,8 @@ class Quote
      */
     public function getMontantTVAFormate(): string
     {
-        $montant = (float) $this->getMontantTVA() / 100; // Conversion centimes -> euros
+        // getMontantTVA() retourne déjà en euros, pas besoin de diviser par 100
+        $montant = (float) $this->getMontantTVA();
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 
@@ -759,6 +760,42 @@ class Quote
     {
         $montant = (float) $this->getSoldeRestant();
         return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Retourne le détail des taux de TVA utilisés dans les lignes (si usePerLineTva = true)
+     * Retourne un tableau associatif [taux => montant_HT_à_ce_taux]
+     */
+    public function getTvaRatesDetail(): array
+    {
+        if (!$this->usePerLineTva || $this->lines->isEmpty()) {
+            return [];
+        }
+
+        $detail = [];
+        foreach ($this->lines as $line) {
+            $taux = $line->getTvaRate() ?? $this->tauxTVA;
+            $tauxKey = (string) $taux;
+            
+            if (!isset($detail[$tauxKey])) {
+                $detail[$tauxKey] = [
+                    'rate' => $taux,
+                    'ht' => 0,
+                    'tva' => 0,
+                ];
+            }
+            
+            $lineHt = (int) ($line->getTotalHt() ?? 0);
+            $detail[$tauxKey]['ht'] += $lineHt;
+            
+            // Calculer la TVA de cette ligne
+            if ($taux && (float) $taux > 0) {
+                $tvaAmount = (int) round($lineHt * ((float) $taux / 100));
+                $detail[$tauxKey]['tva'] += $tvaAmount;
+            }
+        }
+
+        return $detail;
     }
 
     // ===== LIFECYCLE CALLBACKS =====

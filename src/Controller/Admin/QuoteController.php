@@ -137,6 +137,14 @@ class QuoteController extends AbstractController
                     // Associer les lignes au devis et calculer les totaux
                     foreach ($quote->getLines() as $line) {
                         $line->setQuote($quote);
+                        
+                        // Définir automatiquement isCustom : true si aucun tarif, false si tarif sélectionné
+                        if ($line->getTariff()) {
+                            $line->setIsCustom(false);
+                        } else {
+                            $line->setIsCustom(true);
+                        }
+                        
                         // Gestion TVA: si désactivée globalement -> forcer 0 par ligne
                         if ($companyId) {
                             $companySettings = $companySettings ?? $this->companySettingsRepository->findByCompanyId($companyId);
@@ -208,10 +216,15 @@ class QuoteController extends AbstractController
             $companySettings = $this->companySettingsRepository->findByCompanyId($companyId);
         }
 
+        $title = 'Nouveau Devis';
+        if ($quote->getId() && $quote->getNumero()) {
+            $title = 'Modifier le devis ' . $quote->getNumero();
+        }
+
         return $this->render('admin/quote/form.html.twig', [
             'quote' => $quote,
             'form' => $form,
-            'title' => 'Nouveau Devis',
+            'title' => $title,
             'companySettings' => $companySettings,
         ]);
     }
@@ -258,6 +271,14 @@ class QuoteController extends AbstractController
                     // Associer les lignes au devis et calculer les totaux
                     foreach ($quote->getLines() as $line) {
                         $line->setQuote($quote);
+                        
+                        // Définir automatiquement isCustom : true si aucun tarif, false si tarif sélectionné
+                        if ($line->getTariff()) {
+                            $line->setIsCustom(false);
+                        } else {
+                            $line->setIsCustom(true);
+                        }
+                        
                         // Gestion TVA: récup config
                         $companySettings = null;
                         $tvaEnabled = true;
@@ -304,10 +325,15 @@ class QuoteController extends AbstractController
             $companySettings = $this->companySettingsRepository->findByCompanyId($quote->getCompanyId());
         }
 
+        $title = 'Modifier le Devis';
+        if ($quote->getNumero()) {
+            $title = 'Modifier le devis ' . $quote->getNumero();
+        }
+
         return $this->render('admin/quote/form.html.twig', [
             'quote' => $quote,
             'form' => $form,
-            'title' => 'Modifier le Devis',
+            'title' => $title,
             'companySettings' => $companySettings,
         ]);
     }

@@ -9,7 +9,6 @@ use App\Entity\Tariff;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\CallbackTransformer;
-use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
@@ -35,7 +34,7 @@ class QuoteLineType extends AbstractType
                         ->orderBy('t.nom', 'ASC');
                 },
                 'attr' => ['class' => 'form-select'],
-                'help' => 'Sélectionnez un tarif du catalogue ou créez une ligne personnalisée',
+                'help' => 'Si un tarif est sélectionné, la description et le prix unitaire seront automatiquement pré-remplis. Sinon, créez une ligne personnalisée en renseignant manuellement ces informations.',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('description', TextType::class, [
@@ -86,13 +85,6 @@ class QuoteLineType extends AbstractType
                 'placeholder' => 'Taux global',
                 'attr' => ['class' => 'form-select'],
                 'help' => 'Taux de TVA pour cette ligne. Si non renseigné, le taux global du devis s\'applique.',
-                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
-            ])
-            ->add('isCustom', CheckboxType::class, [
-                'label' => 'Ligne personnalisée',
-                'required' => false,
-                'attr' => ['class' => 'form-checkbox'],
-                'help' => 'Cocher si cette ligne n\'est pas issue du catalogue',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ]);
     }

@@ -24,7 +24,8 @@
 
     {# Liste des devis #}
     {% if quotes|length > 0 %}
-        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl overflow-hidden scroll-animate animate-delay-100">
+        {# Version desktop : table #}
+        <div class="hidden md:block bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl overflow-hidden scroll-animate animate-delay-100">
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="bg-white/5 border-b border-white/20">
@@ -54,7 +55,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-white">{{ quote.montantTTC|number_format(2, ',', ' ') }} €</div>
+                                    <div class="text-sm font-medium text-white">{{ quote.montantTTCFormate }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     {% set status = quote.statut %}
@@ -90,6 +91,66 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        {# Version mobile : cards #}
+        <div class="md:hidden space-y-4 scroll-animate animate-delay-100">
+            {% for quote in quotes %}
+                <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-4">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-white mb-1">{{ quote.numero ?? 'N/A' }}</div>
+                            <div class="text-sm text-white">{{ quote.client.nomComplet }}</div>
+                            <div class="text-xs text-white/60">{{ quote.client.email }}</div>
+                        </div>
+                        <div class="flex items-center gap-2 ml-4">
+                            <a href="{{ path('admin_quote_show', {id: quote.id}) }}" 
+                               class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2"
+                               title="Voir">
+                                {{ ux_icon('lucide:eye', {class: 'w-5 h-5'}) }}
+                            </a>
+                            {% if quote.statut.value != 'signed' %}
+                                <a href="{{ path('admin_quote_edit', {id: quote.id}) }}" 
+                                   class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200 p-2"
+                                   title="Modifier">
+                                    {{ ux_icon('lucide:edit', {class: 'w-5 h-5'}) }}
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-white/60">Date</span>
+                            <span class="text-white">{{ quote.dateCreation|date('d/m/Y') }}</span>
+                        </div>
+                        {% if quote.dateValidite %}
+                            <div class="flex justify-between">
+                                <span class="text-white/60">Valide jusqu'au</span>
+                                <span class="text-white">{{ quote.dateValidite|date('d/m/Y') }}</span>
+                            </div>
+                        {% endif %}
+                        <div class="flex justify-between">
+                            <span class="text-white/60">Montant TTC</span>
+                            <span class="text-white font-medium">{{ quote.montantTTCFormate }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-white/60">Statut</span>
+                            {% set status = quote.statut %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+                                {% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+                                {% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
+                                {% elseif status.value == 'accepted' %}bg-green-500/20 text-green-300
+                                {% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
+                                {% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
+                                {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+                                {{ status.label }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
         </div>
 
         {# Pagination #}

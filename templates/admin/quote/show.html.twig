@@ -1,237 +1,329 @@
 {% extends 'admin/layout/base.html.twig' %}
 
-{% block title %}Devis {{ quote.numero }} - Administration Delnyx{% endblock %}
-
-{% block page_title %}Devis {{ quote.numero }}{% endblock %}
-
-{% block body %}
-<div class="space-y-6">
-    
-    {# Header avec breadcrumb #}
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
-        <div>
-            <h1 class="text-2xl font-bold text-white">Devis {{ quote.numero }}</h1>
-            <nav class="flex items-center space-x-2 text-sm text-white/60 mt-1">
-                <a href="{{ path('admin_dashboard') }}" class="hover:text-white transition-colors duration-200">Dashboard</a>
-                <span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
-                <a href="{{ path('admin_quote_index') }}" class="hover:text-white transition-colors duration-200">Devis</a>
-                <span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
-                <span class="text-white">{{ quote.numero }}</span>
-            </nav>
-        </div>
-        <div class="flex gap-3">
-            {% if quote.statut.value != 'signed' %}
-                <a href="{{ path('admin_quote_edit', {id: quote.id}) }}" 
-                   class="btn-secondary flex items-center gap-2">
-                    {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
-                    Modifier
-                </a>
-            {% endif %}
-            <a href="{{ path('admin_quote_index') }}" 
-               class="btn-secondary flex items-center gap-2">
-                {{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
-                Retour
-            </a>
-        </div>
-    </div>
-
-    {# Informations principales #}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {# Colonne principale #}
-        <div class="lg:col-span-2 space-y-6">
-            
-            {# Informations du devis #}
-            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate">
-                <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                    {{ ux_icon('lucide:file-text', {class: 'w-5 h-5'}) }}
-                    Informations du devis
-                </h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <p class="text-sm text-white/60 mb-1">Client</p>
-                        <p class="text-white font-medium">{{ quote.client.nomComplet }}</p>
-                        <p class="text-sm text-white/60">{{ quote.client.email }}</p>
-                    </div>
-                    
-                    <div>
-                        <p class="text-sm text-white/60 mb-1">Statut</p>
-                        {% set status = quote.statut %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-                            {% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
-                            {% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
-                            {% elseif status.value == 'accepted' %}bg-green-500/20 text-green-300
-                            {% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
-                            {% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
-                            {% else %}bg-gray-500/20 text-gray-300{% endif %}">
-                            {{ status.label }}
-                        </span>
-                    </div>
-                    
-                    <div>
-                        <p class="text-sm text-white/60 mb-1">Date de création</p>
-                        <p class="text-white">{{ quote.dateCreation|date('d/m/Y à H:i') }}</p>
-                    </div>
-                    
-                    {% if quote.dateValidite %}
-                        <div>
-                            <p class="text-sm text-white/60 mb-1">Date de validité</p>
-                            <p class="text-white">{{ quote.dateValidite|date('d/m/Y') }}</p>
-                        </div>
-                    {% endif %}
-                    
-                    {% if quote.dateSignature %}
-                        <div>
-                            <p class="text-sm text-white/60 mb-1">Date de signature</p>
-                            <p class="text-white">{{ quote.dateSignature|date('d/m/Y à H:i') }}</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            {# Lignes du devis #}
-            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100">
-                <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                    {{ ux_icon('lucide:list', {class: 'w-5 h-5'}) }}
-                    Lignes du devis
-                </h2>
-                
-                {% if quote.lines|length > 0 %}
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead class="bg-white/5 border-b border-white/20">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/80 uppercase">Description</th>
-                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Qté</th>
-                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Prix unitaire</th>
-                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total HT</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-white/10">
-                                {% for line in quote.lines %}
-                                    <tr>
-                                        <td class="px-4 py-3 text-white">{{ line.description }}</td>
-                                        <td class="px-4 py-3 text-right text-white">{{ line.quantity }}</td>
-                                        <td class="px-4 py-3 text-right text-white">{{ (line.unitPrice / 100)|number_format(2, ',', ' ') }} €</td>
-                                        <td class="px-4 py-3 text-right text-white font-medium">{{ (line.totalHt / 100)|number_format(2, ',', ' ') }} €</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <p class="text-white/60 text-center py-8">Aucune ligne dans ce devis</p>
-                {% endif %}
-            </div>
-
-            {# Conditions et notes #}
-            {% if quote.conditionsPaiement or quote.delaiLivraison or quote.notes %}
-                <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
-                    <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                        {{ ux_icon('lucide:info', {class: 'w-5 h-5'}) }}
-                        Conditions et notes
-                    </h2>
-                    
-                    <div class="space-y-4">
-                        {% if quote.conditionsPaiement %}
-                            <div>
-                                <p class="text-sm text-white/60 mb-1">Conditions de paiement</p>
-                                <p class="text-white">{{ quote.conditionsPaiement }}</p>
-                            </div>
-                        {% endif %}
-                        
-                        {% if quote.delaiLivraison %}
-                            <div>
-                                <p class="text-sm text-white/60 mb-1">Délai de livraison</p>
-                                <p class="text-white">{{ quote.delaiLivraison }}</p>
-                            </div>
-                        {% endif %}
-                        
-                        {% if quote.notes %}
-                            <div>
-                                <p class="text-sm text-white/60 mb-1">Notes</p>
-                                <p class="text-white">{{ quote.notes }}</p>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endif %}
-        </div>
-
-        {# Colonne latérale #}
-        <div class="space-y-6">
-            
-            {# Montants #}
-            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100">
-                <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                    {{ ux_icon('lucide:calculator', {class: 'w-5 h-5'}) }}
-                    Montants
-                </h2>
-                
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center">
-                        <span class="text-white/60">Montant HT</span>
-                        <span class="text-white font-semibold">{{ quote.montantHT|number_format(2, ',', ' ') }} €</span>
-                    </div>
-                    
-                    <div class="flex justify-between items-center">
-                        <span class="text-white/60">TVA ({{ quote.tauxTVA }}%)</span>
-                        <span class="text-white font-semibold">{{ quote.montantTVA|number_format(2, ',', ' ') }} €</span>
-                    </div>
-                    
-                    <div class="pt-4 border-t border-white/20 flex justify-between items-center">
-                        <span class="text-white font-semibold text-lg">Total TTC</span>
-                        <span class="text-white font-bold text-xl">{{ quote.montantTTC|number_format(2, ',', ' ') }} €</span>
-                    </div>
-                    
-                    {% if quote.acomptePourcentage > 0 %}
-                        <div class="pt-4 border-t border-white/20">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-white/60">Acompte ({{ quote.acomptePourcentage }}%)</span>
-                                <span class="text-white font-semibold">
-                                    {{ ((quote.montantTTC * quote.acomptePourcentage) / 100)|number_format(2, ',', ' ') }} €
-                                </span>
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            {# Actions #}
-            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
-                <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                    {{ ux_icon('lucide:zap', {class: 'w-5 h-5'}) }}
-                    Actions
-                </h2>
-                
-                <div class="space-y-3">
-                    {% if quote.statut.value == 'signed' and not quote.invoice %}
-                        <form method="post" action="{{ path('admin_quote_generate_invoice', {id: quote.id}) }}">
-                            <input type="hidden" name="_token" value="{{ csrf_token('generate_invoice' ~ quote.id) }}">
-                            <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
-                                {{ ux_icon('lucide:receipt', {class: 'w-4 h-4'}) }}
-                                Générer une facture
-                            </button>
-                        </form>
-                    {% endif %}
-                    
-                    {% if quote.statut.value == 'signed' %}
-                        <a href="#" class="w-full btn-secondary flex items-center justify-center gap-2">
-                            {{ ux_icon('lucide:file-edit', {class: 'w-4 h-4'}) }}
-                            Créer un avenant
-                        </a>
-                    {% endif %}
-                    
-                    <a href="#" class="w-full btn-secondary flex items-center justify-center gap-2">
-                        {{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
-                        Télécharger le PDF
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+{% block title %}Devis
+	{{ quote.numero }}
+	- Administration Delnyx
 {% endblock %}
 
+{% block page_title %}Devis
+	{{ quote.numero }}
+{% endblock %}
+
+{% block body %}
+	<div
+		class="space-y-6">
+
+		{# Header avec breadcrumb #}
+		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+			<div>
+				<h1 class="text-2xl font-bold text-white">Devis
+					{{ quote.numero }}</h1>
+				<nav class="flex items-center space-x-2 text-sm text-white/60 mt-1">
+					<a href="{{ path('admin_dashboard') }}" class="hover:text-white transition-colors duration-200">Dashboard</a>
+					<span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
+					<a href="{{ path('admin_quote_index') }}" class="hover:text-white transition-colors duration-200">Devis</a>
+					<span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
+					<span class="text-white">{{ quote.numero }}</span>
+				</nav>
+			</div>
+			<div class="flex gap-3">
+				{% if quote.statut.value != 'signed' %}
+					<a href="{{ path('admin_quote_edit', {id: quote.id}) }}" class="btn-secondary flex items-center gap-2">
+						{{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
+						Modifier
+					</a>
+				{% endif %}
+				<a href="{{ path('admin_quote_index') }}" class="btn-secondary flex items-center gap-2">
+					{{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
+					Retour
+				</a>
+			</div>
+		</div>
+
+		{# Informations principales #}
+		<div
+			class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+			{# Colonne principale #}
+			<div
+				class="lg:col-span-2 space-y-6">
+
+				{# Informations du devis #}
+				<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate">
+					<h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+						{{ ux_icon('lucide:file-text', {class: 'w-5 h-5'}) }}
+						Informations du devis
+					</h2>
+
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<div>
+							<p class="text-sm text-white/60 mb-1">Client</p>
+							<p class="text-white font-medium">{{ quote.client.nomComplet }}</p>
+							<p class="text-sm text-white/60">{{ quote.client.email }}</p>
+						</div>
+
+						<div>
+							<p class="text-sm text-white/60 mb-1">Statut</p>
+							{% set status = quote.statut %}
+							<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+																		                            {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+																		                            {% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+																		                            {% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
+																		                            {% elseif status.value == 'accepted' %}bg-green-500/20 text-green-300
+																		                            {% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
+																		                            {% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
+																		                            {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+								{{ status.label }}
+							</span>
+						</div>
+
+						<div>
+							<p class="text-sm text-white/60 mb-1">Date de création</p>
+							<p class="text-white">{{ quote.dateCreation|date('d/m/Y à H:i') }}</p>
+						</div>
+
+						{% if quote.dateValidite %}
+							<div>
+								<p class="text-sm text-white/60 mb-1">Date de validité</p>
+								<p class="text-white">{{ quote.dateValidite|date('d/m/Y') }}</p>
+							</div>
+						{% endif %}
+
+						{% if quote.dateSignature %}
+							<div>
+								<p class="text-sm text-white/60 mb-1">Date de signature</p>
+								<p class="text-white">{{ quote.dateSignature|date('d/m/Y à H:i') }}</p>
+							</div>
+						{% endif %}
+					</div>
+				</div>
+
+				{# Lignes du devis #}
+				<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100">
+					<h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+						{{ ux_icon('lucide:list', {class: 'w-5 h-5'}) }}
+						Lignes du devis
+					</h2>
+
+					{% if quote.lines|length > 0 %}
+						{# Version desktop : table #}
+						<div class="hidden md:block overflow-x-auto">
+							<table class="w-full">
+								<thead class="bg-white/5 border-b border-white/20">
+									<tr>
+										<th class="px-4 py-3 text-left text-xs font-semibold text-white/80 uppercase">Description</th>
+										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Qté</th>
+										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Prix unitaire</th>
+										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">TVA</th>
+										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total HT</th>
+										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total TTC</th>
+									</tr>
+								</thead>
+								<tbody class="divide-y divide-white/10">
+									{% for line in quote.lines %}
+										<tr>
+											<td class="px-4 py-3 text-white">{{ line.description }}</td>
+											<td class="px-4 py-3 text-right text-white">{{ line.quantity }}</td>
+											<td class="px-4 py-3 text-right text-white">{{ (line.unitPrice / 100)|number_format(2, ',', ' ') }}
+												€</td>
+											<td class="px-4 py-3 text-right text-white">
+												{% if quote.usePerLineTva and line.tvaRate %}
+													{{ line.tvaRate }}%
+												{% elseif quote.usePerLineTva %}
+													{{ quote.tauxTVA }}%
+												{% else %}
+													{{ quote.tauxTVA }}%
+												{% endif %}
+											</td>
+											<td class="px-4 py-3 text-right text-white font-medium">{{ (line.totalHt / 100)|number_format(2, ',', ' ') }}
+												€</td>
+											<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalTtcFormatted }}</td>
+										</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+
+						{# Version mobile : cards #}
+						<div class="md:hidden space-y-4">
+							{% for line in quote.lines %}
+								<div class="bg-white/5 border border-white/10 rounded-lg p-4">
+									<div class="mb-3">
+										<h3 class="text-white font-medium mb-1">{{ line.description }}</h3>
+									</div>
+									<div class="space-y-2 text-sm">
+										<div class="flex justify-between">
+											<span class="text-white/60">Quantité</span>
+											<span class="text-white">{{ line.quantity }}</span>
+										</div>
+										<div class="flex justify-between">
+											<span class="text-white/60">Prix unitaire</span>
+											<span class="text-white">{{ (line.unitPrice / 100)|number_format(2, ',', ' ') }}
+												€</span>
+										</div>
+										<div class="flex justify-between">
+											<span class="text-white/60">TVA</span>
+											<span class="text-white">
+												{% if quote.usePerLineTva and line.tvaRate %}
+													{{ line.tvaRate }}%
+												{% elseif quote.usePerLineTva %}
+													{{ quote.tauxTVA }}%
+												{% else %}
+													{{ quote.tauxTVA }}%
+												{% endif %}
+											</span>
+										</div>
+										<div class="flex justify-between pt-2 border-t border-white/10">
+											<span class="text-white/60">Total HT</span>
+											<span class="text-white font-medium">{{ (line.totalHt / 100)|number_format(2, ',', ' ') }}
+												€</span>
+										</div>
+										<div class="flex justify-between">
+											<span class="text-white font-medium">Total TTC</span>
+											<span class="text-white font-bold">{{ line.totalTtcFormatted }}</span>
+										</div>
+									</div>
+								</div>
+							{% endfor %}
+						</div>
+					{% else %}
+						<p class="text-white/60 text-center py-8">Aucune ligne dans ce devis</p>
+					{% endif %}
+				</div>
+
+				{# Conditions et notes #}
+				{% if quote.conditionsPaiement or quote.delaiLivraison or quote.notes %}
+					<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
+						<h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+							{{ ux_icon('lucide:info', {class: 'w-5 h-5'}) }}
+							Conditions et notes
+						</h2>
+
+						<div class="space-y-4">
+							{% if quote.conditionsPaiement %}
+								<div>
+									<p class="text-sm text-white/60 mb-1">Conditions de paiement</p>
+									<p class="text-white">{{ quote.conditionsPaiement }}</p>
+								</div>
+							{% endif %}
+
+							{% if quote.delaiLivraison %}
+								<div>
+									<p class="text-sm text-white/60 mb-1">Délai de livraison</p>
+									<p class="text-white">{{ quote.delaiLivraison }}</p>
+								</div>
+							{% endif %}
+
+							{% if quote.notes %}
+								<div>
+									<p class="text-sm text-white/60 mb-1">Notes</p>
+									<p class="text-white">{{ quote.notes }}</p>
+								</div>
+							{% endif %}
+						</div>
+					</div>
+				{% endif %}
+			</div>
+
+			{# Colonne latérale #}
+			<div
+				class="space-y-6">
+
+				{# Montants #}
+				<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100">
+					<h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+						{{ ux_icon('lucide:calculator', {class: 'w-5 h-5'}) }}
+						Montants
+					</h2>
+
+					<div class="space-y-4">
+						<div class="flex justify-between items-center">
+							<span class="text-white/60">Montant HT</span>
+							<span class="text-white font-semibold">{{ quote.montantHTFormate }}</span>
+						</div>
+
+						{% if quote.usePerLineTva %}
+							{# TVA par ligne : afficher le détail des taux #}
+							{% set tvaDetail = quote.tvaRatesDetail %}
+							{% if tvaDetail|length > 0 %}
+								<div class="space-y-2">
+									{% for tauxKey, detail in tvaDetail %}
+										<div class="flex justify-between items-center">
+											<span class="text-white/60">TVA
+												{{ detail.rate }}%</span>
+											<span class="text-white font-semibold">{{ (detail.tva / 100)|number_format(2, ',', ' ') }}
+												€</span>
+										</div>
+									{% endfor %}
+									<div class="pt-2 border-t border-white/10 flex justify-between items-center">
+										<span class="text-white/60 font-medium">Total TVA</span>
+										<span class="text-white font-semibold">{{ quote.montantTVAFormate }}</span>
+									</div>
+								</div>
+							{% else %}
+								<div class="flex justify-between items-center">
+									<span class="text-white/60">TVA</span>
+									<span class="text-white font-semibold">{{ quote.montantTVAFormate }}</span>
+								</div>
+							{% endif %}
+						{% else %}
+							{# TVA globale #}
+							<div class="flex justify-between items-center">
+								<span class="text-white/60">TVA ({{ quote.tauxTVA }}%)</span>
+								<span class="text-white font-semibold">{{ quote.montantTVAFormate }}</span>
+							</div>
+						{% endif %}
+
+						<div class="pt-4 border-t border-white/20 flex justify-between items-center">
+							<span class="text-white font-semibold text-lg">Total TTC</span>
+							<span class="text-white font-bold text-xl">{{ quote.montantTTCFormate }}</span>
+						</div>
+
+						{% if quote.acomptePourcentage > 0 %}
+							<div class="pt-4 border-t border-white/20">
+								<div class="flex justify-between items-center mb-2">
+									<span class="text-white/60">Acompte ({{ quote.acomptePourcentage }}%)</span>
+									<span class="text-white font-semibold">
+										{{ quote.montantAcompteFormate }}
+									</span>
+								</div>
+							</div>
+						{% endif %}
+					</div>
+				</div>
+
+				{# Actions #}
+				<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
+					<h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+						{{ ux_icon('lucide:zap', {class: 'w-5 h-5'}) }}
+						Actions
+					</h2>
+
+					<div class="space-y-3">
+						{% if quote.statut.value == 'signed' and not quote.invoice %}
+							<form method="post" action="{{ path('admin_quote_generate_invoice', {id: quote.id}) }}">
+								<input type="hidden" name="_token" value="{{ csrf_token('generate_invoice' ~ quote.id) }}">
+								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
+									{{ ux_icon('lucide:receipt', {class: 'w-4 h-4'}) }}
+									Générer une facture
+								</button>
+							</form>
+						{% endif %}
+
+						{% if quote.statut.value == 'signed' %}
+							<a href="#" class="w-full btn-secondary flex items-center justify-center gap-2">
+								{{ ux_icon('lucide:file-edit', {class: 'w-4 h-4'}) }}
+								Créer un avenant
+							</a>
+						{% endif %}
+
+						<a href="#" class="w-full btn-secondary flex items-center justify-center gap-2">
+							{{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
+							Télécharger le PDF
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}

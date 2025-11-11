@@ -63,20 +63,8 @@
                 Informations générales
             </h3>
             
-            {% if quote.id %}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="form-group">
-                        {{ form_label(form.numero, null, {'label_attr': {'class': 'form-label'}}) }}
-                        {{ form_widget(form.numero, {'attr': {'class': 'form-input', 'readonly': true, 'disabled': true}}) }}
-                        {{ form_help(form.numero) }}
-                        {{ form_errors(form.numero) }}
-                    </div>
-                    {{ form_macros.simple_field(form, 'statut', 'select') }}
-                </div>
-            {% else %}
-                {# En création, le champ numero est caché car généré automatiquement #}
-                {{ form_widget(form.numero, {'attr': {'style': 'display: none'}}) }}
-            {% endif %}
+            {# Le champ numero est toujours caché (généré automatiquement en création, affiché dans le titre en édition) #}
+            {{ form_widget(form.numero, {'attr': {'style': 'display: none'}}) }}
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="form-group" data-controller="select-search">
@@ -85,9 +73,7 @@
                     {{ form_help(form.client) }}
                     {{ form_errors(form.client) }}
                 </div>
-                {% if not quote.id %}
-                    {{ form_macros.simple_field(form, 'statut', 'select') }}
-                {% endif %}
+                {{ form_macros.simple_field(form, 'statut', 'select') }}
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -171,11 +157,7 @@
                                 </div>
                             {% endif %}
                         </div>
-                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
-                            <div class="flex items-center gap-2">
-                                {{ form_widget(line.isCustom, {'attr': {'class': 'form-checkbox'}}) }}
-                                {{ form_label(line.isCustom, null, {'label_attr': {'class': 'text-white/90 cursor-pointer text-sm'}}) }}
-                            </div>
+                        <div class="flex items-center justify-end mt-4 pt-4 border-t border-white/10">
                             <button type="button" 
                                     class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1"
                                     data-action="click->quote-form#removeLine">
@@ -222,11 +204,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
-                        <div class="flex items-center gap-2">
-                            <input type="checkbox" name="quote[lines][__name__][isCustom]" class="form-checkbox" data-admin-form-target="field">
-                            <label class="text-white/90 cursor-pointer text-sm">Ligne personnalisée</label>
-                        </div>
+                    <div class="flex items-center justify-end mt-4 pt-4 border-t border-white/10">
                         <button type="button" 
                                 class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1"
                                 data-action="click->quote-form#removeLine">
