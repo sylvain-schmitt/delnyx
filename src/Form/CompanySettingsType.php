@@ -17,6 +17,8 @@ use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Validator\Constraints\Image;
@@ -91,11 +93,17 @@ class CompanySettingsType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-checkbox']
             ])
-            ->add('tauxTVADefaut', NumberType::class, [
-                'label' => 'Taux de TVA par défaut (%)',
+            ->add('tauxTVADefaut', ChoiceType::class, [
+                'label' => 'Taux de TVA par défaut',
                 'required' => false,
-                'scale' => 2,
-                'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => '0', 'max' => '100']
+                'choices' => [
+                    '0 %' => '0.00',
+                    '5,5 %' => '5.50',
+                    '10 %' => '10.00',
+                    '20 %' => '20.00',
+                ],
+                'placeholder' => 'Sélectionner un taux',
+                'attr' => ['class' => 'form-select']
             ])
 
             // ===== CONFIGURATION PDP =====
@@ -146,6 +154,25 @@ class CompanySettingsType extends AbstractType
                 'label' => 'Enregistrer les paramètres',
                 'attr' => ['class' => 'btn btn-primary']
             ]);
+
+        // Sécurité validation: si TVA décochée à la soumission, retirer tauxTVADefaut
+        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
+            $data = $event->getData();
+            $form = $event->getForm();
+
+            if (!$data) {
+                return;
+            }
+
+            $tvaEnabled = array_key_exists('tvaEnabled', $data) ? (bool) $data['tvaEnabled'] : false;
+            if (!$tvaEnabled) {
+                // Option: forcer à 0.00 côté données
+                if (isset($data['tauxTVADefaut'])) {
+                    $data['tauxTVADefaut'] = '0.00';
+                    $event->setData($data);
+                }
+            }
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void

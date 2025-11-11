@@ -87,7 +87,13 @@ class QuoteController extends AbstractController
         if ($companyId) {
             $companySettings = $this->companySettingsRepository->findByCompanyId($companyId);
             if ($companySettings) {
-                $quote->setTauxTVA($companySettings->getTauxTVADefaut());
+                // Si TVA désactivée, forcer 0% et ignorer la TVA par ligne
+                if (method_exists($companySettings, 'isTvaEnabled') && !$companySettings->isTvaEnabled()) {
+                    $quote->setTauxTVA('0.00');
+                    $quote->setUsePerLineTva(false);
+                } else {
+                    $quote->setTauxTVA($companySettings->getTauxTVADefaut());
+                }
             }
         }
 
@@ -110,13 +116,26 @@ class QuoteController extends AbstractController
                     // Associer les lignes au devis et calculer les totaux
                     foreach ($quote->getLines() as $line) {
                         $line->setQuote($quote);
-                        // Si un tarif est sélectionné, appliquer le taux de TVA du devis si non défini
-                        if ($line->getTariff() && !$line->getTvaRate()) {
-                            $line->setTvaRate($quote->getTauxTVA());
+                        // Gestion TVA: si désactivée globalement -> forcer 0 par ligne
+                        if ($companyId) {
+                            $companySettings = $companySettings ?? $this->companySettingsRepository->findByCompanyId($companyId);
+                        }
+                        $tvaEnabled = $companySettings ? (method_exists($companySettings, 'isTvaEnabled') ? $companySettings->isTvaEnabled() : true) : true;
+
+                        if (!$tvaEnabled) {
+                            $line->setTvaRate('0');
+                        } else {
+                            // TVA activée : si usePerLineTva = false et aucune TVA définie en ligne, appliquer le taux global
+                            if (!$quote->isUsePerLineTva() && !$line->getTvaRate()) {
+                                $line->setTvaRate($quote->getTauxTVA());
+                            }
                         }
                         // Recalculer le total HT de la ligne
                         $line->recalculateTotalHt();
                     }
+
+                    // Recalculer les totaux du devis depuis les lignes en respectant usePerLineTva / TVA globale
+                    $quote->recalculateTotalsFromLines();
 
                     // Générer le numéro si ce n'est pas déjà fait (fallback si l'EventSubscriber ne fonctionne pas)
                     if (!$quote->getNumero()) {
@@ -190,13 +209,27 @@ class QuoteController extends AbstractController
                     // Associer les lignes au devis et calculer les totaux
                     foreach ($quote->getLines() as $line) {
                         $line->setQuote($quote);
-                        // Si un tarif est sélectionné, appliquer le taux de TVA du devis si non défini
-                        if ($line->getTariff() && !$line->getTvaRate()) {
-                            $line->setTvaRate($quote->getTauxTVA());
+                        // Gestion TVA: récup config
+                        $companySettings = null;
+                        $tvaEnabled = true;
+                        if ($quote->getCompanyId()) {
+                            $companySettings = $this->companySettingsRepository->findByCompanyId($quote->getCompanyId());
+                            $tvaEnabled = $companySettings ? (method_exists($companySettings, 'isTvaEnabled') ? $companySettings->isTvaEnabled() : true) : true;
+                        }
+
+                        if (!$tvaEnabled) {
+                            $line->setTvaRate('0');
+                        } else {
+                            if (!$quote->isUsePerLineTva() && !$line->getTvaRate()) {
+                                $line->setTvaRate($quote->getTauxTVA());
+                            }
                         }
                         // Recalculer le total HT de la ligne
                         $line->recalculateTotalHt();
                     }
+
+                    // Recalculer les totaux du devis depuis les lignes en respectant usePerLineTva / TVA globale
+                    $quote->recalculateTotalsFromLines();
 
                     $quote->setDateModification(new \DateTime());
                     $this->entityManager->flush();

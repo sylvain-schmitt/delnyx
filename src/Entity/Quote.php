@@ -93,6 +93,10 @@ class Quote
     #[Groups(['quote:read', 'quote:write'])]
     private string $tauxTVA = '0.00';
 
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
+    #[Groups(['quote:read', 'quote:write'])]
+    private bool $usePerLineTva = false;
+
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Assert\NotBlank(message: 'Le montant TTC est obligatoire')]
     #[Assert\Type(type: 'numeric', message: 'Le montant TTC doit être un nombre')]
@@ -201,6 +205,17 @@ class Quote
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function isUsePerLineTva(): bool
+    {
+        return $this->usePerLineTva;
+    }
+
+    public function setUsePerLineTva(bool $usePerLineTva): self
+    {
+        $this->usePerLineTva = $usePerLineTva;
+        return $this;
     }
 
     public function getNumero(): ?string
@@ -519,6 +534,44 @@ class Quote
         }
 
         return $this;
+    }
+
+    /**
+     * Recalcule les montants HT/TTC depuis les lignes
+     * - Si usePerLineTva = true: somme TTC par ligne
+     * - Sinon: applique le taux global du devis sur le total HT
+     * Les montants sont stockés en centimes (int sous forme string)
+     */
+    public function recalculateTotalsFromLines(): void
+    {
+        if ($this->lines->isEmpty()) {
+            return;
+        }
+
+        $totalHtCents = 0;
+        foreach ($this->lines as $line) {
+            $totalHtCents += (int) ($line->getTotalHt() ?? 0);
+        }
+
+        $this->montantHT = (string) $totalHtCents;
+
+        if ($this->usePerLineTva) {
+            $totalTtcCents = 0;
+            foreach ($this->lines as $line) {
+                $totalTtcCents += (int) $line->getTotalTtc();
+            }
+            $this->montantTTC = (string) $totalTtcCents;
+            return;
+        }
+
+        // TVA globale appliquée au total HT
+        $tauxTVA = (float) $this->tauxTVA;
+        if ($tauxTVA > 0) {
+            $tvaAmount = (int) round($totalHtCents * ($tauxTVA / 100));
+            $this->montantTTC = (string) ($totalHtCents + $tvaAmount);
+        } else {
+            $this->montantTTC = (string) $totalHtCents;
+        }
     }
 
     // ===== MÉTHODES UTILITAIRES =====

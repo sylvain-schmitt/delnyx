@@ -73,15 +73,26 @@
 				<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Configuration TVA</h3>
 
 				<div
-					class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					class="grid grid-cols-1 md:grid-cols-2 gap-4"
+					data-controller="tva-settings">
 					{# Checkbox TVA - style personnalisé sans bordure #}
 					<div class="form-group">
 						{{ form_label(form.tvaEnabled, null, {'label_attr': {'class': 'form-label'}}) }}
-						{{ form_widget(form.tvaEnabled, {'attr': {'class': 'form-checkbox', 'data-admin-form-target': 'field'}}) }}
+						{{ form_widget(form.tvaEnabled, {'attr': {
+							'class': 'form-checkbox',
+							'data-admin-form-target': 'field',
+							'data-tva-settings-target': 'toggle',
+							'data-action': 'change->tva-settings#toggleRate'
+						}}) }}
 						{{ form_help(form.tvaEnabled) }}
 						{{ form_errors(form.tvaEnabled) }}
 					</div>
-					{{ form_macros.simple_field(form, 'tauxTVADefaut') }}
+					{% if form.tauxTVADefaut is defined %}
+						<div data-tva-settings-target="rateWrapper"
+							 class="{{ form.tvaEnabled.vars.data ? '' : 'hidden' }}">
+							{{ form_macros.simple_field(form, 'tauxTVADefaut', 'select') }}
+						</div>
+					{% endif %}
 				</div>
 			</div>
 
