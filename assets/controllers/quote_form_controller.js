@@ -17,6 +17,14 @@ export default class extends Controller {
                 this.handleClientChange({ target: clientSelect })
             }
         }
+
+        // Écouter les changements sur usePerLineTva pour afficher/masquer les champs tvaRate
+        const usePerLineTvaCheckbox = this.element.querySelector('input[name*="[usePerLineTva]"]')
+        if (usePerLineTvaCheckbox) {
+            usePerLineTvaCheckbox.addEventListener('change', () => this.toggleTvaRateFields())
+            // Appliquer l'état initial
+            this.toggleTvaRateFields()
+        }
     }
 
     /**
@@ -105,6 +113,9 @@ export default class extends Controller {
 
         // Connecter les nouveaux champs au contrôleur de validation
         this.connectValidationToNewFields(newLineElement)
+
+        // Appliquer l'état de usePerLineTva aux nouveaux champs tvaRate
+        this.toggleTvaRateFields()
     }
 
     /**
@@ -166,6 +177,27 @@ export default class extends Controller {
         if (lineElement) {
             lineElement.remove()
         }
+    }
+
+    /**
+     * Affiche ou masque les champs tvaRate dans les lignes selon usePerLineTva
+     */
+    toggleTvaRateFields() {
+        const usePerLineTvaCheckbox = this.element.querySelector('input[name*="[usePerLineTva]"]')
+        if (!usePerLineTvaCheckbox) return
+
+        const enabled = usePerLineTvaCheckbox.checked === true
+        const tvaRateWrappers = this.element.querySelectorAll('[data-tva-settings-target="rateWrapper"]')
+
+        tvaRateWrappers.forEach(wrapper => {
+            if (enabled) {
+                wrapper.classList.remove('hidden')
+                wrapper.style.display = ''
+            } else {
+                wrapper.classList.add('hidden')
+                wrapper.style.display = 'none'
+            }
+        })
     }
 }
 

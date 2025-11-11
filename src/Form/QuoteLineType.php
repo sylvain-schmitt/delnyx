@@ -10,6 +10,7 @@ use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -73,12 +74,18 @@ class QuoteLineType extends AbstractType
         ));
         
         $builder
-            ->add('tvaRate', NumberType::class, [
+            ->add('tvaRate', ChoiceType::class, [
                 'label' => 'Taux TVA (%)',
                 'required' => false,
-                'scale' => 2,
-                'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0, 'max' => 100],
-                'help' => 'Taux de TVA pour cette ligne (optionnel, utilise le taux du devis par défaut)',
+                'choices' => [
+                    '0%' => '0.00',
+                    '5,5%' => '5.50',
+                    '10%' => '10.00',
+                    '20%' => '20.00',
+                ],
+                'placeholder' => 'Taux global',
+                'attr' => ['class' => 'form-select'],
+                'help' => 'Taux de TVA pour cette ligne. Si non renseigné, le taux global du devis s\'applique.',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('isCustom', CheckboxType::class, [

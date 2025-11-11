@@ -105,7 +105,19 @@
                     {{ form_help(form.dateValidite) }}
                     {{ form_errors(form.dateValidite) }}
                 </div>
-                {{ form_macros.simple_field(form, 'tauxTVA') }}
+                {% if companySettings and companySettings.isTvaEnabled() %}
+                    <div class="form-group" data-controller="tva-settings">
+                        {{ form_label(form.usePerLineTva, null, {'label_attr': {'class': 'form-label'}}) }}
+                        {{ form_widget(form.usePerLineTva, {'attr': {
+                            'class': 'form-checkbox',
+                            'data-admin-form-target': 'field',
+                            'data-tva-settings-target': 'toggle',
+                            'data-action': 'change->tva-settings#toggleRate'
+                        }}) }}
+                        {{ form_help(form.usePerLineTva) }}
+                        {{ form_errors(form.usePerLineTva) }}
+                    </div>
+                {% endif %}
             </div>
         </div>
 
@@ -148,7 +160,16 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                             {{ form_macros.simple_field(line, 'quantity') }}
                             {{ form_macros.simple_field(line, 'unitPrice') }}
-                            {{ form_macros.simple_field(line, 'tvaRate') }}
+                            {% if companySettings and companySettings.isTvaEnabled() and quote.usePerLineTva %}
+                                <div data-tva-settings-target="rateWrapper">
+                                    {{ form_macros.simple_field(line, 'tvaRate', 'select') }}
+                                </div>
+                            {% else %}
+                                {# Cacher le champ tvaRate si TVA désactivée ou usePerLineTva = false #}
+                                <div style="display: none;">
+                                    {{ form_widget(line.tvaRate) }}
+                                </div>
+                            {% endif %}
                         </div>
                         <div class="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
                             <div class="flex items-center gap-2">
@@ -190,9 +211,15 @@
                             <label class="form-label">Prix unitaire (€)</label>
                             <input type="number" name="quote[lines][__name__][unitPrice]" class="form-input" data-admin-form-target="field" step="0.01" min="0" required>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" data-tva-settings-target="rateWrapper" style="display: none;">
                             <label class="form-label">Taux TVA (%)</label>
-                            <input type="number" name="quote[lines][__name__][tvaRate]" class="form-input" data-admin-form-target="field" step="0.01" min="0" max="100">
+                            <select name="quote[lines][__name__][tvaRate]" class="form-select" data-admin-form-target="field">
+                                <option value="">Taux global</option>
+                                <option value="0.00">0%</option>
+                                <option value="5.50">5,5%</option>
+                                <option value="10.00">10%</option>
+                                <option value="20.00">20%</option>
+                            </select>
                         </div>
                     </div>
                     <div class="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
@@ -235,10 +262,7 @@
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {{ form_macros.simple_field(form, 'typeOperations', 'select') }}
-                {{ form_macros.simple_field(form, 'sirenClient') }}
             </div>
-            
-            {{ form_macros.simple_field(form, 'adresseLivraison', 'textarea') }}
             
             <div class="flex items-center gap-2">
                 {{ form_widget(form.paiementTvaSurDebits, {'attr': {'class': 'form-checkbox'}}) }}

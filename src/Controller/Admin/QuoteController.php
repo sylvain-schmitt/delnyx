@@ -104,7 +104,15 @@ class QuoteController extends AbstractController
             $quote->setDateValidite($dateValidite);
         }
 
-        $form = $this->createForm(QuoteType::class, $quote);
+        // Récupérer CompanySettings pour le formulaire
+        $companySettings = null;
+        if ($companyId) {
+            $companySettings = $this->companySettingsRepository->findByCompanyId($companyId);
+        }
+
+        $form = $this->createForm(QuoteType::class, $quote, [
+            'company_settings' => $companySettings,
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted()) {
@@ -113,6 +121,19 @@ class QuoteController extends AbstractController
                 if ($quote->getLines()->isEmpty()) {
                     $this->addFlash('error', 'Au moins une ligne de devis est requise.');
                 } else {
+                    // Pré-remplir sirenClient et adresseLivraison depuis le client
+                    if ($quote->getClient()) {
+                        $client = $quote->getClient();
+                        // SIREN extrait du SIRET (9 premiers chiffres)
+                        if ($client->getSiret() && !$quote->getSirenClient()) {
+                            $quote->setSirenClient($client->getSiren());
+                        }
+                        // Adresse de livraison depuis l'adresse complète du client
+                        if (!$quote->getAdresseLivraison()) {
+                            $quote->setAdresseLivraison($client->getAdresseComplete());
+                        }
+                    }
+
                     // Associer les lignes au devis et calculer les totaux
                     foreach ($quote->getLines() as $line) {
                         $line->setQuote($quote);
@@ -181,10 +202,17 @@ class QuoteController extends AbstractController
             }
         }
 
+        // Récupérer CompanySettings pour l'affichage conditionnel dans le template
+        $companySettings = null;
+        if ($companyId) {
+            $companySettings = $this->companySettingsRepository->findByCompanyId($companyId);
+        }
+
         return $this->render('admin/quote/form.html.twig', [
             'quote' => $quote,
             'form' => $form,
             'title' => 'Nouveau Devis',
+            'companySettings' => $companySettings,
         ]);
     }
 
@@ -197,7 +225,15 @@ class QuoteController extends AbstractController
             return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
         }
 
-        $form = $this->createForm(QuoteType::class, $quote);
+        // Récupérer CompanySettings pour le formulaire
+        $companySettings = null;
+        if ($quote->getCompanyId()) {
+            $companySettings = $this->companySettingsRepository->findByCompanyId($quote->getCompanyId());
+        }
+
+        $form = $this->createForm(QuoteType::class, $quote, [
+            'company_settings' => $companySettings,
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted()) {
@@ -206,6 +242,19 @@ class QuoteController extends AbstractController
                 if ($quote->getLines()->isEmpty()) {
                     $this->addFlash('error', 'Au moins une ligne de devis est requise.');
                 } else {
+                    // Pré-remplir sirenClient et adresseLivraison depuis le client
+                    if ($quote->getClient()) {
+                        $client = $quote->getClient();
+                        // SIREN extrait du SIRET (9 premiers chiffres)
+                        if ($client->getSiret() && !$quote->getSirenClient()) {
+                            $quote->setSirenClient($client->getSiren());
+                        }
+                        // Adresse de livraison depuis l'adresse complète du client
+                        if (!$quote->getAdresseLivraison()) {
+                            $quote->setAdresseLivraison($client->getAdresseComplete());
+                        }
+                    }
+
                     // Associer les lignes au devis et calculer les totaux
                     foreach ($quote->getLines() as $line) {
                         $line->setQuote($quote);
@@ -249,10 +298,17 @@ class QuoteController extends AbstractController
             }
         }
 
+        // Récupérer CompanySettings pour l'affichage conditionnel dans le template
+        $companySettings = null;
+        if ($quote->getCompanyId()) {
+            $companySettings = $this->companySettingsRepository->findByCompanyId($quote->getCompanyId());
+        }
+
         return $this->render('admin/quote/form.html.twig', [
             'quote' => $quote,
             'form' => $form,
             'title' => 'Modifier le Devis',
+            'companySettings' => $companySettings,
         ]);
     }
 

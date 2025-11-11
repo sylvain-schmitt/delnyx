@@ -19,8 +19,11 @@ use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Doctrine\ORM\EntityRepository;
+use App\Entity\CompanySettings;
 
 class QuoteType extends AbstractType
 {
@@ -67,16 +70,11 @@ class QuoteType extends AbstractType
                 'help' => 'Date jusqu\'à laquelle le devis est valide (par défaut : 30 jours, durée légale)',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
-            ->add('tauxTVA', NumberType::class, [
-                'label' => 'Taux de TVA (%)',
-                'scale' => 2,
-                'attr' => [
-                    'class' => 'form-input',
-                    'step' => '0.01',
-                    'min' => '0',
-                    'max' => '100'
-                ],
-                'help' => 'Taux de TVA en pourcentage (ex: 20.00)',
+            ->add('usePerLineTva', CheckboxType::class, [
+                'label' => 'Appliquer la TVA par ligne',
+                'required' => false,
+                'attr' => ['class' => 'form-checkbox'],
+                'help' => 'Si coché, chaque ligne peut avoir son propre taux de TVA. Sinon, le taux global de TVA (paramétré dans les paramètres de l\'entreprise) s\'applique à toutes les lignes.',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('acomptePourcentage', NumberType::class, [
@@ -129,28 +127,6 @@ class QuoteType extends AbstractType
                 'help' => 'Type d\'opérations pour les mentions légales',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
-            ->add('sirenClient', TextType::class, [
-                'label' => 'SIREN Client',
-                'required' => false,
-                'attr' => [
-                    'class' => 'form-input',
-                    'maxlength' => 9,
-                    'pattern' => '[0-9]{9}'
-                ],
-                'help' => 'SIREN du client (9 chiffres)',
-                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
-            ])
-            ->add('adresseLivraison', TextareaType::class, [
-                'label' => 'Adresse de livraison',
-                'required' => true,
-                'attr' => [
-                    'class' => 'form-textarea',
-                    'rows' => 3,
-                    'required' => 'required'
-                ],
-                'help' => 'Adresse de livraison (obligatoire)',
-                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
-            ])
             ->add('paiementTvaSurDebits', CheckboxType::class, [
                 'label' => 'Paiement TVA sur débits',
                 'required' => false,
@@ -167,13 +143,50 @@ class QuoteType extends AbstractType
                 'label' => false,
                 'attr' => ['class' => 'quote-lines-collection']
             ]);
+
+        // Retirer usePerLineTva si TVA désactivée
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use ($options) {
+            $quote = $event->getData();
+            $form = $event->getForm();
+
+            if (!$quote) {
+                return;
+            }
+
+            $companySettings = $options['company_settings'] ?? null;
+            if ($companySettings && method_exists($companySettings, 'isTvaEnabled') && !$companySettings->isTvaEnabled()) {
+                $form->remove('usePerLineTva');
+            }
+        });
+
+        // Sécurité validation: si TVA désactivée à la soumission, retirer usePerLineTva
+        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) use ($options) {
+            $data = $event->getData();
+            $form = $event->getForm();
+
+            if (!$data) {
+                return;
+            }
+
+            $companySettings = $options['company_settings'] ?? null;
+            if ($companySettings && method_exists($companySettings, 'isTvaEnabled') && !$companySettings->isTvaEnabled()) {
+                $form->remove('usePerLineTva');
+                // Forcer usePerLineTva à false dans les données
+                if (isset($data['usePerLineTva'])) {
+                    unset($data['usePerLineTva']);
+                }
+                $event->setData($data);
+            }
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => Quote::class,
+            'company_settings' => null,
         ]);
+        $resolver->setAllowedTypes('company_settings', ['null', CompanySettings::class]);
     }
 }
 
