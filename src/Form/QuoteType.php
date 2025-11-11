@@ -11,6 +11,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
@@ -26,16 +27,28 @@ class QuoteType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
+            ->add('numero', TextType::class, [
+                'label' => 'Numéro du devis',
+                'required' => false,
+                'disabled' => true,
+                'attr' => [
+                    'class' => 'form-input',
+                    'readonly' => true
+                ],
+                'help' => 'Le numéro sera généré automatiquement lors de la création (format: DEV-YYYY-MM-XXX)',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
             ->add('client', EntityType::class, [
                 'label' => 'Client',
                 'class' => Client::class,
                 'choice_label' => 'nomComplet',
+                'required' => true,
                 'query_builder' => function (EntityRepository $er) {
                     return $er->createQueryBuilder('c')
                         ->orderBy('c.nom', 'ASC');
                 },
-                'attr' => ['class' => 'form-select'],
-                'help' => 'Sélectionnez le client pour ce devis',
+                'attr' => ['class' => 'form-select', 'required' => 'required'],
+                'help' => 'Tapez pour rechercher un client dans la liste',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('statut', EnumType::class, [
@@ -48,10 +61,10 @@ class QuoteType extends AbstractType
             ])
             ->add('dateValidite', DateType::class, [
                 'label' => 'Date de validité',
-                'required' => false,
+                'required' => true,
                 'widget' => 'single_text',
-                'attr' => ['class' => 'form-input'],
-                'help' => 'Date jusqu\'à laquelle le devis est valide',
+                'attr' => ['class' => 'form-input', 'required' => 'required'],
+                'help' => 'Date jusqu\'à laquelle le devis est valide (par défaut : 30 jours, durée légale)',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('tauxTVA', NumberType::class, [
@@ -129,24 +142,30 @@ class QuoteType extends AbstractType
             ])
             ->add('adresseLivraison', TextareaType::class, [
                 'label' => 'Adresse de livraison',
-                'required' => false,
+                'required' => true,
                 'attr' => [
                     'class' => 'form-textarea',
-                    'rows' => 3
+                    'rows' => 3,
+                    'required' => 'required'
                 ],
-                'help' => 'Adresse de livraison si différente de l\'adresse du client',
+                'help' => 'Adresse de livraison (obligatoire)',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('paiementTvaSurDebits', CheckboxType::class, [
                 'label' => 'Paiement TVA sur débits',
                 'required' => false,
                 'attr' => ['class' => 'form-checkbox'],
-                'help' => 'Cocher si le paiement de la TVA se fait sur les débits',
+                'help' => 'Cocher si votre entreprise paie la TVA sur les débits (facturation à l\'avance) plutôt que sur les encaissements. Cette option est utilisée pour la facturation électronique.',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
-            ->add('submit', SubmitType::class, [
-                'label' => 'Enregistrer',
-                'attr' => ['class' => 'btn btn-primary']
+            ->add('lines', CollectionType::class, [
+                'entry_type' => QuoteLineType::class,
+                'entry_options' => ['label' => false],
+                'allow_add' => true,
+                'allow_delete' => true,
+                'by_reference' => false,
+                'label' => false,
+                'attr' => ['class' => 'quote-lines-collection']
             ]);
     }
 

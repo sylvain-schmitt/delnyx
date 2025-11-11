@@ -9,8 +9,8 @@ use App\Entity\Invoice;
 use App\Entity\Amendment;
 use App\Entity\CreditNote;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
+use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Events;
-use Doctrine\Persistence\Event\LifecycleEventArgs;
 
 /**
  * EventSubscriber pour la numérotation automatique des documents
@@ -21,13 +21,14 @@ use Doctrine\Persistence\Event\LifecycleEventArgs;
  * - Amendment : Dérivée du devis : YYYY-XXX-A1 (ex: 2025-001-A1)
  * - CreditNote : AV-YYYY-### (ex: AV-2025-001)
  */
-#[AsEntityListener(event: Events::prePersist, method: 'prePersist')]
+#[AsEntityListener(event: Events::prePersist, entity: Quote::class)]
+#[AsEntityListener(event: Events::prePersist, entity: Invoice::class)]
+#[AsEntityListener(event: Events::prePersist, entity: Amendment::class)]
+#[AsEntityListener(event: Events::prePersist, entity: CreditNote::class)]
 class AutoNumberingSubscriber
 {
-    public function prePersist(LifecycleEventArgs $args): void
+    public function prePersist(Quote|Invoice|Amendment|CreditNote $entity, PrePersistEventArgs $args): void
     {
-        $entity = $args->getObject();
-
         if ($entity instanceof Quote) {
             $this->generateQuoteNumber($entity, $args);
         } elseif ($entity instanceof Invoice) {
@@ -42,7 +43,7 @@ class AutoNumberingSubscriber
     /**
      * Génère le numéro de devis : DEV-YYYY-MM-XXX
      */
-    private function generateQuoteNumber(Quote $quote, LifecycleEventArgs $args): void
+    private function generateQuoteNumber(Quote $quote, PrePersistEventArgs $args): void
     {
         if ($quote->getNumero() !== null) {
             return; // Numéro déjà défini
@@ -76,7 +77,7 @@ class AutoNumberingSubscriber
     /**
      * Génère le numéro de facture : FACT-YYYY-XXX (séquentiel sans rupture)
      */
-    private function generateInvoiceNumber(Invoice $invoice, LifecycleEventArgs $args): void
+    private function generateInvoiceNumber(Invoice $invoice, PrePersistEventArgs $args): void
     {
         if ($invoice->getNumero() !== null) {
             return; // Numéro déjà défini
@@ -109,7 +110,7 @@ class AutoNumberingSubscriber
     /**
      * Génère le numéro d'avenant : YYYY-XXX-A1 (dérivé du devis)
      */
-    private function generateAmendmentNumber(Amendment $amendment, LifecycleEventArgs $args): void
+    private function generateAmendmentNumber(Amendment $amendment, PrePersistEventArgs $args): void
     {
         if ($amendment->getNumero() !== null) {
             return; // Numéro déjà défini
@@ -157,7 +158,7 @@ class AutoNumberingSubscriber
     /**
      * Génère le numéro d'avoir : AV-YYYY-XXX
      */
-    private function generateCreditNoteNumber(CreditNote $creditNote, LifecycleEventArgs $args): void
+    private function generateCreditNoteNumber(CreditNote $creditNote, PrePersistEventArgs $args): void
     {
         if ($creditNote->getNumber() !== null) {
             return; // Numéro déjà défini

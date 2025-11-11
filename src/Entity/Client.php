@@ -484,4 +484,15 @@ class Client
     {
         return $this->statut->value;
     }
+
+    /**
+     * Extrait le SIREN du SIRET (9 premiers chiffres)
+     */
+    public function getSiren(): ?string
+    {
+        if (!$this->siret || strlen($this->siret) < 9) {
+            return null;
+        }
+        return substr($this->siret, 0, 9);
+    }
 }

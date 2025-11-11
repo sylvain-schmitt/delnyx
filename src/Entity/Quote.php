@@ -54,8 +54,7 @@ class Quote
     #[Groups(['quote:read', 'quote:write'])]
     private ?int $id = null;
 
-    #[ORM\Column(type: Types::STRING, length: 50, unique: true)]
-    #[Assert\NotBlank(message: 'Le numéro du devis est obligatoire')]
+    #[ORM\Column(type: Types::STRING, length: 50, unique: true, nullable: true)]
     #[Assert\Length(max: 50, maxMessage: 'Le numéro ne peut pas dépasser {{ limit }} caractères')]
     #[Groups(['quote:read', 'quote:write'])]
     private ?string $numero = null;
@@ -86,13 +85,13 @@ class Quote
     #[Groups(['quote:read', 'quote:write'])]
     private string $montantHT = '0.00';
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, options: ['default' => 20.00])]
+    #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, options: ['default' => 0.00])]
     #[Assert\NotBlank(message: 'Le taux de TVA est obligatoire')]
     #[Assert\Type(type: 'numeric', message: 'Le taux de TVA doit être un nombre')]
     #[Assert\GreaterThanOrEqual(value: 0, message: 'Le taux de TVA ne peut pas être négatif')]
     #[Assert\LessThanOrEqual(value: 100, message: 'Le taux de TVA ne peut pas dépasser 100%')]
     #[Groups(['quote:read', 'quote:write'])]
-    private string $tauxTVA = '20.00';
+    private string $tauxTVA = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Assert\NotBlank(message: 'Le montant TTC est obligatoire')]
@@ -193,6 +192,8 @@ class Quote
         $this->dateCreation = new \DateTime();
         $this->dateModification = new \DateTime();
         $this->lines = new ArrayCollection();
+        // Taux de TVA par défaut à 0.00 (sera remplacé par CompanySettings si disponible)
+        $this->tauxTVA = '0.00';
     }
 
     // ===== GETTERS ET SETTERS =====

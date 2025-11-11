@@ -14,10 +14,71 @@ export default class extends Controller {
         this.isSubmitting = false
         this.setupFormValidation()
         this.setupFieldAnimations()
+        this.setupTurboListeners()
     }
 
     disconnect() {
         this.isSubmitting = false
+        this.removeTurboListeners()
+    }
+
+    setupTurboListeners() {
+        // Écouter les événements Turbo pour restaurer l'état du bouton en cas d'erreur
+        this.turboSubmitEndHandler = (event) => {
+            // Si la soumission échoue (pas de redirection), restaurer l'état du bouton
+            // Turbo attend une redirection, si on reste sur la même page, c'est une erreur
+            if (event.detail && event.detail.success === false) {
+                this.resetSubmitButton()
+            } else if (event.detail && event.detail.fetchResponse) {
+                // Vérifier si la réponse est une redirection
+                const response = event.detail.fetchResponse
+                if (response && response.status === 200 && !response.redirected) {
+                    // Pas de redirection = erreur de validation, restaurer le bouton
+                    setTimeout(() => this.resetSubmitButton(), 100)
+                }
+            }
+        }
+
+        this.turboBeforeFetchResponseHandler = (event) => {
+            // Vérifier si la réponse est une erreur
+            const response = event.detail.fetchResponse
+            if (response && response.status >= 400) {
+                this.resetSubmitButton()
+            } else if (response && response.status === 200 && !response.redirected) {
+                // Pas de redirection = erreur de validation, restaurer le bouton après un court délai
+                setTimeout(() => this.resetSubmitButton(), 100)
+            }
+        }
+
+        // Écouter sur le formulaire lui-même
+        const formElement = this.formTarget || this.element
+        if (formElement) {
+            formElement.addEventListener('turbo:submit-end', this.turboSubmitEndHandler)
+            formElement.addEventListener('turbo:before-fetch-response', this.turboBeforeFetchResponseHandler)
+        }
+    }
+
+    removeTurboListeners() {
+        const formElement = this.formTarget || this.element
+        if (formElement) {
+            if (this.turboSubmitEndHandler) {
+                formElement.removeEventListener('turbo:submit-end', this.turboSubmitEndHandler)
+            }
+            if (this.turboBeforeFetchResponseHandler) {
+                formElement.removeEventListener('turbo:before-fetch-response', this.turboBeforeFetchResponseHandler)
+            }
+        }
+    }
+
+    resetSubmitButton() {
+        this.isSubmitting = false
+        if (this.submitTarget) {
+            this.submitTarget.classList.remove('btn-loading')
+            this.submitTarget.disabled = false
+            if (this.originalSubmitText) {
+                this.submitTarget.textContent = this.originalSubmitText
+            }
+        }
     }
 
     setupFormValidation() {
@@ -25,7 +86,7 @@ export default class extends Controller {
         this.fieldTargets.forEach(field => {
             // Validation au blur (quand l'utilisateur quitte le champ)
             field.addEventListener('blur', () => this.validateField(field))
-            
+
             // Nettoyage des erreurs pendant la saisie (sauf pour les mots de passe)
             if (!field.name || !field.name.includes('plainPassword')) {
                 field.addEventListener('input', () => {
@@ -60,8 +121,12 @@ export default class extends Controller {
 
     validateField(field) {
         const fieldName = field.name
-        const value = field.type === 'file' ? field.files.length > 0 : field.value.trim()
-        const isRequired = field.hasAttribute('required') || field.getAttribute('required') === 'required'
+        const value = field.type === 'file' ? field.files.length > 0 : (field.value ? field.value.trim() : '')
+        // Pour les selects, vérifier aussi si c'est un champ client (toujours obligatoire)
+        // Pour les textarea, vérifier aussi si c'est adresseLivraison (obligatoire)
+        const isRequired = field.hasAttribute('required') || field.getAttribute('required') === 'required' ||
+            (field.tagName === 'SELECT' && fieldName && fieldName.includes('client')) ||
+            (field.tagName === 'TEXTAREA' && fieldName && fieldName.includes('adresseLivraison'))
 
         // Suppression des erreurs existantes
         this.clearFieldError(field)
@@ -75,11 +140,15 @@ export default class extends Controller {
                 if (!field.checked) {
                     return this.setFieldInvalid(field, 'Ce champ est obligatoire')
                 }
-            } 
+            }
             // Pour les selects, vérifier si une valeur est sélectionnée (pas de placeholder)
             else if (field.tagName === 'SELECT') {
-                if (!field.value || field.value === '') {
-                    return this.setFieldInvalid(field, 'Ce champ est obligatoire')
+                // Vérifier si le select a une valeur valide (pas vide, pas null, pas '0', pas undefined)
+                const selectValue = field.value
+                if (!selectValue || selectValue === '' || selectValue === null || selectValue === '0' || selectValue === undefined) {
+                    // Message personnalisé pour le client
+                    const errorMsg = fieldName && fieldName.includes('client') ? 'Le client est obligatoire' : 'Ce champ est obligatoire'
+                    return this.setFieldInvalid(field, errorMsg)
                 }
             }
             // Pour les fichiers
@@ -119,7 +188,7 @@ export default class extends Controller {
                 const isReadonly = field.hasAttribute('readonly')
                 // Pour CompanySettings, l'email est optionnel (utilise celui du User en fallback)
                 const isRequired = field.hasAttribute('required')
-                
+
                 if (isRequired && !isReadonly && !value) {
                     isValid = false
                     errorMessage = 'L\'email est obligatoire'
@@ -174,9 +243,11 @@ export default class extends Controller {
                 break
 
             case fieldName.includes('adresse'):
+                // Validation pour toutes les adresses (y compris adresseLivraison)
                 if (!value) {
                     isValid = false
-                    errorMessage = 'L\'adresse est obligatoire'
+                    const fieldLabel = fieldName.includes('adresseLivraison') ? 'L\'adresse de livraison' : 'L\'adresse'
+                    errorMessage = fieldLabel + ' est obligatoire'
                 } else if (value.length < 5) {
                     isValid = false
                     errorMessage = 'Au moins 5 caractères requis'
@@ -235,7 +306,7 @@ export default class extends Controller {
                         errorMessage = 'Le mot de passe ne peut pas dépasser 4096 caractères'
                     } else if (fieldName.includes('first')) {
                         // Vérifier que les deux mots de passe correspondent
-                        const confirmField = this.fieldTargets.find(f => 
+                        const confirmField = this.fieldTargets.find(f =>
                             f.name && f.name.includes('plainPassword') && f.name.includes('second')
                         )
                         if (confirmField && confirmField.value && value !== confirmField.value) {
@@ -246,7 +317,7 @@ export default class extends Controller {
                         }
                     } else if (fieldName.includes('second')) {
                         // Vérifier que les deux mots de passe correspondent
-                        const firstField = this.fieldTargets.find(f => 
+                        const firstField = this.fieldTargets.find(f =>
                             f.name && f.name.includes('plainPassword') && f.name.includes('first')
                         )
                         if (firstField && firstField.value && value !== firstField.value) {
@@ -299,7 +370,37 @@ export default class extends Controller {
                     errorMessage = 'Maximum 5000 caractères'
                 }
                 break
-    
+
+            case fieldName && fieldName.includes('client'):
+                // Validation spécifique pour le champ client (select)
+                if (field.tagName === 'SELECT') {
+                    // Le client est toujours obligatoire
+                    const selectValue = field.value
+                    if (!selectValue || selectValue === '' || selectValue === null || selectValue === '0' || selectValue === undefined) {
+                        isValid = false
+                        errorMessage = 'Le client est obligatoire'
+                    }
+                }
+                break
+
+            case fieldName.includes('dateValidite'):
+            case fieldName.includes('date_validite'):
+                // Validation pour la date de validité
+                if (!value || value === '') {
+                    isValid = false
+                    errorMessage = 'La date de validité est obligatoire'
+                } else {
+                    // Vérifier que la date n'est pas dans le passé
+                    const dateValue = new Date(value)
+                    const today = new Date()
+                    today.setHours(0, 0, 0, 0)
+                    if (dateValue < today) {
+                        isValid = false
+                        errorMessage = 'La date de validité ne peut pas être dans le passé'
+                    }
+                }
+                break
+
         }
 
         // Application du style selon la validation
@@ -354,14 +455,37 @@ export default class extends Controller {
             return
         }
 
+        // Re-détecter tous les champs (y compris ceux ajoutés dynamiquement)
+        const allFields = Array.from(this.element.querySelectorAll('[data-admin-form-target="field"]'))
+
+        // Pour les selects cachés par select-search, trouver le select original
+        // Chercher tous les selects dans le formulaire, même ceux cachés
+        const allSelects = Array.from(this.element.querySelectorAll('select'))
+
+        allSelects.forEach(select => {
+            // Si le select contient "client" dans son name et qu'il n'est pas déjà dans allFields
+            if (select.name && select.name.includes('client') && !allFields.includes(select)) {
+                allFields.push(select)
+            }
+        })
+
         // Validation côté client (exclure les champs de type file)
         let allValid = true
-        this.fieldTargets.forEach(field => {
+        allFields.forEach(field => {
             // Ne pas valider les champs de type file (ils sont gérés par Symfony)
             if (field.type === 'file') {
                 return
             }
-            if (!this.validateField(field)) {
+            // Ne pas valider les champs cachés (sauf les selects pour select-search)
+            if (field.type === 'hidden') {
+                return
+            }
+            // Ne pas valider les champs désactivés
+            if (field.disabled) {
+                return
+            }
+            const isValid = this.validateField(field)
+            if (!isValid) {
                 allValid = false
             }
         })
@@ -369,13 +493,81 @@ export default class extends Controller {
         if (!allValid) {
             // Empêcher la soumission si la validation client échoue
             event.preventDefault()
+            event.stopPropagation()
+            event.stopImmediatePropagation()
 
-            // Animation d'erreur
-            this.element.classList.add('animate-shake')
+            // Empêcher aussi la propagation au niveau du formulaire
+            if (event.cancelable) {
+                event.preventDefault()
+            }
+
+            // Animation d'erreur - appliquer sur le formulaire et son conteneur parent
+            const formElement = this.formTarget || this.element
+
+            // Trouver le conteneur parent avec data-controller="quote-form"
+            let container = null
+            let currentElement = formElement.parentElement
+            while (currentElement && !container) {
+                const controllers = currentElement.getAttribute('data-controller')
+                if (controllers && controllers.includes('quote-form')) {
+                    container = currentElement
+                    break
+                }
+                currentElement = currentElement.parentElement
+            }
+
+            // Si pas trouvé, utiliser le parent direct
+            if (!container) {
+                container = formElement.parentElement
+            }
+
+            // Appliquer l'animation sur le conteneur principal
+            if (container) {
+                // Retirer d'abord les autres animations qui pourraient interférer
+                container.classList.remove('animate-delay-100', 'animate-fade-up')
+                // Forcer le reflow pour s'assurer que l'animation se déclenche
+                void container.offsetHeight
+                // Ajouter la classe avec un léger délai pour forcer le re-render
+                requestAnimationFrame(() => {
+                    container.classList.add('animate-shake')
+                })
+                setTimeout(() => {
+                    container.classList.remove('animate-shake')
+                    // Restaurer les animations originales
+                    container.classList.add('animate-delay-100', 'animate-fade-up')
+                }, 600)
+            }
+
+            // Aussi sur le formulaire lui-même
+            // Forcer le reflow pour s'assurer que l'animation se déclenche
+            void formElement.offsetHeight
+            // Ajouter la classe avec un léger délai pour forcer le re-render
+            requestAnimationFrame(() => {
+                formElement.classList.add('animate-shake')
+            })
             setTimeout(() => {
-                this.element.classList.remove('animate-shake')
+                formElement.classList.remove('animate-shake')
             }, 600)
-            return
+
+            // Faire défiler vers le premier champ invalide
+            const firstInvalidField = this.element.querySelector('.is-invalid')
+            if (firstInvalidField) {
+                firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                // Pour les selects cachés, essayer de trouver l'input de recherche
+                const formGroup = firstInvalidField.closest('.form-group')
+                if (formGroup) {
+                    const searchInput = formGroup.querySelector('input[type="text"]')
+                    if (searchInput) {
+                        searchInput.focus()
+                    } else {
+                        firstInvalidField.focus()
+                    }
+                } else {
+                    firstInvalidField.focus()
+                }
+            }
+
+            return false
         }
 
         // Validation client OK : marquer comme en cours et appliquer le style de chargement

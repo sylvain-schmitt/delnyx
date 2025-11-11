@@ -1,0 +1,100 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Form;
+
+use App\Entity\QuoteLine;
+use App\Entity\Tariff;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
+use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\CallbackTransformer;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\NumberType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+use Doctrine\ORM\EntityRepository;
+
+class QuoteLineType extends AbstractType
+{
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder
+            ->add('tariff', EntityType::class, [
+                'label' => 'Tarif du catalogue',
+                'class' => Tariff::class,
+                'choice_label' => 'nom',
+                'required' => false,
+                'query_builder' => function (EntityRepository $er) {
+                    return $er->createQueryBuilder('t')
+                        ->where('t.actif = :actif')
+                        ->setParameter('actif', true)
+                        ->orderBy('t.nom', 'ASC');
+                },
+                'attr' => ['class' => 'form-select'],
+                'help' => 'Sélectionnez un tarif du catalogue ou créez une ligne personnalisée',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('description', TextType::class, [
+                'label' => 'Description',
+                'required' => true,
+                'attr' => ['class' => 'form-input'],
+                'help' => 'Description de la prestation',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('quantity', IntegerType::class, [
+                'label' => 'Quantité',
+                'required' => true,
+                'attr' => ['class' => 'form-input', 'min' => 1],
+                'help' => 'Quantité de la prestation',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('unitPrice', NumberType::class, [
+                'label' => 'Prix unitaire (€)',
+                'required' => true,
+                'scale' => 2,
+                'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0],
+                'help' => 'Prix unitaire en euros',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ]);
+
+        // Transformer pour convertir les euros en centimes
+        $builder->get('unitPrice')->addModelTransformer(new CallbackTransformer(
+            // Transform: centimes -> euros (pour l'affichage)
+            function ($centimes) {
+                return $centimes ? $centimes / 100 : null;
+            },
+            // Reverse transform: euros -> centimes (pour la sauvegarde)
+            function ($euros) {
+                return $euros ? (int) round($euros * 100) : null;
+            }
+        ));
+        
+        $builder
+            ->add('tvaRate', NumberType::class, [
+                'label' => 'Taux TVA (%)',
+                'required' => false,
+                'scale' => 2,
+                'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0, 'max' => 100],
+                'help' => 'Taux de TVA pour cette ligne (optionnel, utilise le taux du devis par défaut)',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('isCustom', CheckboxType::class, [
+                'label' => 'Ligne personnalisée',
+                'required' => false,
+                'attr' => ['class' => 'form-checkbox'],
+                'help' => 'Cocher si cette ligne n\'est pas issue du catalogue',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ]);
+    }
+
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setDefaults([
+            'data_class' => QuoteLine::class,
+        ]);
+    }
+}
+
