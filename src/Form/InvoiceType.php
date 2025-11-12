@@ -51,7 +51,7 @@ class InvoiceType extends AbstractType
                     );
                 },
                 'required' => false,
-                'placeholder' => 'Aucun devis associé',
+                'placeholder' => 'Rechercher un devis...',
                 'query_builder' => function (EntityRepository $er) use ($options) {
                     $qb = $er->createQueryBuilder('q')
                         ->leftJoin('q.invoice', 'i')

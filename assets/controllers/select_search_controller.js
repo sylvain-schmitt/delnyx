@@ -21,7 +21,47 @@ export default class extends Controller {
         const searchInput = document.createElement('input')
         searchInput.type = 'text'
         searchInput.className = 'form-input w-full'
-        searchInput.placeholder = 'Rechercher un client...'
+        
+        // Déterminer le placeholder selon le type de champ
+        let placeholder = 'Rechercher...'
+        
+        // Vérifier d'abord l'attribut data-select-search-type (le plus fiable)
+        // Utiliser dataset pour accéder aux attributs data-*
+        const fieldType = this.element.dataset.selectSearchType || this.element.getAttribute('data-select-search-type')
+        
+        if (fieldType === 'quote') {
+            placeholder = 'Rechercher un devis...'
+        } else if (fieldType === 'client') {
+            placeholder = 'Rechercher un client...'
+        } else {
+            // Fallback : vérifier le nom du select
+            const selectName = select.name || ''
+            const selectId = select.id || ''
+            
+            // Vérifier aussi le label associé
+            let labelText = ''
+            const label = this.element.querySelector('label')
+            if (label) {
+                labelText = label.textContent || label.innerText || ''
+            }
+            
+            // Vérifier d'abord pour quote (plus spécifique)
+            if (selectName.includes('[quote]') || selectName.includes('quote') || selectId.includes('quote') || 
+                labelText.toLowerCase().includes('devis') || labelText.toLowerCase().includes('associé')) {
+                placeholder = 'Rechercher un devis...'
+            } else if (selectName.includes('[client]') || selectName.includes('client') || selectId.includes('client') ||
+                       labelText.toLowerCase().includes('client')) {
+                placeholder = 'Rechercher un client...'
+            } else {
+                // Utiliser le placeholder du select s'il existe
+                const selectPlaceholder = select.querySelector('option[value=""]')
+                if (selectPlaceholder && selectPlaceholder.text && selectPlaceholder.text.trim() !== '') {
+                    placeholder = selectPlaceholder.text
+                }
+            }
+        }
+        
+        searchInput.placeholder = placeholder
         searchInput.autocomplete = 'off'
         // Ajouter l'attribut data-admin-form-target pour la validation
         searchInput.setAttribute('data-admin-form-target', 'field')
@@ -123,9 +163,9 @@ export default class extends Controller {
             if (selectedOption && select.value && select.value !== '') {
                 searchInput.value = selectedOption.text
             } else {
-                // Si aucune valeur sélectionnée, afficher le placeholder
+                // Si aucune valeur sélectionnée, afficher le placeholder (déjà défini plus haut)
                 searchInput.value = ''
-                searchInput.placeholder = 'Rechercher un client...'
+                // Le placeholder a déjà été défini lors de la création de l'input
             }
         }
         
@@ -173,7 +213,7 @@ export default class extends Controller {
         // Si aucune valeur n'est sélectionnée au démarrage, s'assurer que le placeholder est visible
         if (!select.value || select.value === '') {
             searchInput.value = ''
-            searchInput.placeholder = 'Rechercher un client...'
+            // Le placeholder a déjà été défini plus haut
         }
         
         // Insérer les éléments dans le wrapper
