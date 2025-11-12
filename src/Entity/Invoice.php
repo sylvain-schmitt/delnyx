@@ -135,9 +135,8 @@ class Invoice
 
     // Relations
     #[ORM\OneToOne(targetEntity: Quote::class, inversedBy: 'invoice')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     #[Groups(['invoice:read', 'invoice:write'])]
-    #[Assert\NotBlank]
     private ?Quote $quote = null;
 
     #[ORM\ManyToOne(targetEntity: Client::class, inversedBy: 'invoices')]
@@ -433,11 +432,12 @@ class Invoice
 
     /**
      * Retourne le montant restant à payer
+     * Les montants sont stockés en DECIMAL (euros), pas besoin de diviser par 100
      */
     public function getMontantRestant(): string
     {
-        $montantTTC = (float) $this->montantTTC / 100; // Conversion centimes -> euros
-        $montantAcompte = (float) ($this->montantAcompte ?? 0) / 100; // Conversion centimes -> euros
+        $montantTTC = (float) $this->montantTTC; // Déjà en euros (DECIMAL)
+        $montantAcompte = (float) ($this->montantAcompte ?? 0); // Déjà en euros (DECIMAL)
 
         return number_format($montantTTC - $montantAcompte, 2, '.', '');
     }
@@ -537,28 +537,31 @@ class Invoice
 
     /**
      * Retourne le montant TTC formaté
+     * Les montants sont stockés en DECIMAL (euros), pas besoin de diviser par 100
      */
     public function getMontantTTCFormate(): string
     {
-        $montant = (float) $this->montantTTC / 100; // Conversion centimes -> euros
+        $montant = (float) $this->montantTTC; // Déjà en euros (DECIMAL)
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 
     /**
      * Retourne le montant HT formaté
+     * Les montants sont stockés en DECIMAL (euros), pas besoin de diviser par 100
      */
     public function getMontantHTFormate(): string
     {
-        $montant = (float) $this->montantHT / 100; // Conversion centimes -> euros
+        $montant = (float) $this->montantHT; // Déjà en euros (DECIMAL)
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 
     /**
      * Retourne le montant TVA formaté
+     * Les montants sont stockés en DECIMAL (euros), pas besoin de diviser par 100
      */
     public function getMontantTVAFormate(): string
     {
-        $montant = (float) $this->montantTVA / 100; // Conversion centimes -> euros
+        $montant = (float) $this->montantTVA; // Déjà en euros (DECIMAL)
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 
@@ -637,5 +640,61 @@ class Invoice
         }
 
         return $this;
+    }
+
+    /**
+     * Recalcule les montants HT/TTC depuis les lignes
+     * - Si usePerLineTva = true (du quote): somme TTC par ligne
+     * - Sinon: applique le taux global du devis sur le total HT (ou 0% si pas de devis)
+     * Les montants sont stockés en DECIMAL (euros, string avec 2 décimales)
+     */
+    public function recalculateTotalsFromLines(): void
+    {
+        if ($this->lines->isEmpty()) {
+            $this->montantHT = '0.00';
+            $this->montantTVA = '0.00';
+            $this->montantTTC = '0.00';
+            return;
+        }
+
+        $totalHtEuros = 0.0;
+        $totalTvaEuros = 0.0;
+
+        $quote = $this->getQuote();
+        // Si pas de devis associé, on utilise la TVA par ligne si définie, sinon 0%
+        $usePerLineTva = $quote ? $quote->isUsePerLineTva() : false;
+        $tauxTVA = $quote ? (float) $quote->getTauxTVA() : 0.0;
+
+        foreach ($this->lines as $line) {
+            $lineTotalHt = (float) ($line->getTotalHt() ?? 0);
+            $totalHtEuros += $lineTotalHt;
+
+            if ($usePerLineTva) {
+                // TVA par ligne : calculer la TVA de chaque ligne
+                if ($line->getTvaRate() && (float) $line->getTvaRate() > 0) {
+                    $tvaAmount = $lineTotalHt * ((float) $line->getTvaRate() / 100);
+                    $totalTvaEuros += $tvaAmount;
+                }
+            }
+        }
+
+        // Les montants sont déjà en euros (DECIMAL)
+        $this->montantHT = number_format($totalHtEuros, 2, '.', '');
+
+        if ($usePerLineTva) {
+            // TVA par ligne : utiliser le total TVA calculé
+            $this->montantTVA = number_format($totalTvaEuros, 2, '.', '');
+            $this->montantTTC = number_format($totalHtEuros + $totalTvaEuros, 2, '.', '');
+        } else {
+            // TVA globale : appliquer le taux du devis sur le total HT
+            if ($tauxTVA > 0) {
+                $tvaAmountEuros = $totalHtEuros * ($tauxTVA / 100);
+                $this->montantTVA = number_format($tvaAmountEuros, 2, '.', '');
+                $this->montantTTC = number_format($totalHtEuros + $tvaAmountEuros, 2, '.', '');
+            } else {
+                $this->montantTVA = '0.00';
+                $this->montantTTC = number_format($totalHtEuros, 2, '.', '');
+            }
+        }
     }
 }

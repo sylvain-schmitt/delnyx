@@ -49,17 +49,17 @@ class InvoiceLine
     #[Groups(['invoice_line:read', 'invoice_line:write'])]
     private ?int $quantity = 1;
 
-    #[ORM\Column]
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Assert\NotNull(message: 'Le prix unitaire est obligatoire')]
     #[Assert\GreaterThanOrEqual(value: 0, message: 'Le prix unitaire ne peut pas être négatif')]
     #[Groups(['invoice_line:read', 'invoice_line:write'])]
-    private ?int $unitPrice = null;
+    private string $unitPrice = '0.00';
 
-    #[ORM\Column]
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Assert\NotNull(message: 'Le total HT est obligatoire')]
     #[Assert\GreaterThanOrEqual(value: 0, message: 'Le total HT ne peut pas être négatif')]
     #[Groups(['invoice_line:read', 'invoice_line:write'])]
-    private ?int $totalHt = null;
+    private string $totalHt = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true)]
     #[Assert\GreaterThanOrEqual(value: 0, message: 'Le taux de TVA ne peut pas être négatif')]
@@ -107,12 +107,12 @@ class InvoiceLine
         return $this;
     }
 
-    public function getUnitPrice(): ?int
+    public function getUnitPrice(): ?string
     {
         return $this->unitPrice;
     }
 
-    public function setUnitPrice(int $unitPrice): static
+    public function setUnitPrice(string $unitPrice): static
     {
         $this->unitPrice = $unitPrice;
         $this->recalculateTotalHt();
@@ -120,12 +120,12 @@ class InvoiceLine
         return $this;
     }
 
-    public function getTotalHt(): ?int
+    public function getTotalHt(): ?string
     {
         return $this->totalHt;
     }
 
-    public function setTotalHt(int $totalHt): static
+    public function setTotalHt(string $totalHt): static
     {
         $this->totalHt = $totalHt;
 
@@ -173,8 +173,9 @@ class InvoiceLine
         // Si un tarif est associé, remplir automatiquement les informations
         if ($tariff) {
             $this->description = $tariff->getTitre();
-            // Tariff stocke déjà le prix en centimes (string décimal)
-            $this->unitPrice = (int) $tariff->getPrix();
+            // Tariff stocke le prix en euros (DECIMAL), utiliser directement
+            $prixEnEuros = (float) $tariff->getPrix();
+            $this->unitPrice = number_format($prixEnEuros, 2, '.', '');
             $this->recalculateTotalHt();
         }
 
@@ -183,44 +184,49 @@ class InvoiceLine
 
     /**
      * Recalcule automatiquement le total HT à partir de la quantité et du prix unitaire
+     * Les montants sont stockés en euros (DECIMAL)
      */
     public function recalculateTotalHt(): void
     {
         if ($this->quantity !== null && $this->unitPrice !== null) {
-            $this->totalHt = $this->quantity * $this->unitPrice;
+            $total = (float) $this->unitPrice * $this->quantity;
+            $this->totalHt = number_format($total, 2, '.', '');
         }
     }
 
     /**
      * Calcule le montant TTC de cette ligne
+     * Retourne en euros (string)
      */
-    public function getTotalTtc(): int
+    public function getTotalTtc(): string
     {
-        $totalHt = $this->totalHt ?? 0;
+        $totalHt = (float) ($this->totalHt ?? 0);
         
         if ($this->tvaRate && (float) $this->tvaRate > 0) {
-            $tvaAmount = (int) round($totalHt * ((float) $this->tvaRate / 100));
-            return $totalHt + $tvaAmount;
+            $tvaAmount = $totalHt * ((float) $this->tvaRate / 100);
+            return number_format($totalHt + $tvaAmount, 2, '.', '');
         }
 
-        return $totalHt;
+        return number_format($totalHt, 2, '.', '');
     }
 
     /**
      * Retourne le total HT formaté pour l'affichage
+     * Les montants sont déjà en euros (DECIMAL)
      */
     public function getTotalHtFormatted(): string
     {
-        $montant = ($this->totalHt ?? 0) / 100; // Conversion centimes -> euros
+        $montant = (float) ($this->totalHt ?? 0);
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 
     /**
      * Retourne le total TTC formaté pour l'affichage
+     * Les montants sont déjà en euros (DECIMAL)
      */
     public function getTotalTtcFormatted(): string
     {
-        $montant = $this->getTotalTtc() / 100; // Conversion centimes -> euros
+        $montant = (float) $this->getTotalTtc();
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 }

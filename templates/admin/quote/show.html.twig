@@ -125,8 +125,7 @@
 										<tr>
 											<td class="px-4 py-3 text-white">{{ line.description }}</td>
 											<td class="px-4 py-3 text-right text-white">{{ line.quantity }}</td>
-											<td class="px-4 py-3 text-right text-white">{{ (line.unitPrice / 100)|number_format(2, ',', ' ') }}
-												€</td>
+											<td class="px-4 py-3 text-right text-white">{{ line.unitPrice|number_format(2, ',', ' ') }} €</td>
 											<td class="px-4 py-3 text-right text-white">
 												{% if quote.usePerLineTva and line.tvaRate %}
 													{{ line.tvaRate }}%
@@ -136,8 +135,7 @@
 													{{ quote.tauxTVA }}%
 												{% endif %}
 											</td>
-											<td class="px-4 py-3 text-right text-white font-medium">{{ (line.totalHt / 100)|number_format(2, ',', ' ') }}
-												€</td>
+											<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }} €</td>
 											<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalTtcFormatted }}</td>
 										</tr>
 									{% endfor %}
@@ -159,8 +157,7 @@
 										</div>
 										<div class="flex justify-between">
 											<span class="text-white/60">Prix unitaire</span>
-											<span class="text-white">{{ (line.unitPrice / 100)|number_format(2, ',', ' ') }}
-												€</span>
+											<span class="text-white">{{ line.unitPrice|number_format(2, ',', ' ') }} €</span>
 										</div>
 										<div class="flex justify-between">
 											<span class="text-white/60">TVA</span>
@@ -176,8 +173,7 @@
 										</div>
 										<div class="flex justify-between pt-2 border-t border-white/10">
 											<span class="text-white/60">Total HT</span>
-											<span class="text-white font-medium">{{ (line.totalHt / 100)|number_format(2, ',', ' ') }}
-												€</span>
+											<span class="text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }} €</span>
 										</div>
 										<div class="flex justify-between">
 											<span class="text-white font-medium">Total TTC</span>
@@ -301,15 +297,21 @@
 					</h2>
 
 					<div class="space-y-3">
-						{% if quote.statut.value == 'signed' and not quote.invoice %}
-							<form method="post" action="{{ path('admin_quote_generate_invoice', {id: quote.id}) }}">
+					{% if quote.statut.value == 'signed' and not quote.invoice %}
+						<div class="space-y-2">
+							<form method="post" action="{{ path('admin_invoice_generate_from_quote', {id: quote.id}) }}">
 								<input type="hidden" name="_token" value="{{ csrf_token('generate_invoice' ~ quote.id) }}">
 								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
 									{{ ux_icon('lucide:receipt', {class: 'w-4 h-4'}) }}
-									Générer une facture
+									Générer une facture automatiquement
 								</button>
 							</form>
-						{% endif %}
+							<a href="{{ path('admin_invoice_new', {quote_id: quote.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2">
+								{{ ux_icon('lucide:file-edit', {class: 'w-4 h-4'}) }}
+								Créer une facture (édition)
+							</a>
+						</div>
+					{% endif %}
 
 						{% if quote.statut.value == 'signed' %}
 							<a href="#" class="w-full btn-secondary flex items-center justify-center gap-2">

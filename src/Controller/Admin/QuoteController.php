@@ -181,12 +181,12 @@ class QuoteController extends AbstractController
                     // Générer le numéro si ce n'est pas déjà fait (fallback si l'EventSubscriber ne fonctionne pas)
                     if (!$quote->getNumero()) {
                         $year = (int) date('Y');
-                        $month = date('m');
 
-                        // Trouver le dernier numéro pour ce mois
+                        // Trouver le dernier numéro pour cette année
+                        // Support des deux formats : ancien DEV-YYYY-MM-XXX et nouveau DEV-YYYY-XXX
                         $lastQuote = $this->quoteRepository->createQueryBuilder('q')
                             ->where('q.numero LIKE :pattern')
-                            ->setParameter('pattern', sprintf('DEV-%d-%s-%%', $year, $month))
+                            ->setParameter('pattern', sprintf('DEV-%d-%%', $year))
                             ->orderBy('q.numero', 'DESC')
                             ->setMaxResults(1)
                             ->getQuery()
@@ -195,13 +195,21 @@ class QuoteController extends AbstractController
                         $sequence = 1;
                         if ($lastQuote && $lastQuote->getNumero()) {
                             // Extraire le numéro de séquence du dernier devis
+                            // Support des deux formats :
+                            // - Ancien : DEV-YYYY-MM-XXX (4 parties)
+                            // - Nouveau : DEV-YYYY-XXX (3 parties)
                             $parts = explode('-', $lastQuote->getNumero());
                             if (count($parts) === 4) {
+                                // Ancien format : DEV-YYYY-MM-XXX
                                 $sequence = (int) $parts[3] + 1;
+                            } elseif (count($parts) === 3 && is_numeric($parts[2])) {
+                                // Nouveau format : DEV-YYYY-XXX
+                                $sequence = (int) $parts[2] + 1;
                             }
                         }
 
-                        $quote->setNumero(sprintf('DEV-%d-%s-%03d', $year, $month, $sequence));
+                        // Générer le numéro au format DEV-YYYY-XXX (ex: DEV-2025-001)
+                        $quote->setNumero(sprintf('DEV-%d-%03d', $year, $sequence));
                     }
 
                     $this->entityManager->persist($quote);

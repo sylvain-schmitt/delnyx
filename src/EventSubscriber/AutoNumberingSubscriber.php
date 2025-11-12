@@ -16,10 +16,10 @@ use Doctrine\ORM\Events;
  * EventSubscriber pour la numérotation automatique des documents
  * 
  * Formats :
- * - Quote : DEV-YYYY-MM-XXX (ex: DEV-2025-01-001)
- * - Invoice : Numérotation séquentielle sans rupture (ex: FACT-2025-001)
- * - Amendment : Dérivée du devis : YYYY-XXX-A1 (ex: 2025-001-A1)
- * - CreditNote : AV-YYYY-### (ex: AV-2025-001)
+ * - Quote : DEV-YYYY-XXX (ex: DEV-2025-001) - Séquentiel par année
+ * - Invoice : FACT-YYYY-XXX (ex: FACT-2025-001) - Séquentiel par année
+ * - Amendment : YYYY-XXX-A1 (ex: 2025-001-A1) - Dérivé du devis
+ * - CreditNote : AV-YYYY-XXX (ex: AV-2025-001) - Séquentiel par année
  */
 #[AsEntityListener(event: Events::prePersist, entity: Quote::class)]
 #[AsEntityListener(event: Events::prePersist, entity: Invoice::class)]
@@ -41,7 +41,10 @@ class AutoNumberingSubscriber
     }
 
     /**
-     * Génère le numéro de devis : DEV-YYYY-MM-XXX
+     * Génère le numéro de devis : DEV-YYYY-XXX (séquentiel par année)
+     * 
+     * Conformité légale française : la numérotation doit être séquentielle et continue,
+     * même pour les devis annulés (ils conservent leur numéro et font partie de la séquence).
      */
     private function generateQuoteNumber(Quote $quote, PrePersistEventArgs $args): void
     {
@@ -51,12 +54,13 @@ class AutoNumberingSubscriber
 
         $em = $args->getObjectManager();
         $year = (int) date('Y');
-        $month = date('m');
 
-        // Trouver le dernier numéro pour ce mois
+        // Trouver le dernier numéro pour cette année
+        // IMPORTANT : on inclut TOUS les devis (y compris annulés) pour respecter la séquence légale
+        // Support des deux formats : ancien DEV-YYYY-MM-XXX et nouveau DEV-YYYY-XXX
         $lastQuote = $em->getRepository(Quote::class)->createQueryBuilder('q')
             ->where('q.numero LIKE :pattern')
-            ->setParameter('pattern', sprintf('DEV-%d-%s-%%', $year, $month))
+            ->setParameter('pattern', sprintf('DEV-%d-%%', $year))
             ->orderBy('q.numero', 'DESC')
             ->setMaxResults(1)
             ->getQuery()
@@ -65,17 +69,28 @@ class AutoNumberingSubscriber
         $sequence = 1;
         if ($lastQuote && $lastQuote->getNumero()) {
             // Extraire le numéro de séquence du dernier devis
+            // Support des deux formats :
+            // - Ancien : DEV-YYYY-MM-XXX (4 parties)
+            // - Nouveau : DEV-YYYY-XXX (3 parties)
             $parts = explode('-', $lastQuote->getNumero());
             if (count($parts) === 4) {
+                // Ancien format : DEV-YYYY-MM-XXX
                 $sequence = (int) $parts[3] + 1;
+            } elseif (count($parts) === 3 && is_numeric($parts[2])) {
+                // Nouveau format : DEV-YYYY-XXX
+                $sequence = (int) $parts[2] + 1;
             }
         }
 
-        $quote->setNumero(sprintf('DEV-%d-%s-%03d', $year, $month, $sequence));
+        // Générer le numéro au format DEV-YYYY-XXX (ex: DEV-2025-001)
+        $quote->setNumero(sprintf('DEV-%d-%03d', $year, $sequence));
     }
 
     /**
      * Génère le numéro de facture : FACT-YYYY-XXX (séquentiel sans rupture)
+     * 
+     * Conformité légale française : la numérotation doit être séquentielle et continue,
+     * même pour les factures annulées (elles conservent leur numéro et font partie de la séquence).
      */
     private function generateInvoiceNumber(Invoice $invoice, PrePersistEventArgs $args): void
     {
@@ -87,6 +102,7 @@ class AutoNumberingSubscriber
         $year = (int) date('Y');
 
         // Trouver le dernier numéro pour cette année
+        // IMPORTANT : on inclut TOUTES les factures (y compris annulées) pour respecter la séquence légale
         $lastInvoice = $em->getRepository(Invoice::class)->createQueryBuilder('i')
             ->where('i.numero LIKE :pattern')
             ->setParameter('pattern', sprintf('FACT-%d-%%', $year))
@@ -98,12 +114,14 @@ class AutoNumberingSubscriber
         $sequence = 1;
         if ($lastInvoice && $lastInvoice->getNumero()) {
             // Extraire le numéro de séquence de la dernière facture
+            // Format attendu : FACT-YYYY-XXX
             $parts = explode('-', $lastInvoice->getNumero());
-            if (count($parts) === 3) {
+            if (count($parts) === 3 && is_numeric($parts[2])) {
                 $sequence = (int) $parts[2] + 1;
             }
         }
 
+        // Générer le numéro au format FACT-YYYY-XXX (ex: FACT-2025-001)
         $invoice->setNumero(sprintf('FACT-%d-%03d', $year, $sequence));
     }
 
@@ -124,14 +142,21 @@ class AutoNumberingSubscriber
         $em = $args->getObjectManager();
 
         // Extraire l'année et le numéro de séquence du devis
-        // Format devis : DEV-YYYY-MM-XXX
+        // Support des deux formats :
+        // - Ancien : DEV-YYYY-MM-XXX (4 parties)
+        // - Nouveau : DEV-YYYY-XXX (3 parties)
         $quoteParts = explode('-', $quote->getNumero());
-        if (count($quoteParts) !== 4) {
+        if (count($quoteParts) === 4) {
+            // Ancien format : DEV-YYYY-MM-XXX
+            $year = $quoteParts[1];
+            $quoteSequence = $quoteParts[3];
+        } elseif (count($quoteParts) === 3 && is_numeric($quoteParts[2])) {
+            // Nouveau format : DEV-YYYY-XXX
+            $year = $quoteParts[1];
+            $quoteSequence = $quoteParts[2];
+        } else {
             return; // Format de devis invalide
         }
-
-        $year = $quoteParts[1];
-        $quoteSequence = $quoteParts[3];
 
         // Trouver le dernier avenant pour ce devis
         $lastAmendment = $em->getRepository(Amendment::class)->createQueryBuilder('a')

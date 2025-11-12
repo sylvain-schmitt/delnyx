@@ -38,7 +38,7 @@ class QuoteType extends AbstractType
                     'class' => 'form-input',
                     'readonly' => true
                 ],
-                'help' => 'Le numéro sera généré automatiquement lors de la création (format: DEV-YYYY-MM-XXX)',
+                'help' => 'Le numéro sera généré automatiquement lors de la création (format: DEV-YYYY-XXX)',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('client', EntityType::class, [

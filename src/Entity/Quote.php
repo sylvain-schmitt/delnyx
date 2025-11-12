@@ -540,37 +540,39 @@ class Quote
      * Recalcule les montants HT/TTC depuis les lignes
      * - Si usePerLineTva = true: somme TTC par ligne
      * - Sinon: applique le taux global du devis sur le total HT
-     * Les montants sont stockés en centimes (int sous forme string)
+     * Les montants sont stockés en euros (DECIMAL, string avec 2 décimales)
      */
     public function recalculateTotalsFromLines(): void
     {
         if ($this->lines->isEmpty()) {
+            $this->montantHT = '0.00';
+            $this->montantTTC = '0.00';
             return;
         }
 
-        $totalHtCents = 0;
+        $totalHtEuros = 0.0;
         foreach ($this->lines as $line) {
-            $totalHtCents += (int) ($line->getTotalHt() ?? 0);
+            $totalHtEuros += (float) ($line->getTotalHt() ?? 0);
         }
 
-        $this->montantHT = (string) $totalHtCents;
+        $this->montantHT = number_format($totalHtEuros, 2, '.', '');
 
         if ($this->usePerLineTva) {
-            $totalTtcCents = 0;
+            $totalTtcEuros = 0.0;
             foreach ($this->lines as $line) {
-                $totalTtcCents += (int) $line->getTotalTtc();
+                $totalTtcEuros += (float) $line->getTotalTtc();
             }
-            $this->montantTTC = (string) $totalTtcCents;
+            $this->montantTTC = number_format($totalTtcEuros, 2, '.', '');
             return;
         }
 
         // TVA globale appliquée au total HT
         $tauxTVA = (float) $this->tauxTVA;
         if ($tauxTVA > 0) {
-            $tvaAmount = (int) round($totalHtCents * ($tauxTVA / 100));
-            $this->montantTTC = (string) ($totalHtCents + $tvaAmount);
+            $tvaAmount = $totalHtEuros * ($tauxTVA / 100);
+            $this->montantTTC = number_format($totalHtEuros + $tvaAmount, 2, '.', '');
         } else {
-            $this->montantTTC = (string) $totalHtCents;
+            $this->montantTTC = number_format($totalHtEuros, 2, '.', '');
         }
     }
 
@@ -600,12 +602,10 @@ class Quote
     #[Groups(['quote:read'])]
     public function getMontantAcompte(): string
     {
-        $montantTTC = (float) $this->montantTTC;
+        $montantTTC = (float) $this->montantTTC; // Montant déjà en euros (DECIMAL)
         $acomptePourcentage = (float) $this->acomptePourcentage;
 
-        // MoneyField stocke en centimes, donc on divise par 100
-        $montantTTCEnEuros = $montantTTC / 100;
-        $montantAcompte = $montantTTCEnEuros * ($acomptePourcentage / 100);
+        $montantAcompte = $montantTTC * ($acomptePourcentage / 100);
 
         return number_format(round($montantAcompte, 2), 2, '.', '');
     }
@@ -616,14 +616,10 @@ class Quote
     #[Groups(['quote:read'])]
     public function getMontantTVA(): string
     {
-        $montantTTC = (float) $this->montantTTC;
-        $montantHT = (float) $this->montantHT;
+        $montantTTC = (float) $this->montantTTC; // Montant déjà en euros (DECIMAL)
+        $montantHT = (float) $this->montantHT; // Montant déjà en euros (DECIMAL)
 
-        // EasyAdmin MoneyField stocke en centimes, donc on divise par 100
-        $montantTTCEnEuros = $montantTTC / 100;
-        $montantHTEnEuros = $montantHT / 100;
-
-        return number_format(round($montantTTCEnEuros - $montantHTEnEuros, 2), 2, '.', '');
+        return number_format(round($montantTTC - $montantHT, 2), 2, '.', '');
     }
 
     /**
@@ -708,7 +704,7 @@ class Quote
      */
     public function getMontantHTFormate(): string
     {
-        $montant = (float) $this->montantHT / 100; // Conversion centimes -> euros
+        $montant = (float) $this->montantHT; // Montant déjà en euros (DECIMAL)
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 
@@ -717,7 +713,7 @@ class Quote
      */
     public function getMontantTTCFormate(): string
     {
-        $montant = (float) $this->montantTTC / 100; // Conversion centimes -> euros
+        $montant = (float) $this->montantTTC; // Montant déjà en euros (DECIMAL)
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 
@@ -745,10 +741,10 @@ class Quote
      */
     public function getSoldeRestant(): string
     {
-        $montantTTCEnEuros = (float) $this->montantTTC / 100; // Conversion centimes -> euros
-        $montantAcompteEnEuros = (float) $this->getMontantAcompte();
+        $montantTTC = (float) $this->montantTTC; // Montant déjà en euros (DECIMAL)
+        $montantAcompte = (float) $this->getMontantAcompte();
 
-        $soldeRestant = $montantTTCEnEuros - $montantAcompteEnEuros;
+        $soldeRestant = $montantTTC - $montantAcompte;
 
         return number_format(round($soldeRestant, 2), 2, '.', '');
     }

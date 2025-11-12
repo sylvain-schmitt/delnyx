@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Form;
 
-use App\Entity\QuoteLine;
+use App\Entity\InvoiceLine;
 use App\Entity\Tariff;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
@@ -16,7 +16,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Doctrine\ORM\EntityRepository;
 
-class QuoteLineType extends AbstractType
+class InvoiceLineType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
@@ -69,7 +69,7 @@ class QuoteLineType extends AbstractType
                 ],
                 'placeholder' => 'Taux global',
                 'attr' => ['class' => 'form-select'],
-                'help' => 'Taux de TVA pour cette ligne. Si non renseigné, le taux global du devis s\'applique.',
+                'help' => 'Taux de TVA pour cette ligne. Si non renseigné, le taux du devis associé s\'applique.',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ]);
     }
@@ -77,7 +77,7 @@ class QuoteLineType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => QuoteLine::class,
+            'data_class' => InvoiceLine::class,
         ]);
     }
 }
