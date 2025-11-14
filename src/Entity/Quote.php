@@ -181,14 +181,6 @@ class Quote
     private ?Invoice $invoice = null;
 
     /**
-     * Tariffs associés à ce quote (plusieurs tarifs possibles)
-     */
-    #[ORM\ManyToMany(targetEntity: Tariff::class)]
-    #[ORM\JoinTable(name: 'quote_tariffs')]
-    #[Groups(['quote:read', 'quote:write'])]
-    private \Doctrine\Common\Collections\Collection $tariffs;
-
-    /**
      * @var Collection<int, QuoteLine>
      */
     #[ORM\OneToMany(targetEntity: QuoteLine::class, mappedBy: 'quote', cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -197,7 +189,6 @@ class Quote
 
     public function __construct()
     {
-        $this->tariffs = new \Doctrine\Common\Collections\ArrayCollection();
         $this->statut = QuoteStatus::DRAFT;
         $this->dateCreation = new \DateTime();
         $this->dateModification = new \DateTime();
@@ -501,82 +492,12 @@ class Quote
         return $this;
     }
 
-    public function getTariffs(): \Doctrine\Common\Collections\Collection
-    {
-        return $this->tariffs;
-    }
-
-    public function addTariff(Tariff $tariff): self
-    {
-        if (!$this->tariffs->contains($tariff)) {
-            $this->tariffs[] = $tariff;
-            $this->calculerMontantsDepuisTarifs();
-        }
-        return $this;
-    }
-
-    public function removeTariff(Tariff $tariff): self
-    {
-        if ($this->tariffs->removeElement($tariff)) {
-            $this->calculerMontantsDepuisTarifs();
-        }
-        return $this;
-    }
-
-    public function setTariffs(\Doctrine\Common\Collections\Collection $tariffs): self
-    {
-        $this->tariffs = $tariffs;
-        $this->calculerMontantsDepuisTarifs();
-        return $this;
-    }
-
-    /**
-     * Calcule automatiquement les montants HT et TTC depuis les tarifs sélectionnés
-     */
-    public function calculerMontantsDepuisTarifs(): void
-    {
-        if ($this->tariffs->isEmpty()) {
-            return;
-        }
-
-        $totalHT = 0;
-
-        // Somme de tous les tarifs sélectionnés (convertir centimes en euros)
-        foreach ($this->tariffs as $tariff) {
-            $prixEnCentimes = (float) $tariff->getPrix();
-            $prixEnEuros = $prixEnCentimes / 100;
-            $totalHT += $prixEnEuros;
-        }
-
-        $tauxTVA = (float) $this->tauxTVA;
-
-        // Montant HT = somme des tarifs (en centimes pour MoneyField)
-        $this->montantHT = number_format($totalHT * 100, 0, '.', '');
-
-        // Montant TTC = HT + TVA
-        if ($tauxTVA > 0) {
-            $montantTVA = $totalHT * ($tauxTVA / 100);
-            $montantTTC = $totalHT + $montantTVA;
-        } else {
-            // Micro-entrepreneur : HT = TTC
-            $montantTTC = $totalHT;
-        }
-
-        $this->montantTTC = number_format($montantTTC * 100, 0, '.', '');
-    }
-
     /**
      * Recalcule les montants quand le taux de TVA change
      */
     public function setTauxTVA(string $tauxTVA): self
     {
         $this->tauxTVA = $tauxTVA;
-
-        // Recalculer les montants si des tarifs sont déjà sélectionnés
-        if (!$this->tariffs->isEmpty()) {
-            $this->calculerMontantsDepuisTarifs();
-        }
-
         return $this;
     }
 

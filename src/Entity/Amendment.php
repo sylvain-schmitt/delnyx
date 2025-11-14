@@ -58,12 +58,6 @@ class Amendment
     #[Assert\NotNull(message: "Un amendment doit être lié à un quote")]
     private ?Quote $quote = null;
 
-    // ===== SYSTÈME DE TARIFS POUR L'AVENANT =====
-    #[ORM\ManyToMany(targetEntity: Tariff::class)]
-    #[ORM\JoinTable(name: 'amendment_tariffs')]
-    #[Groups(['amendment:read', 'amendment:write'])]
-    private Collection $tariffs;
-
     #[ORM\Column(type: Types::TEXT)]
     #[Groups(['amendment:read', 'amendment:write'])]
     #[Assert\NotBlank]
@@ -122,7 +116,6 @@ class Amendment
     {
         $this->dateCreation = new \DateTime();
         $this->statut = 'brouillon';
-        $this->tariffs = new ArrayCollection();
         $this->montantHT = 0;
         $this->montantTVA = 0;
         $this->montantTTC = 0;
@@ -159,31 +152,6 @@ class Amendment
             $this->setTauxTVA($quote->getTauxTVA());
         }
 
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Tariff>
-     */
-    public function getTariffs(): Collection
-    {
-        return $this->tariffs;
-    }
-
-    public function addTariff(Tariff $tariff): static
-    {
-        if (!$this->tariffs->contains($tariff)) {
-            $this->tariffs->add($tariff);
-            $this->calculerMontantsDepuisTarifs();
-        }
-        return $this;
-    }
-
-    public function removeTariff(Tariff $tariff): static
-    {
-        if ($this->tariffs->removeElement($tariff)) {
-            $this->calculerMontantsDepuisTarifs();
-        }
         return $this;
     }
 
@@ -324,30 +292,6 @@ class Amendment
     // ===== MÉTHODES DE CALCUL AUTOMATIQUE =====
 
     /**
-     * Calcule les montants automatiquement depuis les tarifs sélectionnés
-     */
-    public function calculerMontantsDepuisTarifs(): void
-    {
-        // On travaille en centimes pour éviter les flottants
-        $montantHTCents = 0;
-
-        foreach ($this->tariffs as $tariff) {
-            // getPrix() renvoie le prix stocké (attendu en centimes). On force le cast en entier.
-            $montantHTCents += (int) $tariff->getPrix();
-        }
-
-        // Affectations strictes en int
-        $this->montantHT = (int) $montantHTCents;
-
-        // Calcul de la TVA à partir d'un pourcentage stocké en chaîne (ex: "20.00")
-        $tauxTVAPourcentage = (float) $this->tauxTVA; // ex: 20.00
-        $this->montantTVA = (int) round($this->montantHT * $tauxTVAPourcentage / 100);
-
-        // Calcul du TTC
-        $this->montantTTC = (int) ($this->montantHT + $this->montantTVA);
-    }
-
-    /**
      * Retourne le montant HT formaté
      */
     public function getMontantHTFormate(): string
@@ -440,7 +384,7 @@ class Amendment
     }
 
     /**
-     * Résumé lisible des tarifs du devis concerné (pour affichage admin/PDF)
+     * Résumé lisible des lignes du devis concerné (pour affichage admin/PDF)
      */
     public function getDevisTarifsResume(): string
     {
@@ -448,16 +392,16 @@ class Amendment
             return '';
         }
 
-        $tariffs = $this->quote->getTariffs();
-        if ($tariffs === null || $tariffs->count() === 0) {
-            return 'Aucun tarif sur le devis d\'origine.';
+        $quoteLines = $this->quote->getLines();
+        if ($quoteLines === null || $quoteLines->count() === 0) {
+            return 'Aucune ligne sur le devis d\'origine.';
         }
 
         $lines = [];
-        foreach ($tariffs as $tariff) {
-            $nom = method_exists($tariff, 'getNom') ? (string) $tariff->getNom() : '';
-            $prix = method_exists($tariff, 'getPrixTTCFormate') ? (string) $tariff->getPrixTTCFormate() : '';
-            $lines[] = trim($nom . ' — ' . $prix);
+        foreach ($quoteLines as $line) {
+            $description = $line->getDescription() ?? '';
+            $total = $line->getTotalTtcFormatted() ?? '0,00 €';
+            $lines[] = trim($description . ' — ' . $total);
         }
 
         return implode("\n", $lines);
