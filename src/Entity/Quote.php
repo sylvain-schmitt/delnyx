@@ -30,8 +30,14 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new GetCollection(),
         new Get(),
         new Post(),
-        new Put(),
-        new Delete()
+        new Put(
+            security: "object.getStatut() !== 'signed'",
+            securityMessage: "Un devis signé ne peut pas être modifié via l'API."
+        ),
+        new Delete(
+            security: "false",
+            securityMessage: "Les devis ne peuvent pas être supprimés. Utilisez l'annulation."
+        )
     ],
     normalizationContext: ['groups' => ['quote:read']],
     denormalizationContext: ['groups' => ['quote:write']]
@@ -269,8 +275,46 @@ class Quote
 
     public function setStatut(?QuoteStatus $statut): self
     {
+        // Si passage à SIGNED, valider que c'est possible
+        if ($statut === QuoteStatus::SIGNED && $this->statut !== QuoteStatus::SIGNED) {
+            $this->validateCanBeSigned();
+        }
+        
         $this->statut = $statut;
         return $this;
+    }
+
+    /**
+     * Valide que le devis peut être signé
+     * 
+     * @throws \RuntimeException si le devis ne peut pas être signé
+     */
+    public function validateCanBeSigned(): void
+    {
+        // Vérifier qu'au moins une ligne est présente
+        if ($this->lines->isEmpty()) {
+            throw new \RuntimeException('Un devis ne peut pas être signé sans ligne.');
+        }
+
+        // Vérifier que le montant HT est positif
+        if ((float) $this->montantHT <= 0) {
+            throw new \RuntimeException('Un devis ne peut pas être signé avec un montant HT négatif ou nul.');
+        }
+
+        // Vérifier que le montant TTC est positif
+        if ((float) $this->montantTTC <= 0) {
+            throw new \RuntimeException('Un devis ne peut pas être signé avec un montant TTC négatif ou nul.');
+        }
+
+        // Vérifier que le devis n'est pas annulé
+        if ($this->statut === QuoteStatus::CANCELLED) {
+            throw new \RuntimeException('Un devis annulé ne peut pas être signé.');
+        }
+
+        // Vérifier que le devis n'est pas expiré
+        if ($this->isExpired()) {
+            throw new \RuntimeException('Un devis expiré ne peut pas être signé.');
+        }
     }
 
     public function getMontantHT(): string

@@ -44,21 +44,27 @@ class LockOnSignatureSubscriber
                          $quote->getSignatureClient() !== null && 
                          ($changeset['signatureClient'][0] === null || $changeset['signatureClient'][0] === '');
 
-        if ($statusChanged && $quote->getStatut() === QuoteStatus::SIGNED->value) {
+        if ($statusChanged && $quote->getStatut() === QuoteStatus::SIGNED) {
+            // Valider avant signature
+            $quote->validateCanBeSigned();
+            
             // Le statut a été changé vers SIGNED
             if (!$quote->getDateSignature()) {
                 $quote->setDateSignature(new \DateTime());
             }
         } elseif ($signatureAdded && $quote->getSignatureClient() !== null) {
+            // Valider avant signature
+            $quote->validateCanBeSigned();
+            
             // La signature a été ajoutée, passer le statut à SIGNED
-            $quote->setStatut(QuoteStatus::SIGNED->value);
+            $quote->setStatut(QuoteStatus::SIGNED);
             if (!$quote->getDateSignature()) {
                 $quote->setDateSignature(new \DateTime());
             }
         }
 
         // Vérifier si le devis est signé et empêcher les modifications
-        if ($quote->getStatut() === QuoteStatus::SIGNED->value) {
+        if ($quote->getStatut() === QuoteStatus::SIGNED) {
             $this->preventModifications($quote, $changeset);
         }
     }

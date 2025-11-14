@@ -69,7 +69,7 @@ enum InvoiceStatus: string
 
     /**
      * Détermine si la facture est modifiable
-     * Une facture n'est modifiable que si elle est en brouillon
+     * Conformité légale : seule une facture en brouillon est modifiable
      */
     public function isModifiable(): bool
     {

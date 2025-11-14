@@ -110,6 +110,18 @@ class InvoiceController extends AbstractController
             return new JsonResponse(['error' => 'Devis non trouvé'], 404);
         }
 
+        // Vérifier que le devis appartient à la même entreprise
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+        
+        if ($companyId && $quote->getCompanyId() !== $companyId) {
+            return new JsonResponse(['error' => 'Accès non autorisé'], 403);
+        }
+
         // Vérifier que le devis est signé
         if ($quote->getStatut() !== \App\Entity\QuoteStatus::SIGNED) {
             return new JsonResponse(['error' => 'Seuls les devis signés peuvent être utilisés'], 400);
@@ -445,6 +457,12 @@ class InvoiceController extends AbstractController
             return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
         }
 
+        // Vérifier explicitement que la facture n'est pas payée
+        if ($invoice->getStatut() === InvoiceStatus::PAID->value) {
+            $this->addFlash('error', 'Une facture payée ne peut pas être annulée. Créez un avoir pour rembourser.');
+            return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+        }
+
         // Vérifier si la facture est déjà annulée
         if ($invoice->getStatut() === InvoiceStatus::CANCELLED->value) {
             $this->addFlash('info', 'Cette facture est déjà annulée.');
@@ -468,6 +486,19 @@ class InvoiceController extends AbstractController
     #[Route('/generate-from-quote/{id}', name: 'generate_from_quote', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function generateFromQuote(Request $request, Quote $quote): Response
     {
+        // Vérifier que le devis appartient à la même entreprise
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+        
+        if ($companyId && $quote->getCompanyId() !== $companyId) {
+            $this->addFlash('error', 'Vous n\'avez pas accès à ce devis.');
+            return $this->redirectToRoute('admin_quote_index');
+        }
+
         // Vérifier que le devis est signé
         if ($quote->getStatut() !== QuoteStatus::SIGNED) {
             $this->addFlash('error', 'Seuls les devis signés peuvent être convertis en facture.');

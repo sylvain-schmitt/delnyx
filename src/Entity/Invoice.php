@@ -25,9 +25,18 @@ use ApiPlatform\Metadata\Patch;
         new Get(),
         new GetCollection(),
         new Post(),
-        new Put(),
-        new Patch(),
-        new Delete()
+        new Put(
+            security: "object.getStatut() === 'draft'",
+            securityMessage: "Seules les factures en brouillon peuvent être modifiées via l'API."
+        ),
+        new Patch(
+            security: "object.getStatut() === 'draft'",
+            securityMessage: "Seules les factures en brouillon peuvent être modifiées via l'API."
+        ),
+        new Delete(
+            security: "false",
+            securityMessage: "Les factures ne peuvent pas être supprimées. Utilisez l'annulation."
+        )
     ],
     normalizationContext: ['groups' => ['invoice:read']],
     denormalizationContext: ['groups' => ['invoice:write']],
@@ -180,6 +189,19 @@ class Invoice
 
     public function setNumero(string $numero): self
     {
+        // Empêcher la modification du numéro si la facture est émise
+        if ($this->id !== null && $this->numero !== null && $this->numero !== $numero) {
+            $statutEnum = $this->getStatutEnum();
+            if ($statutEnum && $statutEnum->isEmitted()) {
+                throw new \RuntimeException(
+                    sprintf(
+                        'Le numéro de la facture #%s ne peut pas être modifié car elle est déjà émise.',
+                        $this->numero
+                    )
+                );
+            }
+        }
+        
         $this->numero = $numero;
         return $this;
     }
@@ -413,6 +435,19 @@ class Invoice
 
     public function setQuote(?Quote $quote): self
     {
+        // Empêcher le changement de devis si la facture est émise
+        if ($this->id !== null && $this->quote !== null && $this->quote !== $quote) {
+            $statutEnum = $this->getStatutEnum();
+            if ($statutEnum && $statutEnum->isEmitted()) {
+                throw new \RuntimeException(
+                    sprintf(
+                        'Le devis associé à la facture #%s ne peut pas être modifié car elle est déjà émise.',
+                        $this->numero ?? $this->id
+                    )
+                );
+            }
+        }
+        
         $this->quote = $quote;
         return $this;
     }
@@ -497,13 +532,11 @@ class Invoice
 
     /**
      * Vérifie si la facture peut être modifiée
+     * Conformité légale : seules les factures en brouillon peuvent être modifiées
      */
     public function canBeModified(): bool
     {
-        return in_array($this->statut, [
-            InvoiceStatus::DRAFT->value,
-            InvoiceStatus::SENT->value
-        ]);
+        return $this->statut === InvoiceStatus::DRAFT->value;
     }
 
     /**
