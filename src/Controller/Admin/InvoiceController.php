@@ -13,6 +13,7 @@ use App\Repository\InvoiceRepository;
 use App\Repository\QuoteRepository;
 use App\Repository\ClientRepository;
 use App\Repository\CompanySettingsRepository;
+use App\Repository\AmendmentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -31,6 +32,7 @@ class InvoiceController extends AbstractController
         private QuoteRepository $quoteRepository,
         private ClientRepository $clientRepository,
         private CompanySettingsRepository $companySettingsRepository,
+        private AmendmentRepository $amendmentRepository,
         private EntityManagerInterface $entityManager
     ) {}
 
@@ -45,7 +47,7 @@ class InvoiceController extends AbstractController
         $qb = $this->invoiceRepository->createQueryBuilder('i');
 
         if (!$includeCancelled) {
-            $qb->where('i.statut != :cancelled')
+            $qb->where('i.statut != :cancelled OR i.statut IS NULL')
                 ->setParameter('cancelled', InvoiceStatus::CANCELLED->value);
         }
 
@@ -157,8 +159,20 @@ class InvoiceController extends AbstractController
     #[Route('/{id}', name: 'show', requirements: ['id' => '\d+'])]
     public function show(Invoice $invoice): Response
     {
+        // Récupérer les avenants du devis associé s'il existe
+        $quoteAmendments = [];
+        if ($invoice->getQuote()) {
+            $quoteAmendments = $this->amendmentRepository->createQueryBuilder('a')
+                ->where('a.quote = :quote')
+                ->setParameter('quote', $invoice->getQuote())
+                ->orderBy('a.dateCreation', 'DESC')
+                ->getQuery()
+                ->getResult();
+        }
+
         return $this->render('admin/invoice/show.html.twig', [
             'invoice' => $invoice,
+            'quoteAmendments' => $quoteAmendments,
         ]);
     }
 

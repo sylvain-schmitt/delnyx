@@ -10,6 +10,8 @@ use App\Entity\Invoice;
 use App\Entity\InvoiceLine;
 use App\Entity\CreditNote;
 use App\Entity\CreditNoteLine;
+use App\Entity\Amendment;
+use App\Entity\AmendmentLine;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
 use Doctrine\ORM\Events;
 use Doctrine\Persistence\Event\LifecycleEventArgs;
@@ -42,12 +44,16 @@ class RecalculateTotalsSubscriber
             $this->recalculateInvoiceTotals($entity, $args);
         } elseif ($entity instanceof CreditNoteLine) {
             $this->recalculateCreditNoteTotals($entity, $args);
+        } elseif ($entity instanceof AmendmentLine) {
+            $this->recalculateAmendmentTotals($entity, $args);
         } elseif ($entity instanceof Quote) {
             $this->recalculateQuoteFromLines($entity);
         } elseif ($entity instanceof Invoice) {
             $this->recalculateInvoiceFromLines($entity);
         } elseif ($entity instanceof CreditNote) {
             $this->recalculateCreditNoteFromLines($entity);
+        } elseif ($entity instanceof Amendment) {
+            $this->recalculateAmendmentFromLines($entity);
         }
     }
 
@@ -91,67 +97,52 @@ class RecalculateTotalsSubscriber
     }
 
     /**
+     * Recalcule les totaux d'un avenant à partir de ses lignes
+     */
+    private function recalculateAmendmentTotals(AmendmentLine $line, LifecycleEventArgs $args): void
+    {
+        $amendment = $line->getAmendment();
+        if (!$amendment) {
+            return;
+        }
+
+        $this->recalculateAmendmentFromLines($amendment);
+    }
+
+    /**
      * Recalcule les totaux d'un devis depuis toutes ses lignes
+     * Les montants sont stockés en DECIMAL (euros)
      */
     private function recalculateQuoteFromLines(Quote $quote): void
     {
-        $totalHT = 0;
-        $totalTVA = 0;
-
-        foreach ($quote->getLines() as $line) {
-            $lineTotalHT = $line->getTotalHt() ?? 0;
-            $totalHT += $lineTotalHT;
-
-            // Calculer la TVA pour cette ligne
-            if ($line->getTvaRate() && (float) $line->getTvaRate() > 0) {
-                $tvaAmount = (int) round($lineTotalHT * ((float) $line->getTvaRate() / 100));
-                $totalTVA += $tvaAmount;
-            } elseif ($quote->getTauxTVA() && (float) $quote->getTauxTVA() > 0) {
-                // Utiliser le taux de TVA du devis si la ligne n'en a pas
-                $tvaAmount = (int) round($lineTotalHT * ((float) $quote->getTauxTVA() / 100));
-                $totalTVA += $tvaAmount;
-            }
-        }
-
-        $quote->setMontantHT((string) ($totalHT / 100)); // Conversion centimes -> euros (string)
-        $quote->setMontantTVA((string) ($totalTVA / 100));
-        $quote->setMontantTTC((string) (($totalHT + $totalTVA) / 100));
+        $quote->recalculateTotalsFromLines();
     }
 
     /**
      * Recalcule les totaux d'une facture depuis toutes ses lignes
+     * Les montants sont stockés en DECIMAL (euros)
      */
     private function recalculateInvoiceFromLines(Invoice $invoice): void
     {
-        $totalHT = 0;
-        $totalTVA = 0;
-
-        foreach ($invoice->getLines() as $line) {
-            $lineTotalHT = $line->getTotalHt() ?? 0;
-            $totalHT += $lineTotalHT;
-
-            // Calculer la TVA pour cette ligne
-            if ($line->getTvaRate() && (float) $line->getTvaRate() > 0) {
-                $tvaAmount = (int) round($lineTotalHT * ((float) $line->getTvaRate() / 100));
-                $totalTVA += $tvaAmount;
-            } elseif ($invoice->getQuote() && $invoice->getQuote()->getTauxTVA() && (float) $invoice->getQuote()->getTauxTVA() > 0) {
-                // Utiliser le taux de TVA du devis si la ligne n'en a pas
-                $tvaAmount = (int) round($lineTotalHT * ((float) $invoice->getQuote()->getTauxTVA() / 100));
-                $totalTVA += $tvaAmount;
-            }
-        }
-
-        $invoice->setMontantHT((string) ($totalHT / 100)); // Conversion centimes -> euros (string)
-        $invoice->setMontantTVA((string) ($totalTVA / 100));
-        $invoice->setMontantTTC((string) (($totalHT + $totalTVA) / 100));
+        $invoice->recalculateTotalsFromLines();
     }
 
     /**
      * Recalcule les totaux d'un avoir depuis toutes ses lignes
+     * Les montants sont stockés en DECIMAL (euros)
      */
     private function recalculateCreditNoteFromLines(CreditNote $creditNote): void
     {
         $creditNote->recalculateTotals();
+    }
+
+    /**
+     * Recalcule les totaux d'un avenant depuis toutes ses lignes
+     * Les montants sont stockés en DECIMAL (euros)
+     */
+    private function recalculateAmendmentFromLines(Amendment $amendment): void
+    {
+        $amendment->recalculateTotalsFromLines();
     }
 }
 

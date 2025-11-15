@@ -11,8 +11,7 @@
 {% endblock %}
 
 {% block body %}
-	<div
-		class="space-y-6">
+	<div class="space-y-6">
 
 		{# Header avec breadcrumb #}
 		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
@@ -21,40 +20,40 @@
 				<nav class="flex items-center space-x-2 text-sm text-white/60 mt-1">
 					<a href="{{ path('admin_dashboard') }}" class="hover:text-white transition-colors duration-200">Dashboard</a>
 					<span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
-					<a href="{{ path('admin_invoice_index') }}" class="hover:text-white transition-colors duration-200">Factures</a>
+					<a href="{{ path('admin_credit_note_index') }}" class="hover:text-white transition-colors duration-200">Avoirs</a>
 					<span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
 					<span class="text-white">{{ title }}</span>
 				</nav>
 			</div>
-			<a href="{{ path('admin_invoice_index') }}" class="btn-secondary flex items-center gap-2">
+			<a href="{{ path('admin_credit_note_index') }}" class="btn-secondary flex items-center gap-2">
 				{{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
 				Retour à la liste
 			</a>
 		</div>
 
-		{# Alerte immutabilité si facture émise #}
-		{% if invoice.statutEnum and invoice.statutEnum.isEmitted() %}
+		{# Alerte immutabilité si avoir émis #}
+		{% if creditNote.statutEnum.value == 'issued' %}
 			<div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 scroll-animate mb-6">
 				<div class="flex items-start gap-3">
 					{{ ux_icon('lucide:lock', {class: 'w-5 h-5 text-blue-400 mt-0.5'}) }}
 					<div class="flex-1">
-						<p class="text-blue-300 font-medium mb-1">Facture émise - Document immuable</p>
-						<p class="text-blue-200/80 text-sm">Cette facture est émise et ne peut plus être modifiée. Pour apporter des corrections, créez un avoir.</p>
+						<p class="text-blue-300 font-medium mb-1">Avoir émis - Document immuable</p>
+						<p class="text-blue-200/80 text-sm">Cet avoir est émis et ne peut plus être modifié. Les lignes sont en lecture seule.</p>
 					</div>
 				</div>
 			</div>
 		{% endif %}
 
 		{# Formulaire #}
-		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100" data-controller="invoice-form quote-form flash-messages">
-			{% set isReadOnly = invoice.statutEnum and invoice.statutEnum.isEmitted() %}
+		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100" data-controller="quote-form flash-messages">
+			{% set isReadOnly = creditNote.statutEnum.value == 'issued' %}
 			{{ form_start(form, {'attr': {'class': 'space-y-6', 'data-controller': 'admin-form', 'data-admin-form-target': 'form', 'novalidate': 'novalidate', 'data-action': 'submit->admin-form#handleSubmit'}}) }}
 
-			{# Messages flash avec contrôleur Stimulus #}
+			{# Messages flash #}
 			<div data-flash-messages-target="container" class="space-y-3 mb-4">
 				{% for type, messages in app.flashes %}
 					{% for message in messages %}
-						<div data-flash-messages-target="message" class="glass-card optimized-blur p-4 border-l-4 {% if type == 'success' %}border-emerald-500{% elseif type == 'error' %}border-red-500{% else %}border-blue-500{% endif %}" data-flash-messages-message-param="{{ loop.index }}">
+						<div data-flash-messages-target="message" class="glass-card optimized-blur p-4 border-l-4 {% if type == 'success' %}border-emerald-500{% elseif type == 'error' %}border-red-500{% else %}border-blue-500{% endif %}">
 							<div class="flex items-center">
 								<div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 {% if type == 'success' %}bg-emerald-500/20{% else %}bg-red-500/20{% endif %}">
 									{% if type == 'success' %}
@@ -75,52 +74,43 @@
 			{# Informations générales #}
 			<div class="space-y-4">
 				<h3 class="text-lg font-semibold text-white flex items-center gap-2">
-					{{ ux_icon('lucide:receipt', {class: 'w-5 h-5'}) }}
+					{{ ux_icon('lucide:file-minus', {class: 'w-5 h-5'}) }}
 					Informations générales
 				</h3>
 
-				{# Le champ numero est toujours caché (généré automatiquement en création, affiché dans le titre en édition) #}
-				{{ form_widget(form.numero, {'attr': {'style': 'display: none'}}) }}
+				{{ form_widget(form.number, {'attr': {'style': 'display: none'}}) }}
 
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div class="form-group" data-controller="select-search" data-select-search-type="quote">
-						{{ form_label(form.quote, null, {'label_attr': {'class': 'form-label'}}) }}
-						{{ form_widget(form.quote, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field', 'disabled': isReadOnly ? 'disabled' : false}}) }}
-						{{ form_help(form.quote) }}
-						{{ form_errors(form.quote) }}
-					</div>
-					<div class="form-group" data-controller="select-search" data-select-search-type="client">
-						{{ form_label(form.client, null, {'label_attr': {'class': 'form-label'}}) }}
-						{{ form_widget(form.client, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field', 'disabled': isReadOnly ? 'disabled' : false}}) }}
-						{{ form_help(form.client) }}
-						{{ form_errors(form.client) }}
-					</div>
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div class="form-group" data-controller="select-search" data-select-search-type="invoice">
+					{{ form_label(form.invoice, null, {'label_attr': {'class': 'form-label'}}) }}
+					{% if invoice_locked|default(false) or isReadOnly %}
+						{{ form_widget(form.invoice, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field', 'disabled': 'disabled'}}) }}
+						{% if invoice_id|default(false) %}
+							<input type="hidden" name="{{ form.invoice.vars.full_name }}" value="{{ invoice_id }}">
+						{% elseif form.invoice.vars.value %}
+							{% set invoiceValue = form.invoice.vars.value %}
+							{% set invoiceId = attribute(invoiceValue, 'id')|default(invoiceValue) %}
+							<input type="hidden" name="{{ form.invoice.vars.full_name }}" value="{{ invoiceId }}">
+						{% endif %}
+						<p class="text-sm text-white/60 mt-1">La facture est verrouillée car l'avoir a été créé depuis cette facture.</p>
+					{% else %}
+						{{ form_widget(form.invoice, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field'}}) }}
+					{% endif %}
+					{{ form_help(form.invoice) }}
+					{{ form_errors(form.invoice) }}
 				</div>
-
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					{{ form_macros.simple_field(form, 'statut', 'select', {'disabled': isReadOnly}) }}
-					<div class="form-group" data-controller="date-picker">
-						{{ form_label(form.dateEcheance, null, {'label_attr': {'class': 'form-label'}}) }}
-						<div class="relative">
-							{{ form_widget(form.dateEcheance, {'attr': {'class': 'form-input pr-10', 'data-admin-form-target': 'field', 'data-date-picker-target': 'input', 'disabled': isReadOnly ? 'disabled' : false}}) }}
-							{% if not isReadOnly %}
-								<button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50 rounded p-1" data-date-picker-target="button" aria-label="Ouvrir le calendrier">
-									{{ ux_icon('lucide:calendar', {class: 'w-5 h-5'}) }}
-								</button>
-							{% endif %}
-						</div>
-						{{ form_help(form.dateEcheance) }}
-						{{ form_errors(form.dateEcheance) }}
-					</div>
 				</div>
+
+				{{ form_macros.simple_field(form, 'reason', 'textarea', {'disabled': isReadOnly}) }}
 			</div>
 
-			{# Lignes de facture #}
+			{# Lignes d'avoir #}
 			<div class="space-y-4">
 				<div class="flex items-center justify-between">
 					<h3 class="text-lg font-semibold text-white flex items-center gap-2">
 						{{ ux_icon('lucide:list', {class: 'w-5 h-5'}) }}
-						Lignes de facture
+						Lignes d'avoir
 					</h3>
 					{% if not isReadOnly %}
 						<button type="button" class="btn-secondary text-sm py-2 px-4" data-action="click->quote-form#addLine">
@@ -140,8 +130,7 @@
 									{% for child in line.children %}
 										{% if not child.vars.valid %}
 											<div class="mt-1 text-sm">
-												<strong class="text-red-300">{{ form_label(child) }}
-													:</strong>
+												<strong class="text-red-300">{{ form_label(child) }}:</strong>
 												{{ form_errors(child) }}
 											</div>
 										{% endif %}
@@ -155,7 +144,7 @@
 							<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
 								{{ form_macros.simple_field(line, 'quantity', 'number', {'disabled': isReadOnly}) }}
 								{{ form_macros.simple_field(line, 'unitPrice', 'number', {'disabled': isReadOnly}) }}
-								{% if companySettings and companySettings.isTvaEnabled() and invoice.quote and invoice.quote.usePerLineTva %}
+								{% if companySettings and companySettings.isTvaEnabled() and creditNote.invoice and creditNote.invoice.quote and creditNote.invoice.quote.usePerLineTva %}
 									<div data-tva-settings-target="rateWrapper">
 										{{ form_macros.simple_field(line, 'tvaRate', 'select', {'disabled': isReadOnly}) }}
 									</div>
@@ -178,40 +167,46 @@
 					{% endfor %}
 				</div>
 
-				{# Template pour nouvelle ligne (caché) #}
+				{# Template pour nouvelle ligne #}
 				<template data-quote-form-target="lineTemplate">
 					<div class="bg-white/5 border border-white/10 rounded-lg p-4" data-line-index="__name__">
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div class="form-group">
 								<label class="form-label">Tarif du catalogue</label>
-								<select name="invoice[lines][__name__][tariff]" class="form-select" data-admin-form-target="field">
+								<select name="{{ form.lines.vars.full_name }}[__name__][tariff]" class="form-select" data-admin-form-target="field">
 									<option value="">Aucun</option>
 								</select>
 							</div>
 							<div class="form-group">
 								<label class="form-label">Description</label>
-								<input type="text" name="invoice[lines][__name__][description]" class="form-input" data-admin-form-target="field" required>
+								<input type="text" name="{{ form.lines.vars.full_name }}[__name__][description]" class="form-input" data-admin-form-target="field" required>
 							</div>
 						</div>
 						<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
 							<div class="form-group">
 								<label class="form-label">Quantité</label>
-								<input type="number" name="invoice[lines][__name__][quantity]" class="form-input" data-admin-form-target="field" min="1" value="1" required>
+								<input type="number" name="{{ form.lines.vars.full_name }}[__name__][quantity]" class="form-input" data-admin-form-target="field" min="1" value="1" required>
 							</div>
 							<div class="form-group">
 								<label class="form-label">Prix unitaire (€)</label>
-								<input type="number" name="invoice[lines][__name__][unitPrice]" class="form-input" data-admin-form-target="field" step="0.01" min="0" required>
+								<input type="number" name="{{ form.lines.vars.full_name }}[__name__][unitPrice]" class="form-input" data-admin-form-target="field" step="0.01" min="0" required>
 							</div>
-							<div class="form-group" data-tva-settings-target="rateWrapper" style="display: none;">
-								<label class="form-label">Taux TVA (%)</label>
-								<select name="invoice[lines][__name__][tvaRate]" class="form-select" data-admin-form-target="field">
-									<option value="">Taux global</option>
-									<option value="0.00">0%</option>
-									<option value="5.50">5,5%</option>
-									<option value="10.00">10%</option>
-									<option value="20.00">20%</option>
-								</select>
-							</div>
+							{% if companySettings and companySettings.isTvaEnabled() %}
+								<div class="form-group" data-tva-settings-target="rateWrapper" style="display: none;">
+									<label class="form-label">Taux TVA (%)</label>
+									<select name="{{ form.lines.vars.full_name }}[__name__][tvaRate]" class="form-select" data-admin-form-target="field">
+										<option value="">Taux global</option>
+										<option value="0.00">0%</option>
+										<option value="5.50">5,5%</option>
+										<option value="10.00">10%</option>
+										<option value="20.00">20%</option>
+									</select>
+								</div>
+							{% else %}
+								<div style="display: none;">
+									<input type="hidden" name="{{ form.lines.vars.full_name }}[__name__][tvaRate]" value="">
+								</div>
+							{% endif %}
 						</div>
 						<div class="flex items-center justify-end mt-4 pt-4 border-t border-white/10">
 							<button type="button" class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1" data-action="click->quote-form#removeLine">
@@ -223,49 +218,21 @@
 				</template>
 			</div>
 
-			{# Montants et conditions #}
-			<div class="space-y-4">
-				<h3 class="text-lg font-semibold text-white flex items-center gap-2">
-					{{ ux_icon('lucide:euro', {class: 'w-5 h-5'}) }}
-					Montants et conditions
-				</h3>
-
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					{{ form_macros.simple_field(form, 'montantAcompte') }}
-					{{ form_macros.simple_field(form, 'delaiPaiement') }}
-				</div>
-
-				{{ form_macros.simple_field(form, 'conditionsPaiement', 'textarea') }}
-				{{ form_macros.simple_field(form, 'penalitesRetard') }}
-			</div>
-
-			{# Notes #}
-			<div class="space-y-4">
-				<h3 class="text-lg font-semibold text-white flex items-center gap-2">
-					{{ ux_icon('lucide:sticky-note', {class: 'w-5 h-5'}) }}
-					Notes
-				</h3>
-
-				{{ form_macros.simple_field(form, 'notes', 'textarea') }}
-			</div>
-
 			{# Actions #}
 			<div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/20">
 				<button type="submit" class="btn-primary flex items-center justify-center gap-2" data-admin-form-target="submit">
 					{{ ux_icon('lucide:save', {class: 'w-4 h-4'}) }}
-					{{ invoice.id ? 'Modifier la facture' : 'Créer la facture' }}
+					{{ creditNote.id ? 'Modifier l\'avoir' : 'Créer l\'avoir' }}
 				</button>
-
-				<a href="{{ path('admin_invoice_index') }}" class="btn-secondary flex items-center justify-center gap-2">
+				<a href="{{ path('admin_credit_note_index') }}" class="btn-secondary flex items-center justify-center gap-2">
 					{{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
 					Annuler
 				</a>
 			</div>
 
-			{# Rendre les champs restants non rendus (comme numero en création) #}
 			{{ form_rest(form) }}
-
 			{{ form_end(form, {'render_rest': false}) }}
 		</div>
 	</div>
 {% endblock %}
+

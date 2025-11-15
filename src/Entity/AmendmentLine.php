@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Repository\CreditNoteLineRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -16,73 +15,72 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 
-#[ORM\Entity(repositoryClass: CreditNoteLineRepository::class)]
-#[ORM\Table(name: 'credit_note_lines')]
+#[ORM\Entity(repositoryClass: \App\Repository\AmendmentLineRepository::class)]
+#[ORM\Table(name: 'amendment_lines')]
 #[ApiResource(
     operations: [
         new GetCollection(),
         new Get(),
         new Post(
-            security: "is_granted('ROLE_USER') && object.getCreditNote() !== null && object.getCreditNote().getStatutEnum() !== null && object.getCreditNote().getStatutEnum().isModifiable()",
-            securityMessage: "Seuls les utilisateurs authentifiés peuvent créer des lignes d'avoir via l'API. L'avoir doit être modifiable (brouillon)."
+            security: "is_granted('ROLE_USER') && object.getAmendment() !== null && object.getAmendment().getStatutEnum() !== null && object.getAmendment().getStatutEnum().isModifiable()",
+            securityMessage: "Seuls les utilisateurs authentifiés peuvent créer des lignes d'avenant via l'API. L'avenant doit être modifiable (brouillon)."
         ),
         new Put(
-            security: "is_granted('ROLE_USER') && object.getCreditNote() !== null && object.getCreditNote().getStatutEnum() !== null && object.getCreditNote().getStatutEnum().isModifiable()",
-            securityMessage: "Seules les lignes d'avoir en brouillon peuvent être modifiées via l'API."
+            security: "is_granted('ROLE_USER') && object.getAmendment() !== null && object.getAmendment().getStatutEnum() !== null && object.getAmendment().getStatutEnum().isModifiable()",
+            securityMessage: "Seules les lignes d'avenant en brouillon peuvent être modifiées via l'API."
         ),
         new Delete(
-            security: "is_granted('ROLE_USER') && object.getCreditNote() !== null && object.getCreditNote().getStatutEnum() !== null && object.getCreditNote().getStatutEnum().isModifiable()",
-            securityMessage: "Seules les lignes d'avoir en brouillon peuvent être supprimées via l'API."
+            security: "is_granted('ROLE_USER') && object.getAmendment() !== null && object.getAmendment().getStatutEnum() !== null && object.getAmendment().getStatutEnum().isModifiable()",
+            securityMessage: "Seules les lignes d'avenant en brouillon peuvent être supprimées via l'API."
         )
     ],
-    normalizationContext: ['groups' => ['credit_note_line:read']],
-    denormalizationContext: ['groups' => ['credit_note_line:write']]
+    normalizationContext: ['groups' => ['amendment_line:read']],
+    denormalizationContext: ['groups' => ['amendment_line:write']]
 )]
-class CreditNoteLine
+class AmendmentLine
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['credit_note_line:read'])]
+    #[Groups(['amendment_line:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank(message: 'La description est obligatoire')]
     #[Assert\Length(max: 255, maxMessage: 'La description ne peut pas dépasser {{ limit }} caractères')]
-    #[Groups(['credit_note_line:read', 'credit_note_line:write'])]
+    #[Groups(['amendment_line:read', 'amendment_line:write'])]
     private ?string $description = null;
 
     #[ORM\Column]
     #[Assert\NotNull(message: 'La quantité est obligatoire')]
     #[Assert\GreaterThan(value: 0, message: 'La quantité doit être supérieure à 0')]
-    #[Groups(['credit_note_line:read', 'credit_note_line:write'])]
+    #[Groups(['amendment_line:read', 'amendment_line:write'])]
     private ?int $quantity = 1;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Assert\NotNull(message: 'Le prix unitaire est obligatoire')]
-    #[Groups(['credit_note_line:read', 'credit_note_line:write'])]
+    #[Groups(['amendment_line:read', 'amendment_line:write'])]
     private string $unitPrice = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Assert\NotNull(message: 'Le total HT est obligatoire')]
-    #[Assert\LessThanOrEqual(value: 0, message: 'Le total HT d\'une ligne d\'avoir doit être négatif ou nul (montant en crédit)')]
-    #[Groups(['credit_note_line:read', 'credit_note_line:write'])]
+    #[Groups(['amendment_line:read', 'amendment_line:write'])]
     private string $totalHt = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true)]
     #[Assert\GreaterThanOrEqual(value: 0, message: 'Le taux de TVA ne peut pas être négatif')]
     #[Assert\LessThanOrEqual(value: 100, message: 'Le taux de TVA ne peut pas dépasser 100%')]
-    #[Groups(['credit_note_line:read', 'credit_note_line:write'])]
+    #[Groups(['amendment_line:read', 'amendment_line:write'])]
     private ?string $tvaRate = null;
 
     #[ORM\ManyToOne(inversedBy: 'lines')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Assert\NotNull(message: 'La ligne doit être liée à un avoir')]
-    #[Groups(['credit_note_line:read', 'credit_note_line:write'])]
-    private ?CreditNote $creditNote = null;
+    #[Assert\NotNull(message: 'La ligne doit être liée à un avenant')]
+    #[Groups(['amendment_line:read', 'amendment_line:write'])]
+    private ?Amendment $amendment = null;
 
     #[ORM\ManyToOne]
-    #[Groups(['credit_note_line:read', 'credit_note_line:write'])]
+    #[Groups(['amendment_line:read', 'amendment_line:write'])]
     private ?Tariff $tariff = null;
 
     public function getId(): ?int
@@ -147,20 +145,14 @@ class CreditNoteLine
         return $this;
     }
 
-    public function getCreditNote(): ?CreditNote
+    public function getAmendment(): ?Amendment
     {
-        return $this->creditNote;
+        return $this->amendment;
     }
 
-    public function setCreditNote(?CreditNote $creditNote): static
+    public function setAmendment(?Amendment $amendment): static
     {
-        $this->creditNote = $creditNote;
-
-        // Si l'avoir est lié à une facture qui a un quote, appliquer le taux de TVA
-        if ($creditNote && $creditNote->getInvoice() && $creditNote->getInvoice()->getQuote() && $creditNote->getInvoice()->getQuote()->getTauxTVA() && !$this->tvaRate) {
-            $this->tvaRate = $creditNote->getInvoice()->getQuote()->getTauxTVA();
-        }
-
+        $this->amendment = $amendment;
         return $this;
     }
 
@@ -186,36 +178,26 @@ class CreditNoteLine
 
     /**
      * Recalcule automatiquement le total HT à partir de la quantité et du prix unitaire
-     * Pour les avoirs, le total doit être négatif (crédit)
      * Les montants sont stockés en DECIMAL (euros)
      */
     public function recalculateTotalHt(): void
     {
         if ($this->quantity !== null && $this->unitPrice !== null) {
             $total = (float) $this->unitPrice * $this->quantity;
-            // Pour un avoir, le montant doit être négatif (crédit)
-            // Si le prix unitaire est positif, on le rend négatif
-            if ($total > 0) {
-                $total = -$total;
-            }
             $this->totalHt = number_format($total, 2, '.', '');
         }
     }
 
     /**
      * Calcule le montant TTC de cette ligne
-     * Pour les avoirs, les montants sont négatifs (crédit)
      * Les montants sont stockés en DECIMAL (euros)
      */
     public function getTotalTtc(): string
     {
         $totalHt = (float) $this->totalHt;
-        
+
         if ($this->tvaRate && (float) $this->tvaRate > 0) {
-            // La TVA est également négative pour un avoir
-            $tvaAmount = abs($totalHt) * ((float) $this->tvaRate / 100);
-            // Conserver le signe négatif
-            $tvaAmount = -$tvaAmount;
+            $tvaAmount = $totalHt * ((float) $this->tvaRate / 100);
             return number_format($totalHt + $tvaAmount, 2, '.', '');
         }
 

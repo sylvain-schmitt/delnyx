@@ -85,23 +85,43 @@ export default class extends Controller {
      * Confirme l'action et soumet le formulaire
      */
     confirm() {
-        // Créer un formulaire temporaire pour soumettre l'action
-        const form = document.createElement('form')
-        form.method = 'POST'
-        form.action = this.actionUrlValue
+        // Fermer la modale avant la soumission
+        this.close()
 
+        // Créer un FormData pour la soumission
+        const formData = new FormData()
+        
         // Ajouter le token CSRF si disponible
         if (this.csrfTokenValue) {
-            const csrfInput = document.createElement('input')
-            csrfInput.type = 'hidden'
-            csrfInput.name = '_token'
-            csrfInput.value = this.csrfTokenValue
-            form.appendChild(csrfInput)
+            formData.append('_token', this.csrfTokenValue)
         }
 
-        // Ajouter le body
-        document.body.appendChild(form)
-        form.submit()
+        // Soumettre via fetch pour avoir un contrôle total
+        fetch(this.actionUrlValue, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            // Si redirection, suivre la redirection
+            if (response.redirected) {
+                window.location.href = response.url
+            } else if (response.ok) {
+                // Si pas de redirection mais succès, recharger la page
+                window.location.reload()
+            } else {
+                // En cas d'erreur, recharger quand même pour voir les messages flash
+                window.location.reload()
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors de la soumission:', error)
+            // En cas d'erreur, recharger la page
+            window.location.reload()
+        })
     }
 
     /**

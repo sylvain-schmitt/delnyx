@@ -126,7 +126,8 @@ class AutoNumberingSubscriber
     }
 
     /**
-     * Génère le numéro d'avenant : YYYY-XXX-A1 (dérivé du devis)
+     * Génère le numéro d'avenant : DEV-YYYY-XXX-A1 (dérivé du devis)
+     * Format conforme : DEVISNUMBER-A#
      */
     private function generateAmendmentNumber(Amendment $amendment, PrePersistEventArgs $args): void
     {
@@ -141,22 +142,9 @@ class AutoNumberingSubscriber
 
         $em = $args->getObjectManager();
 
-        // Extraire l'année et le numéro de séquence du devis
-        // Support des deux formats :
-        // - Ancien : DEV-YYYY-MM-XXX (4 parties)
-        // - Nouveau : DEV-YYYY-XXX (3 parties)
-        $quoteParts = explode('-', $quote->getNumero());
-        if (count($quoteParts) === 4) {
-            // Ancien format : DEV-YYYY-MM-XXX
-            $year = $quoteParts[1];
-            $quoteSequence = $quoteParts[3];
-        } elseif (count($quoteParts) === 3 && is_numeric($quoteParts[2])) {
-            // Nouveau format : DEV-YYYY-XXX
-            $year = $quoteParts[1];
-            $quoteSequence = $quoteParts[2];
-        } else {
-            return; // Format de devis invalide
-        }
+        // Utiliser le numéro complet du devis comme base
+        // Format attendu : DEV-YYYY-XXX-A1, DEV-YYYY-XXX-A2, etc.
+        $quoteNumber = $quote->getNumero();
 
         // Trouver le dernier avenant pour ce devis
         $lastAmendment = $em->getRepository(Amendment::class)->createQueryBuilder('a')
@@ -169,19 +157,22 @@ class AutoNumberingSubscriber
 
         $amendmentSequence = 1;
         if ($lastAmendment && $lastAmendment->getNumero()) {
-            // Extraire le numéro de séquence de l'avenant (format: YYYY-XXX-A1)
-            $amendmentParts = explode('-', $lastAmendment->getNumero());
-            if (count($amendmentParts) === 3) {
-                $lastSequence = (int) str_replace('A', '', $amendmentParts[2]);
-                $amendmentSequence = $lastSequence + 1;
+            // Extraire le numéro de séquence de l'avenant
+            // Format attendu : DEV-YYYY-XXX-A1, DEV-YYYY-XXX-A2, etc.
+            $lastNumber = $lastAmendment->getNumero();
+            // Chercher le pattern -A suivi d'un nombre à la fin
+            if (preg_match('/-A(\d+)$/', $lastNumber, $matches)) {
+                $amendmentSequence = (int) $matches[1] + 1;
             }
         }
 
-        $amendment->setNumero(sprintf('%s-%s-A%d', $year, $quoteSequence, $amendmentSequence));
+        // Générer le numéro au format : DEV-YYYY-XXX-A1
+        $amendment->setNumero(sprintf('%s-A%d', $quoteNumber, $amendmentSequence));
     }
 
     /**
-     * Génère le numéro d'avoir : AV-YYYY-XXX
+     * Génère le numéro d'avoir : FA-XXX-C# (lié à la facture)
+     * Format conforme : FACTURENUMBER-C# (ex: FACT-2025-001-C1, FACT-2025-001-C2)
      */
     private function generateCreditNoteNumber(CreditNote $creditNote, PrePersistEventArgs $args): void
     {
@@ -189,28 +180,57 @@ class AutoNumberingSubscriber
             return; // Numéro déjà défini
         }
 
-        $em = $args->getObjectManager();
-        $year = (int) date('Y');
+        $invoice = $creditNote->getInvoice();
+        if (!$invoice || !$invoice->getNumero()) {
+            // Fallback : numérotation séquentielle par année si pas de facture
+            $em = $args->getObjectManager();
+            $year = (int) date('Y');
 
-        // Trouver le dernier numéro pour cette année
+            $lastCreditNote = $em->getRepository(CreditNote::class)->createQueryBuilder('cn')
+                ->where('cn.number LIKE :pattern')
+                ->setParameter('pattern', sprintf('AV-%d-%%', $year))
+                ->orderBy('cn.number', 'DESC')
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
+
+            $sequence = 1;
+            if ($lastCreditNote && $lastCreditNote->getNumber()) {
+                $parts = explode('-', $lastCreditNote->getNumber());
+                if (count($parts) === 3) {
+                    $sequence = (int) $parts[2] + 1;
+                }
+            }
+
+            $creditNote->setNumber(sprintf('AV-%d-%03d', $year, $sequence));
+            return;
+        }
+
+        $em = $args->getObjectManager();
+        $invoiceNumber = $invoice->getNumero();
+
+        // Trouver le dernier avoir pour cette facture
         $lastCreditNote = $em->getRepository(CreditNote::class)->createQueryBuilder('cn')
-            ->where('cn.number LIKE :pattern')
-            ->setParameter('pattern', sprintf('AV-%d-%%', $year))
+            ->where('cn.invoice = :invoice')
+            ->setParameter('invoice', $invoice)
             ->orderBy('cn.number', 'DESC')
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
 
-        $sequence = 1;
+        $creditNoteSequence = 1;
         if ($lastCreditNote && $lastCreditNote->getNumber()) {
-            // Extraire le numéro de séquence du dernier avoir
-            $parts = explode('-', $lastCreditNote->getNumber());
-            if (count($parts) === 3) {
-                $sequence = (int) $parts[2] + 1;
+            // Extraire le numéro de séquence de l'avoir
+            // Format attendu : FACT-YYYY-XXX-C1, FACT-YYYY-XXX-C2, etc.
+            $lastNumber = $lastCreditNote->getNumber();
+            // Chercher le pattern -C suivi d'un nombre à la fin
+            if (preg_match('/-C(\d+)$/', $lastNumber, $matches)) {
+                $creditNoteSequence = (int) $matches[1] + 1;
             }
         }
 
-        $creditNote->setNumber(sprintf('AV-%d-%03d', $year, $sequence));
+        // Générer le numéro au format : FACT-YYYY-XXX-C1
+        $creditNote->setNumber(sprintf('%s-C%d', $invoiceNumber, $creditNoteSequence));
     }
 }
 

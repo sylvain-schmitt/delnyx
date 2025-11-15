@@ -26,6 +26,10 @@
                     Afficher les annulées
                 </a>
             {% endif %}
+            <a href="{{ path('admin_credit_note_index') }}" class="btn-secondary flex items-center gap-2">
+                {{ ux_icon('lucide:file-minus', {class: 'w-4 h-4'}) }}
+                Voir les avoirs
+            </a>
             <a href="{{ path('admin_invoice_new') }}" class="btn-primary flex items-center gap-2">
                 {{ ux_icon('lucide:file-plus', {class: 'w-4 h-4'}) }}
                 Nouvelle Facture

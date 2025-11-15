@@ -1,0 +1,652 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller\Admin;
+
+use App\Entity\CreditNote;
+use App\Entity\CreditNoteStatus;
+use App\Entity\Invoice;
+use App\Entity\InvoiceStatus;
+use App\Form\CreditNoteType;
+use App\Repository\CreditNoteRepository;
+use App\Repository\InvoiceRepository;
+use App\Repository\CompanySettingsRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Uid\Uuid;
+
+#[Route('/admin/credit-note', name: 'admin_credit_note_')]
+#[IsGranted('ROLE_USER')]
+class CreditNoteController extends AbstractController
+{
+    public function __construct(
+        private CreditNoteRepository $creditNoteRepository,
+        private InvoiceRepository $invoiceRepository,
+        private CompanySettingsRepository $companySettingsRepository,
+        private EntityManagerInterface $entityManager
+    ) {}
+
+    #[Route('/', name: 'index')]
+    public function index(Request $request): Response
+    {
+        $page = max(1, $request->query->getInt('page', 1));
+        $limit = 15;
+
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+
+        $qb = $this->creditNoteRepository->createQueryBuilder('cn');
+
+        if ($companyId) {
+            $qb->where('cn.companyId = :companyId')
+                ->setParameter('companyId', $companyId);
+        }
+
+        // Filtrer par facture si fournie
+        $invoiceId = $request->query->getInt('invoice_id');
+        if ($invoiceId) {
+            $invoice = $this->invoiceRepository->find($invoiceId);
+            if ($invoice) {
+                // Vérifier le multi-tenant
+                if (!$companyId || $invoice->getCompanyId() === $companyId) {
+                    if ($companyId) {
+                        $qb->andWhere('cn.invoice = :invoice')
+                            ->setParameter('invoice', $invoice);
+                    } else {
+                        $qb->where('cn.invoice = :invoice')
+                            ->setParameter('invoice', $invoice);
+                    }
+                }
+            }
+        }
+
+        $totalCreditNotes = (int) $qb->select('COUNT(cn.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $totalPages = (int) ceil($totalCreditNotes / $limit);
+        $page = min($page, max(1, $totalPages));
+
+        $creditNotes = $qb->select('cn')
+            ->orderBy('cn.dateCreation', 'DESC')
+            ->setMaxResults($limit)
+            ->setFirstResult(($page - 1) * $limit)
+            ->getQuery()
+            ->getResult();
+
+        $filteredInvoice = null;
+        if ($invoiceId) {
+            $filteredInvoice = $this->invoiceRepository->find($invoiceId);
+        }
+
+        return $this->render('admin/credit_note/index.html.twig', [
+            'creditNotes' => $creditNotes,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
+            'total_credit_notes' => $totalCreditNotes,
+            'filtered_invoice' => $filteredInvoice,
+        ]);
+    }
+
+    #[Route('/{id}', name: 'show', requirements: ['id' => '\d+'])]
+    public function show(CreditNote $creditNote): Response
+    {
+        // Vérifier le multi-tenant
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+
+        if ($companyId && $creditNote->getCompanyId() !== $companyId) {
+            $this->addFlash('error', 'Vous n\'avez pas accès à cet avoir.');
+            return $this->redirectToRoute('admin_credit_note_index');
+        }
+
+        return $this->render('admin/credit_note/show.html.twig', [
+            'creditNote' => $creditNote,
+        ]);
+    }
+
+    #[Route('/new', name: 'new')]
+    public function new(Request $request): Response
+    {
+        $creditNote = new CreditNote();
+
+        // Pré-remplir le company_id
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+            $creditNote->setCompanyId($companyId);
+        }
+
+        // Récupérer CompanySettings
+        $companySettings = null;
+        if ($companyId) {
+            $companySettings = $this->companySettingsRepository->findByCompanyId($companyId);
+        }
+
+        // Pré-remplir depuis une facture si fournie en paramètre
+        $invoiceId = $request->query->getInt('invoice_id') ?: $request->query->get('invoice_id');
+
+        // Si pas d'ID depuis la requête mais que l'avoir a déjà une facture, utiliser son ID
+        if (!$invoiceId && $creditNote->getInvoice()) {
+            $invoiceId = $creditNote->getInvoice()->getId();
+        }
+
+        if ($invoiceId) {
+            $invoice = $this->invoiceRepository->find($invoiceId);
+            if ($invoice) {
+                // Vérifier le multi-tenant
+                if ($companyId && $invoice->getCompanyId() !== $companyId) {
+                    $this->addFlash('error', 'Vous n\'avez pas accès à cette facture.');
+                    return $this->redirectToRoute('admin_credit_note_index');
+                }
+
+                // Vérifier que la facture est émise
+                $invoiceStatut = $invoice->getStatutEnum();
+                if (!$invoiceStatut || !$invoiceStatut->isEmitted()) {
+                    $this->addFlash('error', 'Un avoir ne peut être créé que pour une facture émise.');
+                    return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+                }
+
+                // Vérifier que la facture n'est pas annulée
+                if ($invoiceStatut === \App\Entity\InvoiceStatus::CANCELLED) {
+                    $this->addFlash('error', 'Un avoir ne peut pas être créé pour une facture annulée.');
+                    return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+                }
+
+                $creditNote->setInvoice($invoice);
+
+                // Copier les lignes de la facture vers l'avoir
+                // Pour un avoir, les montants doivent être négatifs (crédit)
+                foreach ($invoice->getLines() as $invoiceLine) {
+                    $creditNoteLine = new \App\Entity\CreditNoteLine();
+                    $creditNoteLine->setDescription($invoiceLine->getDescription());
+                    $creditNoteLine->setQuantity($invoiceLine->getQuantity());
+
+                    // Rendre le prix unitaire négatif pour un avoir
+                    $unitPrice = (float) $invoiceLine->getUnitPrice();
+                    if ($unitPrice > 0) {
+                        $unitPrice = -$unitPrice;
+                    }
+                    $creditNoteLine->setUnitPrice(number_format($unitPrice, 2, '.', ''));
+
+                    // Rendre le total HT négatif pour un avoir
+                    $totalHt = (float) $invoiceLine->getTotalHt();
+                    if ($totalHt > 0) {
+                        $totalHt = -$totalHt;
+                    }
+                    $creditNoteLine->setTotalHt(number_format($totalHt, 2, '.', ''));
+
+                    $creditNoteLine->setTvaRate($invoiceLine->getTvaRate());
+                    $creditNoteLine->setTariff($invoiceLine->getTariff());
+                    $creditNote->addLine($creditNoteLine);
+                }
+
+                // Recalculer les totaux
+                $creditNote->recalculateTotals();
+            }
+        }
+
+        $form = $this->createForm(CreditNoteType::class, $creditNote, [
+            'company_settings' => $companySettings,
+        ]);
+        $form->handleRequest($request);
+
+        // Si le formulaire est soumis mais invalide, récupérer invoice_id depuis la requête
+        if ($form->isSubmitted() && !$form->isValid()) {
+            $submittedData = $request->request->all('credit_note');
+            if (isset($submittedData['invoice']) && $submittedData['invoice']) {
+                $invoiceId = $submittedData['invoice'];
+            }
+        }
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Vérifier que la facture est émise
+            if (!$creditNote->getInvoice()) {
+                $this->addFlash('error', 'Un avoir doit être lié à une facture.');
+                return $this->render('admin/credit_note/form.html.twig', [
+                    'creditNote' => $creditNote,
+                    'form' => $form,
+                    'title' => 'Nouvel Avoir',
+                    'companySettings' => $companySettings,
+                    'invoice_locked' => $invoiceId !== null,
+                    'invoice_id' => $invoiceId,
+                ], new \Symfony\Component\HttpFoundation\Response(null, 422));
+            }
+
+            $invoiceStatut = $creditNote->getInvoice()->getStatutEnum();
+            if (!$invoiceStatut || !$invoiceStatut->isEmitted()) {
+                $this->addFlash('error', 'Un avoir ne peut être créé que pour une facture émise.');
+                return $this->render('admin/credit_note/form.html.twig', [
+                    'creditNote' => $creditNote,
+                    'form' => $form,
+                    'title' => 'Nouvel Avoir',
+                    'companySettings' => $companySettings,
+                    'invoice_locked' => $invoiceId !== null,
+                    'invoice_id' => $invoiceId,
+                ], new \Symfony\Component\HttpFoundation\Response(null, 422));
+            }
+
+            // Vérifier que la facture n'est pas annulée
+            if ($invoiceStatut === \App\Entity\InvoiceStatus::CANCELLED) {
+                $this->addFlash('error', 'Un avoir ne peut pas être créé pour une facture annulée.');
+                return $this->render('admin/credit_note/form.html.twig', [
+                    'creditNote' => $creditNote,
+                    'form' => $form,
+                    'title' => 'Nouvel Avoir',
+                    'companySettings' => $companySettings,
+                    'invoice_locked' => $invoiceId !== null,
+                    'invoice_id' => $invoiceId,
+                ], new \Symfony\Component\HttpFoundation\Response(null, 422));
+            }
+
+            // Vérifier qu'au moins une ligne est présente
+            if ($creditNote->getLines()->isEmpty()) {
+                $this->addFlash('error', 'Au moins une ligne d\'avoir est requise.');
+                return $this->render('admin/credit_note/form.html.twig', [
+                    'creditNote' => $creditNote,
+                    'form' => $form,
+                    'title' => 'Nouvel Avoir',
+                    'companySettings' => $companySettings,
+                    'invoice_locked' => $invoiceId !== null,
+                    'invoice_id' => $invoiceId,
+                ], new \Symfony\Component\HttpFoundation\Response(null, 422));
+            }
+
+            // Associer les lignes à l'avoir
+            foreach ($creditNote->getLines() as $line) {
+                $line->setCreditNote($creditNote);
+                $line->recalculateTotalHt();
+            }
+
+            // Recalculer les totaux
+            $creditNote->recalculateTotals();
+
+            // Vérifier que le total des avoirs ne dépasse pas le montant de la facture
+            try {
+                $creditNote->validateCanBeIssued();
+            } catch (\RuntimeException $e) {
+                $this->addFlash('error', $e->getMessage());
+                return $this->render('admin/credit_note/form.html.twig', [
+                    'creditNote' => $creditNote,
+                    'form' => $form,
+                    'title' => 'Nouvel Avoir',
+                    'companySettings' => $companySettings,
+                    'invoice_locked' => $invoiceId !== null,
+                    'invoice_id' => $invoiceId,
+                ], new \Symfony\Component\HttpFoundation\Response(null, 422));
+            }
+
+            // Sauvegarder le statut de la facture avant création pour vérifier si elle a été annulée
+            $invoice = $creditNote->getInvoice();
+            $invoiceStatutAvant = $invoice ? $invoice->getStatutEnum() : null;
+
+            // Vérifier si le statut est "émis" (ISSUED) - émission automatique
+            $statutEnum = $creditNote->getStatutEnum();
+            $shouldAutoIssue = $statutEnum && $statutEnum === CreditNoteStatus::ISSUED;
+
+            $this->entityManager->persist($creditNote);
+            $this->entityManager->flush();
+
+            // Si le statut est "émis", traiter l'émission automatique
+            if ($shouldAutoIssue) {
+                $invoiceId = $invoice ? $invoice->getId() : null;
+
+                // Recharger la facture depuis la base avec ses avoirs
+                if ($invoiceId) {
+                    $invoice = $this->invoiceRepository->createQueryBuilder('i')
+                        ->leftJoin('i.creditNotes', 'cn')
+                        ->addSelect('cn')
+                        ->where('i.id = :invoiceId')
+                        ->setParameter('invoiceId', $invoiceId)
+                        ->getQuery()
+                        ->getOneOrNullResult();
+
+                    if ($invoice) {
+                        // Calculer le total de tous les avoirs émis
+                        // Les avoirs sont stockés en montants négatifs
+                        $totalAvoirsEmitted = 0.0;
+                        foreach ($invoice->getCreditNotes() as $existingCreditNote) {
+                            $existingStatut = $existingCreditNote->getStatutEnum();
+                            if ($existingStatut && $existingStatut === CreditNoteStatus::ISSUED) {
+                                $totalAvoirsEmitted += (float) $existingCreditNote->getMontantTTC();
+                            }
+                        }
+
+                        $montantFactureTTC = (float) $invoice->getMontantTTC();
+
+                        // Si les avoirs annulent complètement la facture (solde final = 0)
+                        // Exemple : facture 200€ + avoir -200€ = 0€ (avoir total)
+                        $soldeFinal = $montantFactureTTC + $totalAvoirsEmitted;
+                        if (abs($soldeFinal) < 0.01) {
+                            $invoice->setStatut(InvoiceStatus::CANCELLED->value);
+                            $invoice->setDateModification(new \DateTime());
+                            $this->entityManager->persist($invoice);
+                            $this->entityManager->flush();
+
+                            $this->addFlash('info', sprintf(
+                                'Avoir créé et émis avec succès. La facture %s a été automatiquement annulée car le total des avoirs émis annule complètement la facture.',
+                                $invoice->getNumero()
+                            ));
+                        } else {
+                            $this->addFlash('success', 'Avoir créé et émis avec succès');
+                        }
+                    } else {
+                        $this->addFlash('success', 'Avoir créé et émis avec succès');
+                    }
+                } else {
+                    $this->addFlash('success', 'Avoir créé et émis avec succès');
+                }
+            } else {
+                // Vérifier si la facture a été annulée automatiquement (avoir total)
+                if ($invoice) {
+                    $this->entityManager->refresh($invoice);
+                    $invoiceStatutApres = $invoice->getStatutEnum();
+
+                    if (
+                        $invoiceStatutAvant !== \App\Entity\InvoiceStatus::CANCELLED &&
+                        $invoiceStatutApres === \App\Entity\InvoiceStatus::CANCELLED
+                    ) {
+                        $this->addFlash('info', sprintf(
+                            'Avoir créé avec succès. La facture %s a été automatiquement annulée car le total des avoirs émis annule complètement la facture.',
+                            $invoice->getNumero()
+                        ));
+                    } else {
+                        $this->addFlash('success', 'Avoir créé avec succès');
+                    }
+                } else {
+                    $this->addFlash('success', 'Avoir créé avec succès');
+                }
+            }
+
+            return $this->redirectToRoute('admin_credit_note_index');
+        }
+
+        // Si le formulaire est soumis mais invalide, retourner un code 422 pour Turbo
+        if ($form->isSubmitted() && !$form->isValid()) {
+            return $this->render('admin/credit_note/form.html.twig', [
+                'creditNote' => $creditNote,
+                'form' => $form,
+                'title' => 'Nouvel Avoir',
+                'companySettings' => $companySettings,
+                'invoice_locked' => $invoiceId !== null,
+                'invoice_id' => $invoiceId,
+            ], new \Symfony\Component\HttpFoundation\Response(null, 422));
+        }
+
+        return $this->render('admin/credit_note/form.html.twig', [
+            'creditNote' => $creditNote,
+            'form' => $form,
+            'title' => 'Nouvel Avoir',
+            'companySettings' => $companySettings,
+            'invoice_locked' => $invoiceId !== null, // Verrouiller le champ si on vient d'une facture
+            'invoice_id' => $invoiceId, // Passer l'ID directement pour le champ hidden
+        ]);
+    }
+
+    #[Route('/{id}/edit', name: 'edit', requirements: ['id' => '\d+'])]
+    public function edit(Request $request, CreditNote $creditNote): Response
+    {
+        // Vérifier le multi-tenant
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+
+        if ($companyId && $creditNote->getCompanyId() !== $companyId) {
+            $this->addFlash('error', 'Vous n\'avez pas accès à cet avoir.');
+            return $this->redirectToRoute('admin_credit_note_index');
+        }
+
+        // Vérifier si l'avoir peut être modifié
+        if (!$creditNote->canBeModified()) {
+            $this->addFlash('error', 'Cet avoir ne peut plus être modifié car il est ' . $creditNote->getStatutLabel() . '.');
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+
+        // Récupérer CompanySettings
+        $companySettings = null;
+        if ($companyId) {
+            $companySettings = $this->companySettingsRepository->findByCompanyId($companyId);
+        }
+
+        $form = $this->createForm(CreditNoteType::class, $creditNote, [
+            'company_settings' => $companySettings,
+        ]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Vérifier qu'au moins une ligne est présente
+            if ($creditNote->getLines()->isEmpty()) {
+                $this->addFlash('error', 'Au moins une ligne d\'avoir est requise.');
+                return $this->render('admin/credit_note/form.html.twig', [
+                    'creditNote' => $creditNote,
+                    'form' => $form,
+                    'title' => 'Modifier l\'Avoir ' . ($creditNote->getNumber() ?? ''),
+                    'companySettings' => $companySettings,
+                ], new \Symfony\Component\HttpFoundation\Response(null, 422));
+            }
+
+            // Associer les lignes à l'avoir
+            foreach ($creditNote->getLines() as $line) {
+                $line->setCreditNote($creditNote);
+                $line->recalculateTotalHt();
+            }
+
+            // Recalculer les totaux
+            $creditNote->recalculateTotals();
+            $creditNote->setDateModification(new \DateTime());
+
+            // Vérifier si le statut est "émis" (ISSUED) - émission automatique
+            $statutEnum = $creditNote->getStatutEnum();
+            $shouldAutoIssue = $statutEnum && $statutEnum === CreditNoteStatus::ISSUED;
+
+            // Si le statut passe à "émis", définir la date d'émission
+            if ($shouldAutoIssue && !$creditNote->getDateEmission()) {
+                $creditNote->setDateEmission(new \DateTime());
+            }
+
+            // Vérifier que le total des avoirs ne dépasse pas le montant de la facture
+            try {
+                $creditNote->validateCanBeIssued();
+            } catch (\RuntimeException $e) {
+                $this->addFlash('error', $e->getMessage());
+                return $this->render('admin/credit_note/form.html.twig', [
+                    'creditNote' => $creditNote,
+                    'form' => $form,
+                    'title' => 'Modifier l\'Avoir ' . ($creditNote->getNumber() ?? ''),
+                    'companySettings' => $companySettings,
+                ], new \Symfony\Component\HttpFoundation\Response(null, 422));
+            }
+
+            $this->entityManager->flush();
+
+            // Si le statut est "émis", traiter l'émission automatique
+            if ($shouldAutoIssue) {
+                $invoice = $creditNote->getInvoice();
+                $invoiceId = $invoice ? $invoice->getId() : null;
+
+                // Recharger la facture depuis la base avec ses avoirs
+                if ($invoiceId) {
+                    $invoice = $this->invoiceRepository->createQueryBuilder('i')
+                        ->leftJoin('i.creditNotes', 'cn')
+                        ->addSelect('cn')
+                        ->where('i.id = :invoiceId')
+                        ->setParameter('invoiceId', $invoiceId)
+                        ->getQuery()
+                        ->getOneOrNullResult();
+
+                    if ($invoice) {
+                        // Calculer le total de tous les avoirs émis
+                        $totalAvoirsEmitted = 0.0;
+                        foreach ($invoice->getCreditNotes() as $existingCreditNote) {
+                            $existingStatut = $existingCreditNote->getStatutEnum();
+                            if ($existingStatut && $existingStatut === CreditNoteStatus::ISSUED) {
+                                $totalAvoirsEmitted += (float) $existingCreditNote->getMontantTTC();
+                            }
+                        }
+
+                        $montantFactureTTC = (float) $invoice->getMontantTTC();
+
+                        // Si le total des avoirs émis = montant facture, annuler la facture
+                        if (abs($totalAvoirsEmitted - $montantFactureTTC) < 0.01) {
+                            $invoice->setStatut(InvoiceStatus::CANCELLED->value);
+                            $invoice->setDateModification(new \DateTime());
+                            $this->entityManager->persist($invoice);
+                            $this->entityManager->flush();
+
+                            $this->addFlash('info', sprintf(
+                                'Avoir modifié et émis avec succès. La facture %s a été automatiquement annulée car le total des avoirs émis annule complètement la facture.',
+                                $invoice->getNumero()
+                            ));
+                        } else {
+                            $this->addFlash('success', 'Avoir modifié et émis avec succès');
+                        }
+                    } else {
+                        $this->addFlash('success', 'Avoir modifié et émis avec succès');
+                    }
+                } else {
+                    $this->addFlash('success', 'Avoir modifié et émis avec succès');
+                }
+            } else {
+                $this->addFlash('success', 'Avoir modifié avec succès');
+            }
+
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+
+        // Si le formulaire est soumis mais invalide, retourner un code 422 pour Turbo
+        if ($form->isSubmitted() && !$form->isValid()) {
+            return $this->render('admin/credit_note/form.html.twig', [
+                'creditNote' => $creditNote,
+                'form' => $form,
+                'title' => 'Modifier l\'Avoir ' . ($creditNote->getNumber() ?? ''),
+                'companySettings' => $companySettings,
+            ], new \Symfony\Component\HttpFoundation\Response(null, 422));
+        }
+
+        return $this->render('admin/credit_note/form.html.twig', [
+            'creditNote' => $creditNote,
+            'form' => $form,
+            'title' => 'Modifier l\'Avoir ' . ($creditNote->getNumber() ?? ''),
+            'companySettings' => $companySettings,
+        ]);
+    }
+
+    #[Route('/{id}/issue', name: 'issue', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function issue(Request $request, CreditNote $creditNote): Response
+    {
+        // Vérifier le token CSRF
+        $token = $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('issue' . $creditNote->getId(), $token)) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+
+        // Vérifier le multi-tenant
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+
+        if ($companyId && $creditNote->getCompanyId() !== $companyId) {
+            $this->addFlash('error', 'Vous n\'avez pas accès à cet avoir.');
+            return $this->redirectToRoute('admin_credit_note_index');
+        }
+
+        if (!$creditNote->canBeIssued()) {
+            $this->addFlash('error', 'Cet avoir ne peut pas être émis dans son état actuel.');
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+
+        try {
+            $creditNote->validateCanBeIssued();
+
+            // Sauvegarder le statut de la facture avant émission pour vérifier si elle a été annulée
+            $invoice = $creditNote->getInvoice();
+            $invoiceId = $invoice ? $invoice->getId() : null;
+
+            $creditNote->setStatut(CreditNoteStatus::ISSUED);
+            $creditNote->setDateEmission(new \DateTime());
+
+            $this->entityManager->flush();
+
+            // Vérifier manuellement si la facture doit être annulée (avoir total)
+            if ($invoiceId) {
+                // Recharger la facture depuis la base avec ses avoirs (après le flush pour avoir les avoirs à jour)
+                $invoice = $this->invoiceRepository->createQueryBuilder('i')
+                    ->leftJoin('i.creditNotes', 'cn')
+                    ->addSelect('cn')
+                    ->where('i.id = :invoiceId')
+                    ->setParameter('invoiceId', $invoiceId)
+                    ->getQuery()
+                    ->getOneOrNullResult();
+
+                if (!$invoice) {
+                    $this->addFlash('error', 'Impossible de recharger la facture (ID: ' . $invoiceId . ').');
+                    return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+                }
+
+                // Calculer le total de tous les avoirs émis
+                // Les avoirs sont stockés en montants négatifs
+                $totalAvoirsEmitted = 0.0;
+                $nbAvoirsEmis = 0;
+                foreach ($invoice->getCreditNotes() as $existingCreditNote) {
+                    $existingStatut = $existingCreditNote->getStatutEnum();
+                    if ($existingStatut && $existingStatut === CreditNoteStatus::ISSUED) {
+                        $totalAvoirsEmitted += (float) $existingCreditNote->getMontantTTC();
+                        $nbAvoirsEmis++;
+                    }
+                }
+
+                $montantFactureTTC = (float) $invoice->getMontantTTC();
+
+                // Si les avoirs annulent complètement la facture (solde final = 0)
+                // Exemple : facture 200€ + avoir -200€ = 0€ (avoir total)
+                $soldeFinal = $montantFactureTTC + $totalAvoirsEmitted;
+                if (abs($soldeFinal) < 0.01) {
+                    $invoice->setStatut(InvoiceStatus::CANCELLED->value);
+                    $invoice->setDateModification(new \DateTime());
+                    $this->entityManager->persist($invoice);
+                    $this->entityManager->flush();
+
+                    $this->addFlash('success', sprintf(
+                        'Avoir émis avec succès. La facture %s a été automatiquement annulée car cet avoir annule complètement la facture (Total avoirs: %.2f € = Montant facture: %.2f €).',
+                        $invoice->getNumero(),
+                        $totalAvoirsEmitted,
+                        $montantFactureTTC
+                    ));
+                } else {
+                    $this->addFlash('success', 'Avoir émis avec succès');
+                }
+            } else {
+                $this->addFlash('success', 'Avoir émis avec succès');
+            }
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', 'RuntimeException: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            // Capturer toutes les exceptions pour debug
+            $this->addFlash('error', 'Exception: ' . $e->getMessage() . ' - ' . $e->getTraceAsString());
+        }
+
+        return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+    }
+}

@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
@@ -21,6 +22,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Doctrine\DBAL\Types\Types;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Serializer\Annotation\Groups;
+use App\Entity\Amendment;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'quotes')]
@@ -29,14 +31,70 @@ use Symfony\Component\Serializer\Annotation\Groups;
     operations: [
         new GetCollection(),
         new Get(),
-        new Post(),
+        new Post(
+            security: "is_granted('ROLE_USER')",
+            securityMessage: "Seuls les utilisateurs authentifiés peuvent créer des devis via l'API."
+        ),
         new Put(
-            security: "object.getStatut() !== 'signed'",
-            securityMessage: "Un devis signé ne peut pas être modifié via l'API."
+            security: "is_granted('QUOTE_EDIT', object)",
+            securityMessage: "Vous n'avez pas la permission de modifier ce devis."
+        ),
+        new Patch(
+            security: "is_granted('QUOTE_EDIT', object)",
+            securityMessage: "Vous n'avez pas la permission de modifier ce devis."
         ),
         new Delete(
             security: "false",
             securityMessage: "Les devis ne peuvent pas être supprimés. Utilisez l'annulation."
+        ),
+        // Opérations custom pour les transitions d'état
+        new Post(
+            uriTemplate: '/quotes/{id}/send',
+            controller: \App\Controller\Api\QuoteSendController::class,
+            security: "is_granted('QUOTE_SEND', object)",
+            securityMessage: "Vous n'avez pas la permission d'envoyer ce devis.",
+            read: false,
+            name: 'quote_send'
+        ),
+        new Post(
+            uriTemplate: '/quotes/{id}/accept',
+            controller: \App\Controller\Api\QuoteAcceptController::class,
+            security: "is_granted('QUOTE_ACCEPT', object)",
+            securityMessage: "Vous n'avez pas la permission d'accepter ce devis.",
+            read: false,
+            name: 'quote_accept'
+        ),
+        new Post(
+            uriTemplate: '/quotes/{id}/sign',
+            controller: \App\Controller\Api\QuoteSignController::class,
+            security: "is_granted('QUOTE_SIGN', object)",
+            securityMessage: "Vous n'avez pas la permission de signer ce devis.",
+            read: false,
+            name: 'quote_sign'
+        ),
+        new Post(
+            uriTemplate: '/quotes/{id}/cancel',
+            controller: \App\Controller\Api\QuoteCancelController::class,
+            security: "is_granted('QUOTE_CANCEL', object)",
+            securityMessage: "Vous n'avez pas la permission d'annuler ce devis.",
+            read: false,
+            name: 'quote_cancel'
+        ),
+        new Post(
+            uriTemplate: '/quotes/{id}/refuse',
+            controller: \App\Controller\Api\QuoteRefuseController::class,
+            security: "is_granted('QUOTE_REFUSE', object)",
+            securityMessage: "Vous n'avez pas la permission de refuser ce devis.",
+            read: false,
+            name: 'quote_refuse'
+        ),
+        new Post(
+            uriTemplate: '/quotes/{id}/generate-invoice',
+            controller: \App\Controller\Api\QuoteGenerateInvoiceController::class,
+            security: "is_granted('QUOTE_GENERATE_INVOICE', object)",
+            securityMessage: "Vous n'avez pas la permission de générer une facture depuis ce devis.",
+            read: false,
+            name: 'quote_generate_invoice'
         )
     ],
     normalizationContext: ['groups' => ['quote:read']],
@@ -181,6 +239,13 @@ class Quote
     private ?Invoice $invoice = null;
 
     /**
+     * @var Collection<int, Amendment>
+     */
+    #[ORM\OneToMany(targetEntity: Amendment::class, mappedBy: 'quote')]
+    #[Groups(['quote:read'])]
+    private Collection $amendments;
+
+    /**
      * @var Collection<int, QuoteLine>
      */
     #[ORM\OneToMany(targetEntity: QuoteLine::class, mappedBy: 'quote', cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -193,6 +258,7 @@ class Quote
         $this->dateCreation = new \DateTime();
         $this->dateModification = new \DateTime();
         $this->lines = new ArrayCollection();
+        $this->amendments = new ArrayCollection();
         // Taux de TVA par défaut à 0.00 (sera remplacé par CompanySettings si disponible)
         $this->tauxTVA = '0.00';
     }
@@ -800,6 +866,36 @@ class Quote
             // set the owning side to null (unless already changed)
             if ($line->getQuote() === $this) {
                 $line->setQuote(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Amendment>
+     */
+    public function getAmendments(): Collection
+    {
+        return $this->amendments;
+    }
+
+    public function addAmendment(Amendment $amendment): static
+    {
+        if (!$this->amendments->contains($amendment)) {
+            $this->amendments->add($amendment);
+            $amendment->setQuote($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAmendment(Amendment $amendment): static
+    {
+        if ($this->amendments->removeElement($amendment)) {
+            // set the owning side to null (unless already changed)
+            if ($amendment->getQuote() === $this) {
+                $amendment->setQuote(null);
             }
         }
 

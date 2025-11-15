@@ -1,44 +1,57 @@
 {% extends 'admin/layout/base.html.twig' %}
 {% import 'admin/macros/pagination.html.twig' as pagination_macro %}
 
-{% block title %}Devis - Administration Delnyx{% endblock %}
+{% block title %}Avenants - Administration Delnyx{% endblock %}
 
-{% block page_title %}Devis{% endblock %}
+{% block page_title %}Avenants{% endblock %}
 
 {% block body %}
 <div class="space-y-6">
     
+    {# Message de filtrage par devis #}
+    {% if filtered_quote %}
+        <div class="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 flex items-center justify-between scroll-animate">
+            <div class="flex items-center gap-3">
+                {{ ux_icon('lucide:filter', {class: 'w-5 h-5 text-blue-400'}) }}
+                <div>
+                    <p class="text-white font-medium">Filtrage actif : Avenants du devis {{ filtered_quote.numero }}</p>
+                    <p class="text-white/60 text-sm">{{ total_amendments }} avenant{{ total_amendments > 1 ? 's' : '' }} trouvé{{ total_amendments > 1 ? 's' : '' }}</p>
+                </div>
+            </div>
+            <a href="{{ path('admin_amendment_index') }}" class="btn-secondary text-sm py-2 px-4">
+                {{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
+                Retirer le filtre
+            </a>
+        </div>
+    {% endif %}
+
     {# Header avec actions #}
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
         <div>
-            <h1 class="text-2xl font-bold text-white">Devis</h1>
-            <p class="text-white/60 mt-1">{{ total_quotes }} devis au total{% if not include_cancelled %} (hors annulés){% endif %}</p>
+            <h1 class="text-2xl font-bold text-white">Avenants</h1>
+            <p class="text-white/60 mt-1">{{ total_amendments }} avenant{{ total_amendments > 1 ? 's' : '' }} au total{% if not include_cancelled %} (hors annulés){% endif %}</p>
         </div>
         <div class="flex gap-3">
             {% if include_cancelled %}
-                <a href="{{ path('admin_quote_index') }}" class="btn-secondary flex items-center gap-2">
+                <a href="{{ path('admin_amendment_index') }}" class="btn-secondary flex items-center gap-2">
                     {{ ux_icon('lucide:eye-off', {class: 'w-4 h-4'}) }}
                     Masquer les annulés
                 </a>
             {% else %}
-                <a href="{{ path('admin_quote_index', {include_cancelled: true}) }}" class="btn-secondary flex items-center gap-2">
+                <a href="{{ path('admin_amendment_index', {include_cancelled: true}) }}" class="btn-secondary flex items-center gap-2">
                     {{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
                     Afficher les annulés
                 </a>
             {% endif %}
-            <a href="{{ path('admin_amendment_index') }}" class="btn-secondary flex items-center gap-2">
-                {{ ux_icon('lucide:file-edit', {class: 'w-4 h-4'}) }}
-                Voir les avenants
-            </a>
-            <a href="{{ path('admin_quote_new') }}" class="btn-primary flex items-center gap-2">
+            <a href="{{ path('admin_amendment_new') }}" class="btn-primary flex items-center gap-2">
                 {{ ux_icon('lucide:file-plus', {class: 'w-4 h-4'}) }}
-                Nouveau Devis
+                Nouvel Avenant
             </a>
         </div>
     </div>
 
-    {# Liste des devis #}
-    {% if quotes|length > 0 %}
+    {# Liste des avenants #}
+    {% if amendments|length > 0 %}
         {# Version desktop : table #}
         <div class="hidden md:block bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl overflow-hidden scroll-animate animate-delay-100">
             <div class="overflow-x-auto">
@@ -46,7 +59,7 @@
                     <thead class="bg-white/5 border-b border-white/20">
                         <tr>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Numéro</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Client</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Devis</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Date</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Montant TTC</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Statut</th>
@@ -54,33 +67,34 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-white/10">
-                        {% for quote in quotes %}
+                        {% for amendment in amendments %}
                             <tr class="hover:bg-white/5 transition-colors duration-200">
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-white">{{ quote.numero ?? 'N/A' }}</div>
+                                    <div class="text-sm font-medium text-white">{{ amendment.numero ?? 'N/A' }}</div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="text-sm text-white">{{ quote.client.nomComplet }}</div>
-                                    <div class="text-xs text-white/60">{{ quote.client.email }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-white">{{ quote.dateCreation|date('d/m/Y') }}</div>
-                                    {% if quote.dateValidite %}
-                                        <div class="text-xs text-white/60">Valide jusqu'au {{ quote.dateValidite|date('d/m/Y') }}</div>
+                                    {% if amendment.quote %}
+                                        <div class="text-sm text-white">{{ amendment.quote.numero }}</div>
+                                        <div class="text-xs text-white/60">{{ amendment.quote.client.nomComplet }}</div>
+                                    {% else %}
+                                        <div class="text-sm text-white/60">Aucun devis</div>
                                     {% endif %}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-white">{{ quote.montantTTCFormate }}</div>
+                                    <div class="text-sm text-white">{{ amendment.dateCreation|date('d/m/Y') }}</div>
+                                    {% if amendment.dateSignature %}
+                                        <div class="text-xs text-white/60">Signé le {{ amendment.dateSignature|date('d/m/Y') }}</div>
+                                    {% endif %}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    {% set status = quote.statut %}
+                                    <div class="text-sm font-medium text-white">{{ amendment.montantTTCFormate }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% set status = amendment.statutEnum %}
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+                                        {% if status.value == 'draft' %}bg-yellow-500/20 text-yellow-300
                                         {% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
                                         {% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
-                                        {% elseif status.value == 'accepted' %}bg-green-500/20 text-green-300
-                                        {% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
-                                        {% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
                                         {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
                                         {% else %}bg-gray-500/20 text-gray-300{% endif %}">
                                         {{ status.label }}
@@ -88,26 +102,26 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
-                                        <a href="{{ path('admin_quote_show', {id: quote.id}) }}" 
+                                        <a href="{{ path('admin_amendment_show', {id: amendment.id}) }}" 
                                            class="text-blue-400 hover:text-blue-300 transition-colors duration-200"
                                            title="Voir">
                                             {{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
                                         </a>
-                                        {% if quote.statut.value != 'signed' %}
-                                            <a href="{{ path('admin_quote_edit', {id: quote.id}) }}" 
+                                        {% if amendment.canBeModified %}
+                                            <a href="{{ path('admin_amendment_edit', {id: amendment.id}) }}" 
                                                class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200"
                                                title="Modifier">
                                                 {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
                                             </a>
                                         {% endif %}
-                                        {% if quote.statut.value == 'draft' and not quote.invoice %}
+                                        {% if amendment.canBeCancelled %}
                                             <button type="button" 
                                                     data-action="click->confirm-modal#open"
-                                                    data-url="{{ path('admin_quote_cancel', {id: quote.id}) }}"
+                                                    data-url="{{ path('admin_amendment_cancel', {id: amendment.id}) }}"
                                                     data-method="POST"
-                                                    data-csrf-token="{{ csrf_token('cancel' ~ quote.id) }}"
-                                                    data-item-name="ce devis"
-                                                    data-message="Êtes-vous sûr de vouloir annuler ce devis ? Le numéro sera conservé pour la traçabilité comptable (conformité légale française)."
+                                                    data-csrf-token="{{ csrf_token('cancel' ~ amendment.id) }}"
+                                                    data-item-name="cet avenant"
+                                                    data-message="Êtes-vous sûr de vouloir annuler cet avenant ?"
                                                     class="text-red-400 hover:text-red-300 transition-colors duration-200"
                                                     title="Annuler">
                                                 {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
@@ -124,39 +138,28 @@
 
         {# Version mobile : cards #}
         <div class="md:hidden space-y-4 scroll-animate animate-delay-100">
-            {% for quote in quotes %}
+            {% for amendment in amendments %}
                 <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-4">
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex-1">
-                            <div class="text-sm font-medium text-white mb-1">{{ quote.numero ?? 'N/A' }}</div>
-                            <div class="text-sm text-white">{{ quote.client.nomComplet }}</div>
-                            <div class="text-xs text-white/60">{{ quote.client.email }}</div>
+                            <div class="text-sm font-medium text-white mb-1">{{ amendment.numero ?? 'N/A' }}</div>
+                            {% if amendment.quote %}
+                                <div class="text-sm text-white">{{ amendment.quote.numero }}</div>
+                                <div class="text-xs text-white/60">{{ amendment.quote.client.nomComplet }}</div>
+                            {% endif %}
                         </div>
                         <div class="flex items-center gap-2 ml-4">
-                            <a href="{{ path('admin_quote_show', {id: quote.id}) }}" 
+                            <a href="{{ path('admin_amendment_show', {id: amendment.id}) }}" 
                                class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2"
                                title="Voir">
                                 {{ ux_icon('lucide:eye', {class: 'w-5 h-5'}) }}
                             </a>
-                            {% if quote.statut.value != 'signed' %}
-                                <a href="{{ path('admin_quote_edit', {id: quote.id}) }}" 
+                            {% if amendment.canBeModified %}
+                                <a href="{{ path('admin_amendment_edit', {id: amendment.id}) }}" 
                                    class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200 p-2"
                                    title="Modifier">
                                     {{ ux_icon('lucide:edit', {class: 'w-5 h-5'}) }}
                                 </a>
-                            {% endif %}
-                            {% if quote.statut.value == 'draft' and not quote.invoice %}
-                                <button type="button" 
-                                        data-action="click->confirm-modal#open"
-                                        data-url="{{ path('admin_quote_cancel', {id: quote.id}) }}"
-                                        data-method="POST"
-                                        data-csrf-token="{{ csrf_token('cancel' ~ quote.id) }}"
-                                        data-item-name="ce devis"
-                                        data-message="Êtes-vous sûr de vouloir annuler ce devis ? Le numéro sera conservé pour la traçabilité comptable (conformité légale française)."
-                                        class="text-red-400 hover:text-red-300 transition-colors duration-200 p-2"
-                                        title="Annuler">
-                                    {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5'}) }}
-                                </button>
                             {% endif %}
                         </div>
                     </div>
@@ -164,28 +167,19 @@
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
                             <span class="text-white/60">Date</span>
-                            <span class="text-white">{{ quote.dateCreation|date('d/m/Y') }}</span>
+                            <span class="text-white">{{ amendment.dateCreation|date('d/m/Y') }}</span>
                         </div>
-                        {% if quote.dateValidite %}
-                            <div class="flex justify-between">
-                                <span class="text-white/60">Valide jusqu'au</span>
-                                <span class="text-white">{{ quote.dateValidite|date('d/m/Y') }}</span>
-                            </div>
-                        {% endif %}
                         <div class="flex justify-between">
                             <span class="text-white/60">Montant TTC</span>
-                            <span class="text-white font-medium">{{ quote.montantTTCFormate }}</span>
+                            <span class="text-white font-medium">{{ amendment.montantTTCFormate }}</span>
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-white/60">Statut</span>
-                            {% set status = quote.statut %}
+                            {% set status = amendment.statutEnum %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+                                {% if status.value == 'draft' %}bg-yellow-500/20 text-yellow-300
                                 {% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
                                 {% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
-                                {% elseif status.value == 'accepted' %}bg-green-500/20 text-green-300
-                                {% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
-                                {% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
                                 {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
                                 {% else %}bg-gray-500/20 text-gray-300{% endif %}">
                                 {{ status.label }}
@@ -197,19 +191,19 @@
         </div>
 
         {# Pagination #}
-        {{ pagination_macro.render(current_page, total_pages, 'admin_quote_index', include_cancelled ? {include_cancelled: true} : {}, 15, total_quotes) }}
+        {{ pagination_macro.render(current_page, total_pages, 'admin_amendment_index', include_cancelled ? {include_cancelled: true} : {}, 15, total_amendments) }}
     {% else %}
         {# État vide #}
         <div class="text-center py-20 scroll-animate">
             <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-12 max-w-md mx-auto">
-                {{ ux_icon('lucide:file-text', {class: 'w-16 h-16 text-gray-400 mb-6 mx-auto'}) }}
-                <h3 class="text-2xl font-bold text-white mb-4">Aucun devis</h3>
+                {{ ux_icon('lucide:file-edit', {class: 'w-16 h-16 text-gray-400 mb-6 mx-auto'}) }}
+                <h3 class="text-2xl font-bold text-white mb-4">Aucun avenant</h3>
                 <p class="text-gray-300 mb-6">
-                    Commencez par créer votre premier devis.
+                    Créez un avenant pour modifier un devis signé.
                 </p>
-                <a href="{{ path('admin_quote_new') }}" class="btn-primary">
+                <a href="{{ path('admin_amendment_new') }}" class="btn-primary">
                     {{ ux_icon('lucide:file-plus', {class: 'w-4 h-4 mr-2'}) }}
-                    Créer un devis
+                    Créer un avenant
                 </a>
             </div>
         </div>

@@ -24,7 +24,10 @@ use ApiPlatform\Metadata\Patch;
     operations: [
         new Get(),
         new GetCollection(),
-        new Post(),
+        new Post(
+            security: "is_granted('ROLE_USER') && (object.getQuote() === null || (object.getQuote() !== null && object.getQuote().getStatut() !== null && object.getQuote().getStatut().value === 'signed'))",
+            securityMessage: "Seuls les utilisateurs authentifiés peuvent créer des factures via l'API. Si un devis est associé, il doit être signé."
+        ),
         new Put(
             security: "object.getStatut() === 'draft'",
             securityMessage: "Seules les factures en brouillon peuvent être modifiées via l'API."
@@ -475,6 +478,39 @@ class Invoice
         $montantAcompte = (float) ($this->montantAcompte ?? 0); // Déjà en euros (DECIMAL)
 
         return number_format($montantTTC - $montantAcompte, 2, '.', '');
+    }
+
+    /**
+     * Retourne le solde final de la facture après déduction des avoirs émis
+     * Solde = Montant facture TTC + Total avoirs émis (car les avoirs sont stockés en négatif)
+     * Les montants sont stockés en DECIMAL (euros)
+     */
+    public function getSoldeFinal(): string
+    {
+        $montantTTC = (float) $this->montantTTC;
+        $totalAvoirsEmis = 0.0;
+
+        // Calculer le total des avoirs émis uniquement
+        // Les avoirs sont stockés en montants négatifs, donc on les additionne directement
+        foreach ($this->creditNotes as $creditNote) {
+            $statutEnum = $creditNote->getStatutEnum();
+            if ($statutEnum && $statutEnum === \App\Entity\CreditNoteStatus::ISSUED) {
+                // Les avoirs sont stockés en négatif, donc on additionne directement
+                $totalAvoirsEmis += (float) $creditNote->getMontantTTC();
+            }
+        }
+
+        // Si les avoirs sont négatifs, additionner revient à soustraire
+        // Exemple : 200 + (-200) = 0
+        return number_format($montantTTC + $totalAvoirsEmis, 2, '.', '');
+    }
+
+    /**
+     * Retourne le solde final formaté pour l'affichage
+     */
+    public function getSoldeFinalFormate(): string
+    {
+        return number_format((float) $this->getSoldeFinal(), 2, ',', ' ') . ' €';
     }
 
     /**

@@ -18,6 +18,15 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 
+/**
+ * Entité CreditNote pour gérer les avoirs sur factures émises
+ * 
+ * CONTRAINTE LÉGALE :
+ * - Un avoir doit obligatoirement référencer une facture émise (ISSUED/SENT)
+ * - Un avoir émis devient immuable
+ * - Archivage 10 ans obligatoire
+ * - Un avoir ne supprime jamais la facture d'origine
+ */
 #[ORM\Entity(repositoryClass: CreditNoteRepository::class)]
 #[ORM\Table(name: 'credit_notes')]
 #[ORM\HasLifecycleCallbacks]
@@ -25,9 +34,18 @@ use ApiPlatform\Metadata\Delete;
     operations: [
         new GetCollection(),
         new Get(),
-        new Post(),
-        new Put(),
-        new Delete()
+        new Post(
+            security: "is_granted('ROLE_USER') && object.getInvoice() !== null && object.getInvoice().getStatutEnum() !== null && object.getInvoice().getStatutEnum().isEmitted() && object.getInvoice().getStatutEnum().value !== 'cancelled'",
+            securityMessage: "Seuls les utilisateurs authentifiés peuvent créer des avoirs via l'API. L'avoir doit être associé à une facture émise et non annulée."
+        ),
+        new Put(
+            security: "object.getStatutEnum() !== null && object.getStatutEnum().isModifiable()",
+            securityMessage: "Seuls les avoirs en brouillon peuvent être modifiés via l'API."
+        ),
+        new Delete(
+            security: "false",
+            securityMessage: "Les avoirs ne peuvent pas être supprimés."
+        )
     ],
     normalizationContext: ['groups' => ['credit_note:read']],
     denormalizationContext: ['groups' => ['credit_note:write']],
@@ -41,46 +59,55 @@ class CreditNote
     #[Groups(['credit_note:read'])]
     private ?int $id = null;
 
-    #[ORM\Column(length: 30, unique: true)]
-    #[Assert\NotBlank(message: 'Le numéro d\'avoir est obligatoire')]
+    #[ORM\Column(length: 30, unique: true, nullable: true)]
     #[Assert\Length(max: 30, maxMessage: 'Le numéro ne peut pas dépasser {{ limit }} caractères')]
     #[Groups(['credit_note:read', 'credit_note:write'])]
     private ?string $number = null;
 
-    #[ORM\Column(length: 20)]
-    #[Assert\NotBlank(message: 'Le statut est obligatoire')]
+    #[ORM\Column(name: 'status', type: Types::STRING, length: 20, enumType: CreditNoteStatus::class)]
     #[Groups(['credit_note:read', 'credit_note:write'])]
-    private ?string $status = 'draft';
+    #[Assert\NotNull(message: "Le statut est obligatoire")]
+    private ?CreditNoteStatus $statut = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[ORM\Column(type: Types::TEXT)]
     #[Groups(['credit_note:read', 'credit_note:write'])]
+    #[Assert\NotBlank(message: "Le motif est obligatoire")]
     private ?string $reason = null;
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     #[Groups(['credit_note:read'])]
-    private ?\DateTimeImmutable $dateCreation = null;
+    private ?\DateTimeInterface $dateCreation = null;
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    #[Groups(['credit_note:read', 'credit_note:write'])]
-    private ?\DateTimeImmutable $dateEmission = null;
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['credit_note:read'])]
+    private ?\DateTimeInterface $dateEmission = null;
 
-    #[ORM\Column]
-    #[Assert\NotNull(message: 'Le montant HT est obligatoire')]
-    #[Assert\GreaterThanOrEqual(value: 0, message: 'Le montant HT ne peut pas être négatif')]
-    #[Groups(['credit_note:read', 'credit_note:write'])]
-    private ?int $montantHT = 0;
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['credit_note:read'])]
+    private ?\DateTimeInterface $dateModification = null;
 
-    #[ORM\Column]
-    #[Assert\NotNull(message: 'Le montant TVA est obligatoire')]
-    #[Assert\GreaterThanOrEqual(value: 0, message: 'Le montant TVA ne peut pas être négatif')]
+    // ===== MONTANTS EN DECIMAL (EUROS) =====
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Groups(['credit_note:read', 'credit_note:write'])]
-    private ?int $montantTVA = 0;
+    #[Assert\NotBlank(message: 'Le montant HT est obligatoire')]
+    #[Assert\Type(type: 'numeric', message: 'Le montant HT doit être un nombre')]
+    private string $montantHT = '0.00';
 
-    #[ORM\Column]
-    #[Assert\NotNull(message: 'Le montant TTC est obligatoire')]
-    #[Assert\GreaterThanOrEqual(value: 0, message: 'Le montant TTC ne peut pas être négatif')]
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Groups(['credit_note:read', 'credit_note:write'])]
-    private ?int $montantTTC = 0;
+    #[Assert\NotBlank(message: 'Le montant TVA est obligatoire')]
+    #[Assert\Type(type: 'numeric', message: 'Le montant TVA doit être un nombre')]
+    private string $montantTVA = '0.00';
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
+    #[Groups(['credit_note:read', 'credit_note:write'])]
+    #[Assert\NotBlank(message: 'Le montant TTC est obligatoire')]
+    #[Assert\Type(type: 'numeric', message: 'Le montant TTC doit être un nombre')]
+    private string $montantTTC = '0.00';
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true)]
+    #[Groups(['credit_note:read', 'credit_note:write'])]
+    private ?string $tauxTVA = null;
 
     #[ORM\Column(length: 36)]
     #[Assert\NotBlank(message: 'Le company_id est obligatoire')]
@@ -102,11 +129,13 @@ class CreditNote
 
     public function __construct()
     {
-        $this->dateCreation = new \DateTimeImmutable();
+        $this->dateCreation = new \DateTime();
+        $this->dateModification = new \DateTime();
+        $this->statut = CreditNoteStatus::DRAFT;
+        $this->montantHT = '0.00';
+        $this->montantTVA = '0.00';
+        $this->montantTTC = '0.00';
         $this->lines = new ArrayCollection();
-        $this->montantHT = 0;
-        $this->montantTVA = 0;
-        $this->montantTTC = 0;
     }
 
     public function getId(): ?int
@@ -121,20 +150,54 @@ class CreditNote
 
     public function setNumber(string $number): static
     {
-        $this->number = $number;
+        // Empêcher la modification du numéro si l'avoir est émis
+        if ($this->id !== null && $this->number !== null && $this->number !== $number) {
+            $statutEnum = $this->getStatutEnum();
+            if ($statutEnum && $statutEnum->isEmitted()) {
+                throw new \RuntimeException(
+                    sprintf(
+                        'Le numéro de l\'avoir #%s ne peut pas être modifié car il est déjà émis.',
+                        $this->number
+                    )
+                );
+            }
+        }
 
+        $this->number = $number;
         return $this;
     }
 
+    public function getStatut(): ?CreditNoteStatus
+    {
+        return $this->statut;
+    }
+
+    public function setStatut(?CreditNoteStatus $statut): static
+    {
+        $this->statut = $statut;
+        return $this;
+    }
+
+    public function getStatutEnum(): ?CreditNoteStatus
+    {
+        return $this->statut;
+    }
+
+    public function setStatutEnum(CreditNoteStatus $statut): static
+    {
+        $this->statut = $statut;
+        return $this;
+    }
+
+    // Compatibilité avec l'ancien code (string)
     public function getStatus(): ?string
     {
-        return $this->status;
+        return $this->statut?->value;
     }
 
     public function setStatus(string $status): static
     {
-        $this->status = $status;
-
+        $this->statut = CreditNoteStatus::from($status);
         return $this;
     }
 
@@ -146,67 +209,85 @@ class CreditNote
     public function setReason(?string $reason): static
     {
         $this->reason = $reason;
-
         return $this;
     }
 
-    public function getDateCreation(): ?\DateTimeImmutable
+    public function getDateCreation(): ?\DateTimeInterface
     {
         return $this->dateCreation;
     }
 
-    public function setDateCreation(\DateTimeImmutable $dateCreation): static
+    public function setDateCreation(\DateTimeInterface $dateCreation): static
     {
         $this->dateCreation = $dateCreation;
-
         return $this;
     }
 
-    public function getDateEmission(): ?\DateTimeImmutable
+    public function getDateEmission(): ?\DateTimeInterface
     {
         return $this->dateEmission;
     }
 
-    public function setDateEmission(?\DateTimeImmutable $dateEmission): static
+    public function setDateEmission(?\DateTimeInterface $dateEmission): static
     {
         $this->dateEmission = $dateEmission;
-
         return $this;
     }
 
-    public function getMontantHT(): ?int
+    public function getDateModification(): ?\DateTimeInterface
+    {
+        return $this->dateModification;
+    }
+
+    public function setDateModification(?\DateTimeInterface $dateModification): static
+    {
+        $this->dateModification = $dateModification;
+        return $this;
+    }
+
+    // ===== MÉTHODES POUR LES MONTANTS (DECIMAL EN EUROS) =====
+
+    public function getMontantHT(): string
     {
         return $this->montantHT;
     }
 
-    public function setMontantHT(int $montantHT): static
+    public function setMontantHT(string $montantHT): static
     {
         $this->montantHT = $montantHT;
-
         return $this;
     }
 
-    public function getMontantTVA(): ?int
+    public function getMontantTVA(): string
     {
         return $this->montantTVA;
     }
 
-    public function setMontantTVA(int $montantTVA): static
+    public function setMontantTVA(string $montantTVA): static
     {
         $this->montantTVA = $montantTVA;
-
         return $this;
     }
 
-    public function getMontantTTC(): ?int
+    public function getMontantTTC(): string
     {
         return $this->montantTTC;
     }
 
-    public function setMontantTTC(int $montantTTC): static
+    public function setMontantTTC(string $montantTTC): static
     {
         $this->montantTTC = $montantTTC;
+        return $this;
+    }
 
+    public function getTauxTVA(): ?string
+    {
+        return $this->tauxTVA;
+    }
+
+    public function setTauxTVA(?string $tauxTVA): static
+    {
+        $this->tauxTVA = $tauxTVA;
         return $this;
     }
 
@@ -218,7 +299,6 @@ class CreditNote
     public function setCompanyId(string $companyId): static
     {
         $this->companyId = $companyId;
-
         return $this;
     }
 
@@ -229,8 +309,20 @@ class CreditNote
 
     public function setInvoice(?Invoice $invoice): static
     {
-        $this->invoice = $invoice;
+        // Empêcher le changement de facture si l'avoir est émis
+        if ($this->id !== null && $this->invoice !== null && $this->invoice !== $invoice) {
+            $statutEnum = $this->getStatutEnum();
+            if ($statutEnum && $statutEnum->isEmitted()) {
+                throw new \RuntimeException(
+                    sprintf(
+                        'La facture associée à l\'avoir #%s ne peut pas être modifiée car il est déjà émis.',
+                        $this->number ?? $this->id
+                    )
+                );
+            }
+        }
 
+        $this->invoice = $invoice;
         return $this;
     }
 
@@ -248,42 +340,148 @@ class CreditNote
             $this->lines->add($line);
             $line->setCreditNote($this);
         }
-
         return $this;
     }
 
     public function removeLine(CreditNoteLine $line): static
     {
         if ($this->lines->removeElement($line)) {
-            // set the owning side to null (unless already changed)
             if ($line->getCreditNote() === $this) {
                 $line->setCreditNote(null);
             }
         }
-
         return $this;
     }
 
     /**
      * Recalcule les montants HT, TVA et TTC à partir des lignes
+     * Les montants sont stockés en DECIMAL (euros)
      */
     public function recalculateTotals(): void
     {
-        $totalHT = 0;
-        $totalTVA = 0;
+        if ($this->lines->isEmpty()) {
+            $this->montantHT = '0.00';
+            $this->montantTVA = '0.00';
+            $this->montantTTC = '0.00';
+            return;
+        }
+
+        $totalHtEuros = 0.0;
+        $totalTvaEuros = 0.0;
 
         foreach ($this->lines as $line) {
-            $totalHT += $line->getTotalHt() ?? 0;
-            
+            $lineTotalHt = (float) ($line->getTotalHt() ?? 0);
+            $totalHtEuros += $lineTotalHt;
+
             if ($line->getTvaRate() && (float) $line->getTvaRate() > 0) {
-                $tvaAmount = (int) round($line->getTotalHt() * ((float) $line->getTvaRate() / 100));
-                $totalTVA += $tvaAmount;
+                // Pour un avoir, la TVA est également négative si le montant HT est négatif
+                $tvaAmount = abs($lineTotalHt) * ((float) $line->getTvaRate() / 100);
+                // Conserver le signe du montant HT
+                if ($lineTotalHt < 0) {
+                    $tvaAmount = -$tvaAmount;
+                }
+                $totalTvaEuros += $tvaAmount;
             }
         }
 
-        $this->montantHT = $totalHT;
-        $this->montantTVA = $totalTVA;
-        $this->montantTTC = $totalHT + $totalTVA;
+        $this->montantHT = number_format($totalHtEuros, 2, '.', '');
+        $this->montantTVA = number_format($totalTvaEuros, 2, '.', '');
+        $this->montantTTC = number_format($totalHtEuros + $totalTvaEuros, 2, '.', '');
+    }
+
+    /**
+     * Valide que l'avoir peut être émis
+     * 
+     * @throws \RuntimeException si l'avoir ne peut pas être émis
+     */
+    public function validateCanBeIssued(): void
+    {
+        // Vérifier qu'au moins une ligne est présente
+        if ($this->lines->isEmpty()) {
+            throw new \RuntimeException('Un avoir ne peut pas être émis sans ligne.');
+        }
+
+        // Vérifier que le montant HT n'est pas nul (peut être négatif pour un avoir)
+        if ((float) $this->montantHT == 0) {
+            throw new \RuntimeException('Un avoir doit avoir un montant HT différent de 0.');
+        }
+
+        // Vérifier que le motif est renseigné
+        if (empty($this->reason)) {
+            throw new \RuntimeException('Un avoir ne peut pas être émis sans motif.');
+        }
+
+        // Vérifier que la facture associée est émise
+        if (!$this->invoice) {
+            throw new \RuntimeException('Un avoir doit être lié à une facture.');
+        }
+
+        $invoiceStatut = $this->invoice->getStatutEnum();
+        if (!$invoiceStatut || !$invoiceStatut->isEmitted()) {
+            throw new \RuntimeException('Un avoir ne peut être créé que pour une facture émise.');
+        }
+        
+        // Vérifier que la facture n'est pas annulée
+        if ($invoiceStatut === \App\Entity\InvoiceStatus::CANCELLED) {
+            throw new \RuntimeException('Un avoir ne peut pas être créé pour une facture annulée.');
+        }
+
+        // Vérifier qu'on ne crée pas un deuxième avoir total
+        $totalAvoirs = 0.0;
+        foreach ($this->invoice->getCreditNotes() as $existingCreditNote) {
+            if ($existingCreditNote->getId() !== $this->id) {
+                $totalAvoirs += (float) $existingCreditNote->getMontantTTC();
+            }
+        }
+        $totalAvoirs += (float) $this->montantTTC;
+
+        if ($totalAvoirs > (float) $this->invoice->getMontantTTC()) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Le total des avoirs (%.2f €) ne peut pas dépasser le montant TTC de la facture (%.2f €).',
+                    $totalAvoirs,
+                    (float) $this->invoice->getMontantTTC()
+                )
+            );
+        }
+    }
+
+    // ===== MÉTHODES DE STATUT =====
+
+    public function canBeModified(): bool
+    {
+        return $this->statut && $this->statut->isModifiable();
+    }
+
+    public function canBeIssued(): bool
+    {
+        return $this->statut === CreditNoteStatus::DRAFT;
+    }
+
+    public function getStatutLabel(): string
+    {
+        return $this->statut?->getLabel() ?? 'Inconnu';
+    }
+
+    public function getStatutColor(): string
+    {
+        return $this->statut?->getColor() ?? 'secondary';
+    }
+
+    /**
+     * Vérifie si l'avoir annule complètement la facture
+     */
+    public function isTotal(): bool
+    {
+        if (!$this->invoice) {
+            return false;
+        }
+
+        $montantAvoir = (float) $this->montantTTC;
+        $montantFacture = (float) $this->invoice->getMontantTTC();
+
+        // Tolérance de 0.01 € pour les arrondis
+        return abs($montantAvoir - $montantFacture) < 0.01;
     }
 
     /**
@@ -291,7 +489,16 @@ class CreditNote
      */
     public function getMontantHTFormatted(): string
     {
-        $montant = ($this->montantHT ?? 0) / 100; // Conversion centimes -> euros
+        $montant = (float) $this->montantHT; // Déjà en euros (DECIMAL)
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Retourne le montant TVA formaté pour l'affichage
+     */
+    public function getMontantTVAFormatted(): string
+    {
+        $montant = (float) $this->montantTVA; // Déjà en euros (DECIMAL)
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 
@@ -300,7 +507,7 @@ class CreditNote
      */
     public function getMontantTTCFormatted(): string
     {
-        $montant = ($this->montantTTC ?? 0) / 100; // Conversion centimes -> euros
+        $montant = (float) $this->montantTTC; // Déjà en euros (DECIMAL)
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 
@@ -309,15 +516,23 @@ class CreditNote
      */
     public function __toString(): string
     {
-        return sprintf('%s - %s', $this->number ?? 'Credit Note #' . $this->id, $this->getMontantTTCFormatted());
+        return sprintf('%s - %s', $this->number ?? 'Avoir #' . $this->id, $this->getMontantTTCFormatted());
     }
+
+    // ===== LIFECYCLE CALLBACKS =====
 
     #[ORM\PrePersist]
     public function setDateCreationValue(): void
     {
         if (!$this->dateCreation) {
-            $this->dateCreation = new \DateTimeImmutable();
+            $this->dateCreation = new \DateTime();
         }
+        $this->dateModification = new \DateTime();
+    }
+
+    #[ORM\PreUpdate]
+    public function setDateModificationValue(): void
+    {
+        $this->dateModification = new \DateTime();
     }
 }
-

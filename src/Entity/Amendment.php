@@ -16,23 +16,36 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use Symfony\Component\Serializer\Annotation\Groups;
+use App\Entity\QuoteStatus;
 
 /**
- * Entité Amendment pour gérer les modifications des quotes émis
+ * Entité Amendment pour gérer les modifications des quotes signés
  * 
- * CONTRAINTE LÉGALE : Un amendment ne peut être créé que pour un quote existant.
- * Les invoices ne peuvent pas être modifiées par des amendments.
+ * CONTRAINTE LÉGALE : 
+ * - Un amendment ne peut être créé que pour un quote SIGNED
+ * - Un avenant signé devient immuable
+ * - Le montant du devis est recalculé automatiquement : quote.total += amendment.total
+ * - Archivage 10 ans obligatoire
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: \App\Repository\AmendmentRepository::class)]
 #[ORM\Table(name: 'amendments')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
         new Get(),
         new GetCollection(),
-        new Post(),
-        new Put(),
-        new Delete(),
+        new Post(
+            security: "is_granted('ROLE_USER') && object.getQuote() !== null && object.getQuote().getStatut() !== null && object.getQuote().getStatut().value === 'signed'",
+            securityMessage: "Seuls les utilisateurs authentifiés peuvent créer des avenants via l'API. L'avenant doit être associé à un devis signé."
+        ),
+        new Put(
+            security: "object.getStatutEnum() !== null && object.getStatutEnum().isModifiable()",
+            securityMessage: "Seuls les avenants en brouillon peuvent être modifiés via l'API."
+        ),
+        new Delete(
+            security: "false",
+            securityMessage: "Les avenants ne peuvent pas être supprimés. Utilisez l'annulation."
+        ),
     ],
     normalizationContext: ['groups' => ['amendment:read']],
     denormalizationContext: ['groups' => ['amendment:write']],
@@ -46,26 +59,26 @@ class Amendment
     #[Groups(['amendment:read'])]
     private ?int $id = null;
 
-    #[ORM\Column(type: Types::STRING, length: 20)]
+    #[ORM\Column(type: Types::STRING, length: 50, unique: true, nullable: true)]
+    #[Assert\Length(max: 50, maxMessage: 'Le numéro ne peut pas dépasser {{ limit }} caractères')]
     #[Groups(['amendment:read', 'amendment:write'])]
-    #[Assert\NotBlank]
     private ?string $numero = null;
 
-    // ===== RELATION OBLIGATOIRE AVEC UN DEVIS =====
+    // ===== RELATION OBLIGATOIRE AVEC UN DEVIS SIGNED =====
     #[ORM\ManyToOne(targetEntity: Quote::class)]
     #[ORM\JoinColumn(name: 'quote_id', referencedColumnName: 'id', nullable: false)]
     #[Groups(['amendment:read', 'amendment:write'])]
-    #[Assert\NotNull(message: "Un amendment doit être lié à un quote")]
+    #[Assert\NotNull(message: "Un avenant doit être lié à un devis")]
     private ?Quote $quote = null;
 
     #[ORM\Column(type: Types::TEXT)]
     #[Groups(['amendment:read', 'amendment:write'])]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: "Le motif est obligatoire")]
     private ?string $motif = null;
 
     #[ORM\Column(type: Types::TEXT)]
     #[Groups(['amendment:read', 'amendment:write'])]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: "La description des modifications est obligatoire")]
     private ?string $modifications = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -77,13 +90,17 @@ class Amendment
     private ?\DateTimeInterface $dateCreation = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['amendment:read', 'amendment:write'])]
-    private ?\DateTimeInterface $dateValidation = null;
+    #[Groups(['amendment:read'])]
+    private ?\DateTimeInterface $dateSignature = null;
 
-    #[ORM\Column(type: Types::STRING, length: 20)]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['amendment:read', 'amendment:write'])]
-    #[Assert\NotBlank]
-    private ?string $statut = 'brouillon'; // brouillon, valide, rejete, envoye
+    private ?string $signatureClient = null;
+
+    #[ORM\Column(type: Types::STRING, length: 20, enumType: AmendmentStatus::class)]
+    #[Groups(['amendment:read', 'amendment:write'])]
+    #[Assert\NotNull(message: "Le statut est obligatoire")]
+    private ?AmendmentStatus $statut = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['amendment:read', 'amendment:write'])]
@@ -94,32 +111,50 @@ class Amendment
     #[Groups(['amendment:read', 'amendment:write'])]
     private ?string $companyId = null;
 
-    // ===== NOUVEAUX CHAMPS POUR LES MONTANTS DE L'AVENANT =====
-
-    #[ORM\Column(type: Types::INTEGER)]
+    // ===== MONTANTS EN DECIMAL (EUROS) =====
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Groups(['amendment:read', 'amendment:write'])]
-    private ?int $montantHT = 0;
+    #[Assert\NotBlank(message: 'Le montant HT est obligatoire')]
+    #[Assert\Type(type: 'numeric', message: 'Le montant HT doit être un nombre')]
+    private string $montantHT = '0.00';
 
-    #[ORM\Column(type: Types::INTEGER)]
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Groups(['amendment:read', 'amendment:write'])]
-    private ?int $montantTVA = 0;
+    #[Assert\NotBlank(message: 'Le montant TVA est obligatoire')]
+    #[Assert\Type(type: 'numeric', message: 'Le montant TVA doit être un nombre')]
+    private string $montantTVA = '0.00';
 
-    #[ORM\Column(type: Types::INTEGER)]
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Groups(['amendment:read', 'amendment:write'])]
-    private ?int $montantTTC = 0;
+    #[Assert\NotBlank(message: 'Le montant TTC est obligatoire')]
+    #[Assert\Type(type: 'numeric', message: 'Le montant TTC doit être un nombre')]
+    private string $montantTTC = '0.00';
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2)]
+    #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, options: ['default' => 0.00])]
     #[Groups(['amendment:read', 'amendment:write'])]
-    private ?string $tauxTVA = '0.00';
+    private string $tauxTVA = '0.00';
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['amendment:read'])]
+    private ?\DateTimeInterface $dateModification = null;
+
+    /**
+     * @var Collection<int, AmendmentLine>
+     */
+    #[ORM\OneToMany(targetEntity: AmendmentLine::class, mappedBy: 'amendment', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['amendment:read', 'amendment:write'])]
+    private Collection $lines;
 
     public function __construct()
     {
         $this->dateCreation = new \DateTime();
-        $this->statut = 'brouillon';
-        $this->montantHT = 0;
-        $this->montantTVA = 0;
-        $this->montantTTC = 0;
+        $this->dateModification = new \DateTime();
+        $this->statut = AmendmentStatus::DRAFT;
+        $this->montantHT = '0.00';
+        $this->montantTVA = '0.00';
+        $this->montantTTC = '0.00';
         $this->tauxTVA = '0.00';
+        $this->lines = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -199,26 +234,52 @@ class Amendment
         return $this;
     }
 
-    public function getDateValidation(): ?\DateTimeInterface
+    public function getDateSignature(): ?\DateTimeInterface
     {
-        return $this->dateValidation;
+        return $this->dateSignature;
     }
 
-    public function setDateValidation(?\DateTimeInterface $dateValidation): static
+    public function setDateSignature(?\DateTimeInterface $dateSignature): static
     {
-        $this->dateValidation = $dateValidation;
+        $this->dateSignature = $dateSignature;
         return $this;
     }
 
-    public function getStatut(): ?string
+    public function getSignatureClient(): ?string
+    {
+        return $this->signatureClient;
+    }
+
+    public function setSignatureClient(?string $signatureClient): static
+    {
+        $this->signatureClient = $signatureClient;
+        return $this;
+    }
+
+    public function getStatut(): ?AmendmentStatus
     {
         return $this->statut;
     }
 
-    public function setStatut(string $statut): static
+    public function setStatut(?AmendmentStatus $statut): static
     {
+        // Si passage à SIGNED, valider que c'est possible
+        if ($statut === AmendmentStatus::SIGNED && $this->statut !== AmendmentStatus::SIGNED) {
+            $this->validateCanBeSigned();
+        }
+
         $this->statut = $statut;
         return $this;
+    }
+
+    public function getStatutEnum(): ?AmendmentStatus
+    {
+        return $this->statut;
+    }
+
+    public function setStatutEnum(AmendmentStatus $statut): static
+    {
+        return $this->setStatut($statut);
     }
 
     public function getCompanyId(): ?string
@@ -243,42 +304,53 @@ class Amendment
         return $this;
     }
 
-    // ===== NOUVELLES MÉTHODES POUR LES MONTANTS =====
+    public function getDateModification(): ?\DateTimeInterface
+    {
+        return $this->dateModification;
+    }
 
-    public function getMontantHT(): ?int
+    public function setDateModification(?\DateTimeInterface $dateModification): static
+    {
+        $this->dateModification = $dateModification;
+        return $this;
+    }
+
+    // ===== MÉTHODES POUR LES MONTANTS (DECIMAL EN EUROS) =====
+
+    public function getMontantHT(): string
     {
         return $this->montantHT;
     }
 
-    public function setMontantHT(int $montantHT): static
+    public function setMontantHT(string $montantHT): static
     {
         $this->montantHT = $montantHT;
         return $this;
     }
 
-    public function getMontantTVA(): ?int
+    public function getMontantTVA(): string
     {
         return $this->montantTVA;
     }
 
-    public function setMontantTVA(int $montantTVA): static
+    public function setMontantTVA(string $montantTVA): static
     {
         $this->montantTVA = $montantTVA;
         return $this;
     }
 
-    public function getMontantTTC(): ?int
+    public function getMontantTTC(): string
     {
         return $this->montantTTC;
     }
 
-    public function setMontantTTC(int $montantTTC): static
+    public function setMontantTTC(string $montantTTC): static
     {
         $this->montantTTC = $montantTTC;
         return $this;
     }
 
-    public function getTauxTVA(): ?string
+    public function getTauxTVA(): string
     {
         return $this->tauxTVA;
     }
@@ -289,80 +361,148 @@ class Amendment
         return $this;
     }
 
+    // ===== RELATION AVEC LES LIGNES =====
+
+    /**
+     * @return Collection<int, AmendmentLine>
+     */
+    public function getLines(): Collection
+    {
+        return $this->lines;
+    }
+
+    public function addLine(AmendmentLine $line): static
+    {
+        if (!$this->lines->contains($line)) {
+            $this->lines->add($line);
+            $line->setAmendment($this);
+        }
+        return $this;
+    }
+
+    public function removeLine(AmendmentLine $line): static
+    {
+        if ($this->lines->removeElement($line)) {
+            if ($line->getAmendment() === $this) {
+                $line->setAmendment(null);
+            }
+        }
+        return $this;
+    }
+
     // ===== MÉTHODES DE CALCUL AUTOMATIQUE =====
 
     /**
-     * Retourne le montant HT formaté
+     * Recalcule les montants HT/TTC depuis les lignes
+     * Les montants sont stockés en DECIMAL (euros)
      */
-    public function getMontantHTFormate(): string
+    public function recalculateTotalsFromLines(): void
     {
-        $montant = (float) $this->montantHT / 100; // Conversion centimes -> euros
-        return number_format($montant, 2, ',', ' ') . ' €';
+        if ($this->lines->isEmpty()) {
+            $this->montantHT = '0.00';
+            $this->montantTVA = '0.00';
+            $this->montantTTC = '0.00';
+            return;
+        }
+
+        $totalHtEuros = 0.0;
+        $totalTvaEuros = 0.0;
+
+        foreach ($this->lines as $line) {
+            $lineTotalHt = (float) ($line->getTotalHt() ?? 0);
+            $totalHtEuros += $lineTotalHt;
+
+            // Calculer la TVA de chaque ligne
+            if ($line->getTvaRate() && (float) $line->getTvaRate() > 0) {
+                $tvaAmount = $lineTotalHt * ((float) $line->getTvaRate() / 100);
+                $totalTvaEuros += $tvaAmount;
+            }
+        }
+
+        $this->montantHT = number_format($totalHtEuros, 2, '.', '');
+        $this->montantTVA = number_format($totalTvaEuros, 2, '.', '');
+        $this->montantTTC = number_format($totalHtEuros + $totalTvaEuros, 2, '.', '');
     }
 
     /**
-     * Retourne le montant TVA formaté
+     * Valide que l'avenant peut être signé
+     * 
+     * @throws \RuntimeException si l'avenant ne peut pas être signé
      */
-    public function getMontantTVAFormate(): string
+    public function validateCanBeSigned(): void
     {
-        $montant = (float) $this->montantTVA / 100; // Conversion centimes -> euros
-        return number_format($montant, 2, ',', ' ') . ' €';
-    }
+        // Vérifier qu'au moins une ligne est présente
+        if ($this->lines->isEmpty()) {
+            throw new \RuntimeException('Un avenant ne peut pas être signé sans ligne.');
+        }
 
-    /**
-     * Retourne le montant TTC formaté
-     */
-    public function getMontantTTCFormate(): string
-    {
-        $montant = (float) $this->montantTTC / 100; // Conversion centimes -> euros
-        return number_format($montant, 2, ',', ' ') . ' €';
+        // Vérifier que le montant HT est positif
+        if ((float) $this->montantHT <= 0) {
+            throw new \RuntimeException('Un avenant ne peut pas être signé avec un montant HT négatif ou nul.');
+        }
+
+        // Vérifier que le montant TTC est positif
+        if ((float) $this->montantTTC <= 0) {
+            throw new \RuntimeException('Un avenant ne peut pas être signé avec un montant TTC négatif ou nul.');
+        }
+
+        // Vérifier que l'avenant n'est pas annulé
+        if ($this->statut === AmendmentStatus::CANCELLED) {
+            throw new \RuntimeException('Un avenant annulé ne peut pas être signé.');
+        }
+
+        // Vérifier que le devis associé est signé
+        if (!$this->quote || $this->quote->getStatut() !== QuoteStatus::SIGNED) {
+            throw new \RuntimeException('Un avenant ne peut être créé que pour un devis signé.');
+        }
     }
 
     // ===== MÉTHODES DE STATUT =====
 
-    public function isBrouillon(): bool
+    public function canBeModified(): bool
     {
-        return $this->statut === 'brouillon';
+        return $this->statut && $this->statut->isModifiable();
     }
 
-    public function isValide(): bool
+    public function canBeSigned(): bool
     {
-        return $this->statut === 'valide';
+        return $this->statut === AmendmentStatus::DRAFT || $this->statut === AmendmentStatus::SENT;
     }
 
-    public function isRejete(): bool
+    public function canBeCancelled(): bool
     {
-        return $this->statut === 'rejete';
-    }
-
-    public function isEnvoye(): bool
-    {
-        return $this->statut === 'envoye';
+        return $this->statut && !$this->statut->isFinal();
     }
 
     public function getStatutLabel(): string
     {
-        return match ($this->statut) {
-            'brouillon' => 'Brouillon',
-            'valide' => 'Validé',
-            'rejete' => 'Rejeté',
-            'envoye' => 'Envoyé',
-            default => 'Inconnu'
-        };
+        return $this->statut?->getLabel() ?? 'Inconnu';
     }
 
     public function getStatutColor(): string
     {
-        return match ($this->statut) {
-            'brouillon' => 'warning',
-            'valide' => 'success',
-            'rejete' => 'danger',
-            'envoye' => 'info',
-            default => 'secondary'
-        };
+        return $this->statut?->getColor() ?? 'secondary';
     }
 
     // ===== MÉTHODES D'AFFICHAGE =====
+
+    public function getMontantHTFormate(): string
+    {
+        $montant = (float) $this->montantHT; // Déjà en euros (DECIMAL)
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    public function getMontantTVAFormate(): string
+    {
+        $montant = (float) $this->montantTVA; // Déjà en euros (DECIMAL)
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    public function getMontantTTCFormate(): string
+    {
+        $montant = (float) $this->montantTTC; // Déjà en euros (DECIMAL)
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
 
     public function getDocumentInfo(): string
     {
@@ -371,7 +511,7 @@ class Amendment
         }
 
         return sprintf(
-            'Quote %s - %s (%s)',
+            'Devis %s - %s (%s)',
             $this->quote->getNumero(),
             $this->quote->getClient()?->getNomComplet() ?? 'Client inconnu',
             $this->quote->getMontantTTCFormate()
@@ -380,30 +520,23 @@ class Amendment
 
     public function __toString(): string
     {
-        return $this->numero ?? 'Amendment #' . $this->id;
+        return $this->numero ?? 'Avenant #' . $this->id;
     }
 
-    /**
-     * Résumé lisible des lignes du devis concerné (pour affichage admin/PDF)
-     */
-    public function getDevisTarifsResume(): string
+    // ===== LIFECYCLE CALLBACKS =====
+
+    #[ORM\PrePersist]
+    public function setDateCreationValue(): void
     {
-        if ($this->quote === null) {
-            return '';
+        if (!$this->dateCreation) {
+            $this->dateCreation = new \DateTime();
         }
+        $this->dateModification = new \DateTime();
+    }
 
-        $quoteLines = $this->quote->getLines();
-        if ($quoteLines === null || $quoteLines->count() === 0) {
-            return 'Aucune ligne sur le devis d\'origine.';
-        }
-
-        $lines = [];
-        foreach ($quoteLines as $line) {
-            $description = $line->getDescription() ?? '';
-            $total = $line->getTotalTtcFormatted() ?? '0,00 €';
-            $lines[] = trim($description . ' — ' . $total);
-        }
-
-        return implode("\n", $lines);
+    #[ORM\PreUpdate]
+    public function setDateModificationValue(): void
+    {
+        $this->dateModification = new \DateTime();
     }
 }

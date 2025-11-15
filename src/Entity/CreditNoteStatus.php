@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace App\Entity;
 
 /**
- * Enum pour les statuts des avenants (amendments)
+ * Enum pour les statuts des avoirs (credit notes)
  */
-enum AmendmentStatus: string
+enum CreditNoteStatus: string
 {
     case DRAFT = 'draft';
-    case SENT = 'sent';
-    case SIGNED = 'signed';
-    case CANCELLED = 'cancelled';
+    case ISSUED = 'issued';
 
     /**
      * Retourne le libellé du statut
@@ -21,9 +19,7 @@ enum AmendmentStatus: string
     {
         return match ($this) {
             self::DRAFT => 'Brouillon',
-            self::SENT => 'Envoyé',
-            self::SIGNED => 'Signé',
-            self::CANCELLED => 'Annulé',
+            self::ISSUED => 'Émis',
         };
     }
 
@@ -34,26 +30,32 @@ enum AmendmentStatus: string
     {
         return match ($this) {
             self::DRAFT => 'warning',
-            self::SENT => 'info',
-            self::SIGNED => 'success',
-            self::CANCELLED => 'dark',
+            self::ISSUED => 'success',
         };
     }
 
     /**
-     * Vérifie si l'avenant est dans un état final (ne peut plus être modifié)
+     * Vérifie si l'avoir est dans un état final (ne peut plus être modifié)
      */
     public function isFinal(): bool
     {
-        return in_array($this, [self::SIGNED, self::CANCELLED]);
+        return $this === self::ISSUED;
     }
 
     /**
-     * Vérifie si l'avenant peut être modifié
+     * Vérifie si l'avoir peut être modifié
      */
     public function isModifiable(): bool
     {
         return $this === self::DRAFT;
+    }
+
+    /**
+     * Vérifie si l'avoir est émis
+     */
+    public function isEmitted(): bool
+    {
+        return $this === self::ISSUED;
     }
 
     /**

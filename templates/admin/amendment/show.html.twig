@@ -1,0 +1,210 @@
+{% extends 'admin/layout/base.html.twig' %}
+
+{% block title %}Avenant {{ amendment.numero }} - Administration Delnyx{% endblock %}
+
+{% block page_title %}Avenant {{ amendment.numero }}{% endblock %}
+
+{% block body %}
+<div class="space-y-6">
+
+    {# Header avec breadcrumb #}
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+        <div>
+            <h1 class="text-2xl font-bold text-white">Avenant {{ amendment.numero }}</h1>
+            <nav class="flex items-center space-x-2 text-sm text-white/60 mt-1">
+                <a href="{{ path('admin_dashboard') }}" class="hover:text-white transition-colors duration-200">Dashboard</a>
+                <span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
+                <a href="{{ path('admin_amendment_index') }}" class="hover:text-white transition-colors duration-200">Avenants</a>
+                <span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
+                <span class="text-white">{{ amendment.numero }}</span>
+            </nav>
+        </div>
+        <div class="flex gap-3">
+            {% if amendment.canBeModified %}
+                <a href="{{ path('admin_amendment_edit', {id: amendment.id}) }}" class="btn-secondary flex items-center gap-2">
+                    {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
+                    Modifier
+                </a>
+            {% endif %}
+            {% if amendment.canBeSigned %}
+                <form method="POST" action="{{ path('admin_amendment_sign', {id: amendment.id}) }}" class="inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('sign' ~ amendment.id) }}">
+                    <button type="submit" class="btn-primary flex items-center gap-2">
+                        {{ ux_icon('lucide:pen-tool', {class: 'w-4 h-4'}) }}
+                        Signer
+                    </button>
+                </form>
+            {% endif %}
+            {% if amendment.statutEnum.value == 'draft' %}
+                <form method="POST" action="{{ path('admin_amendment_send', {id: amendment.id}) }}" class="inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('send' ~ amendment.id) }}">
+                    <button type="submit" class="btn-secondary flex items-center gap-2">
+                        {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
+                        Envoyer
+                    </button>
+                </form>
+            {% endif %}
+            <a href="{{ path('admin_amendment_index') }}" class="btn-secondary flex items-center gap-2">
+                {{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
+                Retour
+            </a>
+        </div>
+    </div>
+
+    {# Informations principales #}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {# Colonne principale #}
+        <div class="lg:col-span-2 space-y-6">
+
+            {# Informations de l'avenant #}
+            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate">
+                <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                    {{ ux_icon('lucide:file-edit', {class: 'w-5 h-5'}) }}
+                    Informations de l'avenant
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-sm text-white/60 mb-1">Devis associé</p>
+                        {% if amendment.quote %}
+                            <a href="{{ path('admin_quote_show', {id: amendment.quote.id}) }}" class="text-blue-400 hover:text-blue-300 transition-colors">
+                                {{ amendment.quote.numero }}
+                            </a>
+                        {% else %}
+                            <p class="text-white/60">Aucun devis</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-white/60 mb-1">Statut</p>
+                        {% set status = amendment.statutEnum %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            {% if status.value == 'draft' %}bg-yellow-500/20 text-yellow-300
+                            {% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+                            {% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
+                            {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+                            {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+                            {{ status.label }}
+                        </span>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-white/60 mb-1">Date de création</p>
+                        <p class="text-white">{{ amendment.dateCreation|date('d/m/Y à H:i') }}</p>
+                    </div>
+
+                    {% if amendment.dateSignature %}
+                        <div>
+                            <p class="text-sm text-white/60 mb-1">Date de signature</p>
+                            <p class="text-white">{{ amendment.dateSignature|date('d/m/Y à H:i') }}</p>
+                        </div>
+                    {% endif %}
+
+                    <div>
+                        <p class="text-sm text-white/60 mb-1">Motif</p>
+                        <p class="text-white">{{ amendment.motif }}</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-white/60 mb-1">Taux TVA</p>
+                        <p class="text-white">{{ amendment.tauxTVA }}%</p>
+                    </div>
+                </div>
+
+                {% if amendment.modifications %}
+                    <div class="mt-6">
+                        <p class="text-sm text-white/60 mb-2">Description des modifications</p>
+                        <p class="text-white whitespace-pre-line">{{ amendment.modifications }}</p>
+                    </div>
+                {% endif %}
+
+                {% if amendment.justification %}
+                    <div class="mt-6">
+                        <p class="text-sm text-white/60 mb-2">Justification</p>
+                        <p class="text-white whitespace-pre-line">{{ amendment.justification }}</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            {# Lignes de l'avenant #}
+            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100">
+                <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                    {{ ux_icon('lucide:list', {class: 'w-5 h-5'}) }}
+                    Lignes de l'avenant
+                </h2>
+
+                {% if amendment.lines|length > 0 %}
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-white/5 border-b border-white/20">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-white/80 uppercase">Description</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Qté</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Prix unitaire</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">TVA</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total HT</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total TTC</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/10">
+                                {% for line in amendment.lines %}
+                                    <tr>
+                                        <td class="px-4 py-3 text-white">{{ line.description }}</td>
+                                        <td class="px-4 py-3 text-right text-white">{{ line.quantity }}</td>
+                                        <td class="px-4 py-3 text-right text-white">{{ line.unitPrice|number_format(2, ',', ' ') }} €</td>
+                                        <td class="px-4 py-3 text-right text-white">
+                                            {{ line.tvaRate ? line.tvaRate ~ '%' : (amendment.tauxTVA ~ '%') }}
+                                        </td>
+                                        <td class="px-4 py-3 text-right text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }} €</td>
+                                        <td class="px-4 py-3 text-right text-white font-medium">{{ line.totalTtcFormatted }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-white/60 text-center py-8">Aucune ligne dans cet avenant</p>
+                {% endif %}
+            </div>
+
+            {# Notes #}
+            {% if amendment.notes %}
+                <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
+                    <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                        {{ ux_icon('lucide:sticky-note', {class: 'w-5 h-5'}) }}
+                        Notes
+                    </h2>
+                    <p class="text-white whitespace-pre-line">{{ amendment.notes }}</p>
+                </div>
+            {% endif %}
+        </div>
+
+        {# Colonne latérale #}
+        <div class="space-y-6">
+            {# Montants #}
+            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100">
+                <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                    {{ ux_icon('lucide:calculator', {class: 'w-5 h-5'}) }}
+                    Montants
+                </h2>
+                <div class="space-y-4">
+                    <div class="flex justify-between">
+                        <span class="text-white/60">Montant HT</span>
+                        <span class="text-white font-medium">{{ amendment.montantHTFormate }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-white/60">TVA</span>
+                        <span class="text-white font-medium">{{ amendment.montantTVAFormate }}</span>
+                    </div>
+                    <div class="flex justify-between pt-4 border-t border-white/20">
+                        <span class="text-white font-semibold">Total TTC</span>
+                        <span class="text-white font-bold text-lg">{{ amendment.montantTTCFormate }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

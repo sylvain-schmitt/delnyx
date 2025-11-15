@@ -10,6 +10,8 @@ use App\Form\QuoteType;
 use App\Repository\QuoteRepository;
 use App\Repository\ClientRepository;
 use App\Repository\CompanySettingsRepository;
+use App\Repository\AmendmentRepository;
+use App\Service\QuoteService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,7 +29,9 @@ class QuoteController extends AbstractController
         private QuoteRepository $quoteRepository,
         private ClientRepository $clientRepository,
         private CompanySettingsRepository $companySettingsRepository,
-        private EntityManagerInterface $entityManager
+        private AmendmentRepository $amendmentRepository,
+        private EntityManagerInterface $entityManager,
+        private QuoteService $quoteService
     ) {}
 
     #[Route('/', name: 'index')]
@@ -76,8 +80,17 @@ class QuoteController extends AbstractController
     #[Route('/{id}', name: 'show', requirements: ['id' => '\d+'])]
     public function show(Quote $quote): Response
     {
+        // Récupérer les avenants liés à ce devis
+        $amendments = $this->amendmentRepository->createQueryBuilder('a')
+            ->where('a.quote = :quote')
+            ->setParameter('quote', $quote)
+            ->orderBy('a.dateCreation', 'DESC')
+            ->getQuery()
+            ->getResult();
+
         return $this->render('admin/quote/show.html.twig', [
             'quote' => $quote,
+            'amendments' => $amendments,
         ]);
     }
 
@@ -373,67 +386,25 @@ class QuoteController extends AbstractController
     }
 
     #[Route('/{id}/cancel', name: 'cancel', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function cancel(Request $request, Quote $quote): Response
+    #[IsGranted('QUOTE_CANCEL', subject: 'quote')]
+    public function cancel(Quote $quote, Request $request): Response
     {
-        // Conformité légale française : on n'efface jamais un devis, on l'annule
-        // Cela préserve la numérotation séquentielle et la traçabilité comptable
-
-        // Vérifier si le devis peut être annulé
-        // Les devis signés, acceptés, ou ayant généré une facture ne peuvent pas être annulés
-        if ($quote->getStatut() === QuoteStatus::SIGNED || $quote->getStatut() === QuoteStatus::ACCEPTED) {
-            $this->addFlash('error', 'Ce devis est ' . strtolower($quote->getStatut()->getLabel()) . ' et ne peut plus être annulé.');
+        if (!$this->isCsrfTokenValid('quote_cancel_' . $quote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
             return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
         }
 
-        // Vérifier si une facture a été générée depuis ce devis
-        if ($quote->getInvoice()) {
-            $this->addFlash('error', 'Ce devis a généré une facture et ne peut plus être annulé.');
-            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
-        }
-
-        // Vérifier si le devis est déjà annulé
-        if ($quote->getStatut() === QuoteStatus::CANCELLED) {
-            $this->addFlash('info', 'Ce devis est déjà annulé.');
-            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
-        }
-
-        if ($this->isCsrfTokenValid('cancel' . $quote->getId(), $request->request->get('_token'))) {
-            // Annuler le devis au lieu de le supprimer (conformité légale)
-            $quote->setStatut(QuoteStatus::CANCELLED);
-            $quote->setDateModification(new \DateTime());
-            $this->entityManager->flush();
-
-            $this->addFlash('success', 'Devis annulé avec succès. Le numéro est conservé pour la traçabilité comptable.');
-        } else {
-            $this->addFlash('error', 'Token de sécurité invalide.');
-        }
-
-        return $this->redirectToRoute('admin_quote_index');
-    }
-
-    #[Route('/{id}/generate-invoice', name: 'generate_invoice', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function generateInvoice(Request $request, Quote $quote): Response
-    {
-        // Vérifier que le devis est signé
-        if ($quote->getStatut() !== QuoteStatus::SIGNED) {
-            $this->addFlash('error', 'Seuls les devis signés peuvent être convertis en facture.');
-            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
-        }
-
-        // Vérifier qu'une facture n'existe pas déjà
-        if ($quote->getInvoice()) {
-            $this->addFlash('error', 'Une facture existe déjà pour ce devis.');
-            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
-        }
-
-        if ($this->isCsrfTokenValid('generate_invoice' . $quote->getId(), $request->request->get('_token'))) {
-            // TODO: Créer la facture depuis le devis
-            // Cette fonctionnalité sera implémentée dans InvoiceController
-            $this->addFlash('info', 'La génération de facture depuis un devis sera disponible prochainement.');
+        try {
+            $reason = $request->request->get('reason');
+            $this->quoteService->cancel($quote, $reason);
+            $this->addFlash('success', 'Devis annulé avec succès.');
+        } catch (\Exception $e) {
+            $this->addFlash('error', $e->getMessage());
         }
 
         return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
     }
+
 
     /**
      * Endpoint API pour récupérer les informations d'un client (SIREN, etc.)
@@ -454,5 +425,113 @@ class QuoteController extends AbstractController
             'adresse' => $client->getAdresseComplete(),
             'adresseLivraison' => $client->getAdresseComplete(), // Pour pré-remplir l'adresse de livraison
         ]);
+    }
+
+    /**
+     * Envoie un devis (DRAFT → SENT)
+     */
+    #[Route('/{id}/send', name: 'send', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('QUOTE_SEND', subject: 'quote')]
+    public function send(Quote $quote, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('quote_send_' . $quote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        try {
+            $this->quoteService->send($quote);
+            $this->addFlash('success', 'Devis envoyé avec succès.');
+        } catch (\Exception $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+    }
+
+    /**
+     * Accepte un devis (SENT → ACCEPTED)
+     */
+    #[Route('/{id}/accept', name: 'accept', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('QUOTE_ACCEPT', subject: 'quote')]
+    public function accept(Quote $quote, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('quote_accept_' . $quote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        try {
+            $this->quoteService->accept($quote);
+            $this->addFlash('success', 'Devis accepté avec succès.');
+        } catch (\Exception $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+    }
+
+    /**
+     * Signe un devis (SENT/ACCEPTED → SIGNED)
+     */
+    #[Route('/{id}/sign', name: 'sign', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('QUOTE_SIGN', subject: 'quote')]
+    public function sign(Quote $quote, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('quote_sign_' . $quote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        try {
+            $signatureClient = $request->request->get('signatureClient');
+            $this->quoteService->sign($quote, $signatureClient);
+            $this->addFlash('success', 'Devis signé avec succès - CONTRAT créé.');
+        } catch (\Exception $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+    }
+
+    /**
+     * Refuse un devis (SENT/ACCEPTED → REFUSED)
+     */
+    #[Route('/{id}/refuse', name: 'refuse', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('QUOTE_REFUSE', subject: 'quote')]
+    public function refuse(Quote $quote, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('quote_refuse_' . $quote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        try {
+            $reason = $request->request->get('reason');
+            $this->quoteService->refuse($quote, $reason);
+            $this->addFlash('success', 'Devis refusé avec succès.');
+        } catch (\Exception $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+    }
+
+    /**
+     * Génère une facture depuis un devis signé
+     */
+    #[Route('/{id}/generate-invoice', name: 'generate_invoice', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('QUOTE_GENERATE_INVOICE', subject: 'quote')]
+    public function generateInvoice(Quote $quote, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('quote_generate_invoice_' . $quote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        // TODO: Implémenter InvoiceService->createFromQuote($quote)
+        $this->addFlash('info', 'La génération de facture depuis un devis n\'est pas encore implémentée.');
+
+        return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
     }
 }
