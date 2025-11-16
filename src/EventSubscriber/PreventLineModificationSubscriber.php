@@ -10,7 +10,8 @@ use App\Entity\AmendmentStatus;
 use App\Entity\CreditNoteStatus;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
 use Doctrine\ORM\Events;
-use Doctrine\Persistence\Event\LifecycleEventArgs;
+use Doctrine\ORM\Event\PreUpdateEventArgs;
+use Doctrine\ORM\Event\PreRemoveEventArgs;
 
 /**
  * EventSubscriber pour empêcher la modification des lignes d'avenant/avoir signés
@@ -29,10 +30,8 @@ class PreventLineModificationSubscriber
     /**
      * Empêche la modification d'une ligne d'avenant si l'avenant est signé
      */
-    public function preUpdate(LifecycleEventArgs $args): void
+    public function preUpdate(AmendmentLine|CreditNoteLine $entity, PreUpdateEventArgs $args): void
     {
-        $entity = $args->getObject();
-
         if ($entity instanceof AmendmentLine) {
             $this->preventAmendmentLineModification($entity);
         } elseif ($entity instanceof CreditNoteLine) {
@@ -43,10 +42,8 @@ class PreventLineModificationSubscriber
     /**
      * Empêche la suppression d'une ligne d'avenant/avoir si signé/émis
      */
-    public function preRemove(LifecycleEventArgs $args): void
+    public function preRemove(AmendmentLine|CreditNoteLine $entity, PreRemoveEventArgs $args): void
     {
-        $entity = $args->getObject();
-
         if ($entity instanceof AmendmentLine) {
             $this->preventAmendmentLineDeletion($entity);
         } elseif ($entity instanceof CreditNoteLine) {

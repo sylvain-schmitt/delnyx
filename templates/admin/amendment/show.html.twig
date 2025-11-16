@@ -19,31 +19,8 @@
                 <span class="text-white">{{ amendment.numero }}</span>
             </nav>
         </div>
-        <div class="flex gap-3">
-            {% if amendment.canBeModified %}
-                <a href="{{ path('admin_amendment_edit', {id: amendment.id}) }}" class="btn-secondary flex items-center gap-2">
-                    {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
-                    Modifier
-                </a>
-            {% endif %}
-            {% if amendment.canBeSigned %}
-                <form method="POST" action="{{ path('admin_amendment_sign', {id: amendment.id}) }}" class="inline">
-                    <input type="hidden" name="_token" value="{{ csrf_token('sign' ~ amendment.id) }}">
-                    <button type="submit" class="btn-primary flex items-center gap-2">
-                        {{ ux_icon('lucide:pen-tool', {class: 'w-4 h-4'}) }}
-                        Signer
-                    </button>
-                </form>
-            {% endif %}
-            {% if amendment.statutEnum.value == 'draft' %}
-                <form method="POST" action="{{ path('admin_amendment_send', {id: amendment.id}) }}" class="inline">
-                    <input type="hidden" name="_token" value="{{ csrf_token('send' ~ amendment.id) }}">
-                    <button type="submit" class="btn-secondary flex items-center gap-2">
-                        {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
-                        Envoyer
-                    </button>
-                </form>
-            {% endif %}
+        <div class="flex gap-3 flex-wrap">
+            {# Bouton Retour #}
             <a href="{{ path('admin_amendment_index') }}" class="btn-secondary flex items-center gap-2">
                 {{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
                 Retour
@@ -80,7 +57,7 @@
                         <p class="text-sm text-white/60 mb-1">Statut</p>
                         {% set status = amendment.statutEnum %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            {% if status.value == 'draft' %}bg-yellow-500/20 text-yellow-300
+                            {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
                             {% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
                             {% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
                             {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
@@ -93,6 +70,16 @@
                         <p class="text-sm text-white/60 mb-1">Date de création</p>
                         <p class="text-white">{{ amendment.dateCreation|date('d/m/Y à H:i') }}</p>
                     </div>
+
+                    {% if amendment.sentAt %}
+                        <div>
+                            <p class="text-sm text-white/60 mb-1">Date d'envoi</p>
+                            <p class="text-white">{{ amendment.sentAt|date('d/m/Y à H:i') }}</p>
+                            {% if amendment.sentCount > 0 %}
+                                <p class="text-xs text-white/60">Envoyé {{ amendment.sentCount }} fois</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
 
                     {% if amendment.dateSignature %}
                         <div>
@@ -125,6 +112,17 @@
                         <p class="text-white whitespace-pre-line">{{ amendment.justification }}</p>
                     </div>
                 {% endif %}
+
+                {% if amendment.quote %}
+                    <div class="mt-6 pt-6 border-t border-white/20">
+                        <p class="text-sm text-white/60 mb-2">Impact sur le devis</p>
+                        <div class="flex justify-between items-center text-sm mb-2">
+                            <span class="text-white/60">Total devis corrigé</span>
+                            <span class="text-white font-semibold">{{ amendment.quote.totalCorrectedFormatted }}</span>
+                        </div>
+                        <p class="text-white text-sm mt-2">Cet avenant modifie le montant du devis {{ amendment.quote.numero }}</p>
+                    </div>
+                {% endif %}
             </div>
 
             {# Lignes de l'avenant #}
@@ -143,20 +141,33 @@
                                     <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Qté</th>
                                     <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Prix unitaire</th>
                                     <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">TVA</th>
-                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total HT</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Ancien montant</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Nouveau montant</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Delta</th>
                                     <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total TTC</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-white/10">
                                 {% for line in amendment.lines %}
                                     <tr>
-                                        <td class="px-4 py-3 text-white">{{ line.description }}</td>
+                                        <td class="px-4 py-3 text-white">
+                                            {{ line.description }}
+                                            {% if line.sourceLine %}
+                                                <span class="text-xs text-white/60 block mt-1">(Modification de ligne {{ line.sourceLine.id }})</span>
+                                            {% else %}
+                                                <span class="text-xs text-blue-400 block mt-1">(Nouvelle ligne)</span>
+                                            {% endif %}
+                                        </td>
                                         <td class="px-4 py-3 text-right text-white">{{ line.quantity }}</td>
                                         <td class="px-4 py-3 text-right text-white">{{ line.unitPrice|number_format(2, ',', ' ') }} €</td>
                                         <td class="px-4 py-3 text-right text-white">
                                             {{ line.tvaRate ? line.tvaRate ~ '%' : (amendment.tauxTVA ~ '%') }}
                                         </td>
-                                        <td class="px-4 py-3 text-right text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }} €</td>
+                                        <td class="px-4 py-3 text-right text-white/60">{{ line.oldValue|number_format(2, ',', ' ') }} €</td>
+                                        <td class="px-4 py-3 text-right text-white font-medium">{{ line.newValue|number_format(2, ',', ' ') }} €</td>
+                                        <td class="px-4 py-3 text-right text-white font-semibold {% if (line.delta|number_format(2, '.', '')) > 0 %}text-green-400{% elseif (line.delta|number_format(2, '.', '')) < 0 %}text-red-400{% else %}text-white{% endif %}">
+                                            {{ line.deltaFormatted }}
+                                        </td>
                                         <td class="px-4 py-3 text-right text-white font-medium">{{ line.totalTtcFormatted }}</td>
                                     </tr>
                                 {% endfor %}
@@ -201,6 +212,93 @@
                         <span class="text-white font-semibold">Total TTC</span>
                         <span class="text-white font-bold text-lg">{{ amendment.montantTTCFormate }}</span>
                     </div>
+                    {% if amendment.quote %}
+                        <div class="pt-4 border-t border-white/20">
+                            <p class="text-sm text-white/60 mb-2">Impact sur le devis</p>
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-white/60">Total devis corrigé</span>
+                                <span class="text-white font-semibold">{{ amendment.quote.totalCorrectedFormatted }}</span>
+                            </div>
+                        </div>
+                        
+                        {# Afficher l'acompte si le devis en a un #}
+                        {% if amendment.quote.acomptePourcentage > 0 %}
+                            {% set totalCorrige = amendment.quote.totalCorrected|number_format(2, '.', '') %}
+                            {% set montantAcompteCorrige = amendment.quote.montantAcompteCorrige|number_format(2, '.', '') %}
+                            {% set resteAPayer = totalCorrige - montantAcompteCorrige %}
+                            <div class="pt-4 border-t border-white/20">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-white/60">Acompte ({{ amendment.quote.acomptePourcentage }}%)</span>
+                                    <span class="text-white font-semibold">
+                                        {{ amendment.quote.montantAcompteCorrigeFormate }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-white font-medium">Reste à payer</span>
+                                    <span class="text-white font-bold">
+                                        {{ resteAPayer|number_format(2, ',', ' ') }} €
+                                    </span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Actions #}
+            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
+                <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                    {{ ux_icon('lucide:zap', {class: 'w-5 h-5'}) }}
+                    Actions
+                </h2>
+
+                <div class="space-y-3">
+                    {# Bouton Modifier : visible si DRAFT ou SENT #}
+                    {% if amendment.canBeModified %}
+                        <a href="{{ path('admin_amendment_edit', {id: amendment.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2">
+                            {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
+                            Modifier
+                        </a>
+                    {% endif %}
+
+                    {# Bouton Envoyer : visible si DRAFT ou SENT #}
+                    {% if amendment.statutEnum.value in ['draft', 'sent'] %}
+                        <form method="POST" action="{{ path('admin_amendment_send', {id: amendment.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Envoyer cet avenant au client ?">
+                            <input type="hidden" name="_token" value="{{ csrf_token('amendment_send_' ~ amendment.id) }}">
+                            <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
+                                {{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
+                                Envoyer
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {# Bouton Signer : visible si DRAFT ou SENT #}
+                    {% if amendment.canBeSigned %}
+                        <form method="POST" action="{{ path('admin_amendment_sign', {id: amendment.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer cet avenant le rend opposable et immuable. Continuer ?">
+                            <input type="hidden" name="_token" value="{{ csrf_token('amendment_sign_' ~ amendment.id) }}">
+                            <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
+                                {{ ux_icon('lucide:pen-tool', {class: 'w-4 h-4'}) }}
+                                Signer
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {# Bouton Annuler : visible si DRAFT ou SENT #}
+                    {% if amendment.canBeCancelled %}
+                        <form method="POST" action="{{ path('admin_amendment_cancel', {id: amendment.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avenant ?">
+                            <input type="hidden" name="_token" value="{{ csrf_token('amendment_cancel_' ~ amendment.id) }}">
+                            <button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
+                                {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
+                                Annuler
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {# Bouton Télécharger PDF #}
+                    <a href="#" class="w-full btn-secondary flex items-center justify-center gap-2">
+                        {{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
+                        Télécharger le PDF
+                    </a>
                 </div>
             </div>
         </div>

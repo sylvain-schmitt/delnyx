@@ -11,6 +11,8 @@ enum CreditNoteStatus: string
 {
     case DRAFT = 'draft';
     case ISSUED = 'issued';
+    case SENT = 'sent';
+    case CANCELLED = 'cancelled';
 
     /**
      * Retourne le libellé du statut
@@ -20,6 +22,8 @@ enum CreditNoteStatus: string
         return match ($this) {
             self::DRAFT => 'Brouillon',
             self::ISSUED => 'Émis',
+            self::SENT => 'Envoyé',
+            self::CANCELLED => 'Annulé',
         };
     }
 
@@ -30,7 +34,9 @@ enum CreditNoteStatus: string
     {
         return match ($this) {
             self::DRAFT => 'warning',
-            self::ISSUED => 'success',
+            self::ISSUED => 'info',
+            self::SENT => 'primary',
+            self::CANCELLED => 'dark',
         };
     }
 
@@ -39,7 +45,7 @@ enum CreditNoteStatus: string
      */
     public function isFinal(): bool
     {
-        return $this === self::ISSUED;
+        return in_array($this, [self::ISSUED, self::SENT, self::CANCELLED]);
     }
 
     /**
@@ -55,7 +61,24 @@ enum CreditNoteStatus: string
      */
     public function isEmitted(): bool
     {
+        return in_array($this, [self::ISSUED, self::SENT]);
+    }
+
+    /**
+     * Vérifie si l'avoir peut être envoyé
+     */
+    public function canBeSent(): bool
+    {
         return $this === self::ISSUED;
+    }
+
+    /**
+     * Vérifie si l'avoir peut être annulé
+     * Un avoir peut être annulé s'il est en brouillon (DRAFT) ou émis (ISSUED)
+     */
+    public function canBeCancelled(): bool
+    {
+        return in_array($this, [self::DRAFT, self::ISSUED]);
     }
 
     /**
@@ -70,4 +93,3 @@ enum CreditNoteStatus: string
         return $choices;
     }
 }
-

@@ -755,6 +755,46 @@ class Quote
     }
 
     /**
+     * Calcule le total corrigé du devis en tenant compte des avenants modifiables
+     * totalCorrected = totalOriginal + sum(all deltas from modifiable amendments)
+     * 
+     * CONFORMITÉ LÉGALE : 
+     * - Les avenants en brouillon (DRAFT) ou envoyés (SENT) peuvent encore être modifiés, donc on les inclut dans le calcul
+     * - Les avenants signés (SIGNED) sont définitifs et doivent être inclus
+     * - Les avenants annulés (CANCELLED) ne doivent pas être inclus
+     */
+    public function getTotalCorrected(): string
+    {
+        $totalOriginal = (float) $this->montantTTC;
+        $totalDeltas = 0.0;
+
+        // Somme des deltas de tous les avenants modifiables (DRAFT, SENT) ou signés (SIGNED)
+        // Les avenants annulés (CANCELLED) ne sont pas pris en compte
+        foreach ($this->amendments as $amendment) {
+            $status = $amendment->getStatutEnum();
+            // Inclure tous les avenants sauf ceux annulés (CANCELLED)
+            // Cela inclut DRAFT, SENT, et SIGNED
+            if ($status && $status !== \App\Entity\AmendmentStatus::CANCELLED) {
+                foreach ($amendment->getLines() as $line) {
+                    $totalDeltas += (float) $line->getDelta();
+                }
+            }
+        }
+
+        $totalCorrected = $totalOriginal + $totalDeltas;
+        return number_format($totalCorrected, 2, '.', '');
+    }
+
+    /**
+     * Retourne le total corrigé formaté pour l'affichage
+     */
+    public function getTotalCorrectedFormatted(): string
+    {
+        $montant = (float) $this->getTotalCorrected();
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    /**
      * Retourne le montant TVA formaté pour l'affichage
      */
     public function getMontantTVAFormate(): string
@@ -770,6 +810,28 @@ class Quote
     public function getMontantAcompteFormate(): string
     {
         $montant = (float) $this->getMontantAcompte();
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Calcule le montant de l'acompte à partir du total corrigé (incluant les avenants signés)
+     */
+    public function getMontantAcompteCorrige(): string
+    {
+        $totalCorrige = (float) $this->getTotalCorrected();
+        $acomptePourcentage = (float) $this->acomptePourcentage;
+
+        $montantAcompte = $totalCorrige * ($acomptePourcentage / 100);
+
+        return number_format(round($montantAcompte, 2), 2, '.', '');
+    }
+
+    /**
+     * Retourne le montant acompte corrigé formaté pour l'affichage
+     */
+    public function getMontantAcompteCorrigeFormate(): string
+    {
+        $montant = (float) $this->getMontantAcompteCorrige();
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 

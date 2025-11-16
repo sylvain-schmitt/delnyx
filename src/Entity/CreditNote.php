@@ -84,6 +84,14 @@ class CreditNote
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Groups(['credit_note:read'])]
+    private ?\DateTimeInterface $sentAt = null;
+
+    #[ORM\Column(type: Types::INTEGER, options: ['default' => 0])]
+    #[Groups(['credit_note:read'])]
+    private int $sentCount = 0;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['credit_note:read'])]
     private ?\DateTimeInterface $dateModification = null;
 
     // ===== MONTANTS EN DECIMAL (EUROS) =====
@@ -231,6 +239,34 @@ class CreditNote
     public function setDateEmission(?\DateTimeInterface $dateEmission): static
     {
         $this->dateEmission = $dateEmission;
+        return $this;
+    }
+
+    public function getSentAt(): ?\DateTimeInterface
+    {
+        return $this->sentAt;
+    }
+
+    public function setSentAt(?\DateTimeInterface $sentAt): static
+    {
+        $this->sentAt = $sentAt;
+        return $this;
+    }
+
+    public function getSentCount(): int
+    {
+        return $this->sentCount;
+    }
+
+    public function setSentCount(int $sentCount): static
+    {
+        $this->sentCount = $sentCount;
+        return $this;
+    }
+
+    public function incrementSentCount(): static
+    {
+        $this->sentCount++;
         return $this;
     }
 

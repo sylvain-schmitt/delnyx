@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\AmendmentLine;
+use App\Entity\QuoteLine;
 use App\Entity\Tariff;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
@@ -21,6 +22,45 @@ class AmendmentLineType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
+            // Champ sourceLine en premier pour permettre de sélectionner la ligne à modifier
+            ->add('sourceLine', EntityType::class, [
+                'label' => 'Ligne du devis à modifier (optionnel)',
+                'class' => QuoteLine::class,
+                'choice_label' => function (QuoteLine $line) {
+                    return sprintf('%s - %s × %s € = %s € HT', 
+                        $line->getDescription(),
+                        $line->getQuantity(),
+                        number_format((float)$line->getUnitPrice(), 2, ',', ' '),
+                        number_format((float)$line->getTotalHt(), 2, ',', ' ')
+                    );
+                },
+                'required' => false,
+                'placeholder' => 'Nouvelle ligne (pas de modification)',
+                'query_builder' => function (EntityRepository $er) use ($options) {
+                    // Récupérer le devis depuis l'avenant
+                    $amendment = $options['amendment'] ?? null;
+                    $quote = null;
+                    
+                    // Essayer de récupérer le devis depuis l'avenant
+                    if ($amendment && $amendment->getQuote()) {
+                        $quote = $amendment->getQuote();
+                    }
+                    
+                    // Si pas de devis, retourner une requête vide
+                    if (!$quote) {
+                        return $er->createQueryBuilder('ql')
+                            ->where('1 = 0'); // Aucune ligne si pas de devis
+                    }
+                    
+                    return $er->createQueryBuilder('ql')
+                        ->where('ql.quote = :quote')
+                        ->setParameter('quote', $quote)
+                        ->orderBy('ql.id', 'ASC');
+                },
+                'attr' => ['class' => 'form-select'],
+                'help' => 'Sélectionnez une ligne du devis à modifier, ou laissez vide pour ajouter une nouvelle ligne',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
             ->add('tariff', EntityType::class, [
                 'label' => 'Tarif du catalogue',
                 'class' => Tariff::class,
@@ -78,7 +118,9 @@ class AmendmentLineType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => AmendmentLine::class,
+            'amendment' => null,
         ]);
+        $resolver->setAllowedTypes('amendment', ['null', \App\Entity\Amendment::class]);
     }
 }
 

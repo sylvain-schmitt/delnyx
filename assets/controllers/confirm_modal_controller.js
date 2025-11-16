@@ -63,7 +63,8 @@ export default class extends Controller {
         const method = trigger.dataset.method || trigger.closest('form')?.method?.toUpperCase() || 'POST'
         const token = trigger.dataset.csrfToken || trigger.closest('form')?.querySelector('[name="_token"]')?.value || ''
         const name = trigger.dataset.itemName || 'cet élément'
-        const message = trigger.dataset.message || `Êtes-vous sûr de vouloir supprimer ${name} ? Cette action est irréversible.`
+        // Support pour data-message et data-confirm-modal-message
+        const message = trigger.dataset.message || trigger.dataset.confirmModalMessage || `Êtes-vous sûr de vouloir supprimer ${name} ? Cette action est irréversible.`
 
         // Déclencher l'événement personnalisé
         const customEvent = new CustomEvent('open-confirm-modal', {

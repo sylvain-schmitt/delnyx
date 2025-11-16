@@ -29,9 +29,20 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
         <div>
             <h1 class="text-2xl font-bold text-white">Avoirs</h1>
-            <p class="text-white/60 mt-1">{{ total_credit_notes }} avoir{{ total_credit_notes > 1 ? 's' : '' }} au total</p>
+            <p class="text-white/60 mt-1">{{ total_credit_notes }} avoir{{ total_credit_notes > 1 ? 's' : '' }} au total{% if not include_cancelled %} (hors annulés){% endif %}</p>
         </div>
         <div class="flex gap-3">
+            {% if include_cancelled %}
+                <a href="{{ path('admin_credit_note_index') }}" class="btn-secondary flex items-center gap-2">
+                    {{ ux_icon('lucide:eye-off', {class: 'w-4 h-4'}) }}
+                    Masquer les annulés
+                </a>
+            {% else %}
+                <a href="{{ path('admin_credit_note_index', {include_cancelled: true}) }}" class="btn-secondary flex items-center gap-2">
+                    {{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
+                    Afficher les annulés
+                </a>
+            {% endif %}
             <a href="{{ path('admin_credit_note_new') }}" class="btn-primary flex items-center gap-2">
                 {{ ux_icon('lucide:file-plus', {class: 'w-4 h-4'}) }}
                 Nouvel Avoir
@@ -81,25 +92,60 @@
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     {% set status = creditNote.statutEnum %}
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        {% if status.value == 'draft' %}bg-yellow-500/20 text-yellow-300
-                                        {% elseif status.value == 'issued' %}bg-green-500/20 text-green-300
+                                        {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+                                        {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
+                                        {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
+                                        {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
                                         {% else %}bg-gray-500/20 text-gray-300{% endif %}">
                                         {{ status.label }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
+                                        {# Bouton Voir #}
                                         <a href="{{ path('admin_credit_note_show', {id: creditNote.id}) }}" 
                                            class="text-blue-400 hover:text-blue-300 transition-colors duration-200"
                                            title="Voir">
                                             {{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
                                         </a>
+                                        
+                                        {# Bouton Modifier : visible si DRAFT uniquement #}
                                         {% if creditNote.canBeModified %}
                                             <a href="{{ path('admin_credit_note_edit', {id: creditNote.id}) }}" 
                                                class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200"
                                                title="Modifier">
                                                 {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
                                             </a>
+                                        {% endif %}
+                                        
+                                        {# Bouton Émettre : visible si DRAFT uniquement #}
+                                        {% if creditNote.canBeIssued %}
+                                            <form action="{{ path('admin_credit_note_issue', {id: creditNote.id}) }}" method="POST" class="inline">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('credit_note_issue_' ~ creditNote.id) }}">
+                                                <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Émettre">
+                                                    {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        {# Bouton Envoyer : visible si ISSUED uniquement #}
+                                        {% if creditNote.statutEnum.value == 'issued' %}
+                                            <form action="{{ path('admin_credit_note_send', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Envoyer cet avoir au client ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('credit_note_send_' ~ creditNote.id) }}">
+                                                <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Envoyer">
+                                                    {{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        {# Bouton Annuler : visible si DRAFT ou ISSUED #}
+                                        {% if creditNote.statutEnum.canBeCancelled %}
+                                            <form action="{{ path('admin_credit_note_cancel', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avoir ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('credit_note_cancel_' ~ creditNote.id) }}">
+                                                <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200" title="Annuler">
+                                                    {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -122,18 +168,51 @@
                                 <div class="text-xs text-white/60">{{ creditNote.invoice.client.nomComplet }}</div>
                             {% endif %}
                         </div>
-                        <div class="flex items-center gap-2 ml-4">
+                        <div class="flex items-center gap-2 ml-4 flex-wrap">
+                            {# Bouton Voir #}
                             <a href="{{ path('admin_credit_note_show', {id: creditNote.id}) }}" 
                                class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2"
                                title="Voir">
                                 {{ ux_icon('lucide:eye', {class: 'w-5 h-5'}) }}
                             </a>
+                            
+                            {# Bouton Modifier : visible si DRAFT uniquement #}
                             {% if creditNote.canBeModified %}
                                 <a href="{{ path('admin_credit_note_edit', {id: creditNote.id}) }}" 
                                    class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200 p-2"
                                    title="Modifier">
                                     {{ ux_icon('lucide:edit', {class: 'w-5 h-5'}) }}
                                 </a>
+                            {% endif %}
+                            
+                            {# Bouton Émettre : visible si DRAFT uniquement #}
+                            {% if creditNote.canBeIssued %}
+                                <form action="{{ path('admin_credit_note_issue', {id: creditNote.id}) }}" method="POST" class="inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('credit_note_issue_' ~ creditNote.id) }}">
+                                    <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Émettre">
+                                        {{ ux_icon('lucide:send', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            {# Bouton Envoyer : visible si ISSUED uniquement #}
+                            {% if creditNote.statutEnum.value == 'issued' %}
+                                <form action="{{ path('admin_credit_note_send', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Envoyer cet avoir au client ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('credit_note_send_' ~ creditNote.id) }}">
+                                    <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Envoyer">
+                                        {{ ux_icon('lucide:mail', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            {# Bouton Annuler : visible si DRAFT ou ISSUED #}
+                            {% if creditNote.statutEnum.canBeCancelled %}
+                                <form action="{{ path('admin_credit_note_cancel', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avoir ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('credit_note_cancel_' ~ creditNote.id) }}">
+                                    <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200 p-2" title="Annuler">
+                                        {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
                             {% endif %}
                         </div>
                     </div>
@@ -151,8 +230,10 @@
                             <span class="text-white/60">Statut</span>
                             {% set status = creditNote.statutEnum %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                {% if status.value == 'draft' %}bg-yellow-500/20 text-yellow-300
-                                {% elseif status.value == 'issued' %}bg-green-500/20 text-green-300
+                                        {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+                                {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
+                                {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
+                                {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
                                 {% else %}bg-gray-500/20 text-gray-300{% endif %}">
                                 {{ status.label }}
                             </span>

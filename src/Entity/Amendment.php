@@ -93,6 +93,14 @@ class Amendment
     #[Groups(['amendment:read'])]
     private ?\DateTimeInterface $dateSignature = null;
 
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['amendment:read'])]
+    private ?\DateTimeInterface $sentAt = null;
+
+    #[ORM\Column(type: Types::INTEGER, options: ['default' => 0])]
+    #[Groups(['amendment:read'])]
+    private int $sentCount = 0;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['amendment:read', 'amendment:write'])]
     private ?string $signatureClient = null;
@@ -242,6 +250,34 @@ class Amendment
     public function setDateSignature(?\DateTimeInterface $dateSignature): static
     {
         $this->dateSignature = $dateSignature;
+        return $this;
+    }
+
+    public function getSentAt(): ?\DateTimeInterface
+    {
+        return $this->sentAt;
+    }
+
+    public function setSentAt(?\DateTimeInterface $sentAt): static
+    {
+        $this->sentAt = $sentAt;
+        return $this;
+    }
+
+    public function getSentCount(): int
+    {
+        return $this->sentCount;
+    }
+
+    public function setSentCount(int $sentCount): static
+    {
+        $this->sentCount = $sentCount;
+        return $this;
+    }
+
+    public function incrementSentCount(): static
+    {
+        $this->sentCount++;
         return $this;
     }
 

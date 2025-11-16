@@ -12,6 +12,7 @@ use App\Form\CreditNoteType;
 use App\Repository\CreditNoteRepository;
 use App\Repository\InvoiceRepository;
 use App\Repository\CompanySettingsRepository;
+use App\Service\CreditNoteService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,6 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 #[Route('/admin/credit-note', name: 'admin_credit_note_')]
 #[IsGranted('ROLE_USER')]
@@ -28,14 +30,57 @@ class CreditNoteController extends AbstractController
         private CreditNoteRepository $creditNoteRepository,
         private InvoiceRepository $invoiceRepository,
         private CompanySettingsRepository $companySettingsRepository,
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private CreditNoteService $creditNoteService
     ) {}
+
+    #[Route('/api/invoice/{id}/lines', name: 'api_invoice_lines', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getInvoiceLines(int $id): JsonResponse
+    {
+        $invoice = $this->invoiceRepository->find($id);
+        if (!$invoice) {
+            return new JsonResponse(['error' => 'Facture non trouvée'], 404);
+        }
+
+        // Vérifier le multi-tenant
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+
+        if ($companyId && $invoice->getCompanyId() !== $companyId) {
+            return new JsonResponse(['error' => 'Accès refusé'], 403);
+        }
+
+        $lines = [];
+        foreach ($invoice->getLines() as $line) {
+            $lines[] = [
+                'id' => $line->getId(),
+                'label' => sprintf('%s - %s × %s € = %s € HT', 
+                    $line->getDescription(),
+                    $line->getQuantity(),
+                    number_format((float)$line->getUnitPrice(), 2, ',', ' '),
+                    number_format((float)$line->getTotalHt(), 2, ',', ' ')
+                ),
+                'description' => $line->getDescription(),
+                'quantity' => $line->getQuantity(),
+                'unitPrice' => $line->getUnitPrice(),
+                'totalHt' => $line->getTotalHt(),
+            ];
+        }
+
+        return new JsonResponse($lines);
+    }
 
     #[Route('/', name: 'index')]
     public function index(Request $request): Response
     {
         $page = max(1, $request->query->getInt('page', 1));
         $limit = 15;
+        $includeCancelled = $request->query->getBoolean('include_cancelled', false);
 
         $user = $this->getUser();
         $companyId = null;
@@ -69,6 +114,15 @@ class CreditNoteController extends AbstractController
             }
         }
 
+        if (!$includeCancelled) {
+            if ($qb->getDQLPart('where')) {
+                $qb->andWhere('cn.statut != :cancelled');
+            } else {
+                $qb->where('cn.statut != :cancelled');
+            }
+            $qb->setParameter('cancelled', CreditNoteStatus::CANCELLED);
+        }
+
         $totalCreditNotes = (int) $qb->select('COUNT(cn.id)')
             ->getQuery()
             ->getSingleScalarResult();
@@ -93,6 +147,7 @@ class CreditNoteController extends AbstractController
             'current_page' => $page,
             'total_pages' => $totalPages,
             'total_credit_notes' => $totalCreditNotes,
+            'include_cancelled' => $includeCancelled,
             'filtered_invoice' => $filteredInvoice,
         ]);
     }
@@ -550,11 +605,11 @@ class CreditNoteController extends AbstractController
     }
 
     #[Route('/{id}/issue', name: 'issue', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('CREDIT_NOTE_ISSUE', subject: 'creditNote')]
     public function issue(Request $request, CreditNote $creditNote): Response
     {
         // Vérifier le token CSRF
-        $token = $request->request->get('_token');
-        if (!$this->isCsrfTokenValid('issue' . $creditNote->getId(), $token)) {
+        if (!$this->isCsrfTokenValid('credit_note_issue_' . $creditNote->getId(), $request->request->get('_token'))) {
             $this->addFlash('error', 'Token CSRF invalide.');
             return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
         }
@@ -572,67 +627,17 @@ class CreditNoteController extends AbstractController
             return $this->redirectToRoute('admin_credit_note_index');
         }
 
-        if (!$creditNote->canBeIssued()) {
-            $this->addFlash('error', 'Cet avoir ne peut pas être émis dans son état actuel.');
-            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
-        }
-
         try {
-            $creditNote->validateCanBeIssued();
-
-            // Sauvegarder le statut de la facture avant émission pour vérifier si elle a été annulée
+            $this->creditNoteService->issue($creditNote);
+            
+            // Vérifier si la facture doit être annulée (avoir total)
             $invoice = $creditNote->getInvoice();
-            $invoiceId = $invoice ? $invoice->getId() : null;
-
-            $creditNote->setStatut(CreditNoteStatus::ISSUED);
-            $creditNote->setDateEmission(new \DateTime());
-
-            $this->entityManager->flush();
-
-            // Vérifier manuellement si la facture doit être annulée (avoir total)
-            if ($invoiceId) {
-                // Recharger la facture depuis la base avec ses avoirs (après le flush pour avoir les avoirs à jour)
-                $invoice = $this->invoiceRepository->createQueryBuilder('i')
-                    ->leftJoin('i.creditNotes', 'cn')
-                    ->addSelect('cn')
-                    ->where('i.id = :invoiceId')
-                    ->setParameter('invoiceId', $invoiceId)
-                    ->getQuery()
-                    ->getOneOrNullResult();
-
-                if (!$invoice) {
-                    $this->addFlash('error', 'Impossible de recharger la facture (ID: ' . $invoiceId . ').');
-                    return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
-                }
-
-                // Calculer le total de tous les avoirs émis
-                // Les avoirs sont stockés en montants négatifs
-                $totalAvoirsEmitted = 0.0;
-                $nbAvoirsEmis = 0;
-                foreach ($invoice->getCreditNotes() as $existingCreditNote) {
-                    $existingStatut = $existingCreditNote->getStatutEnum();
-                    if ($existingStatut && $existingStatut === CreditNoteStatus::ISSUED) {
-                        $totalAvoirsEmitted += (float) $existingCreditNote->getMontantTTC();
-                        $nbAvoirsEmis++;
-                    }
-                }
-
-                $montantFactureTTC = (float) $invoice->getMontantTTC();
-
-                // Si les avoirs annulent complètement la facture (solde final = 0)
-                // Exemple : facture 200€ + avoir -200€ = 0€ (avoir total)
-                $soldeFinal = $montantFactureTTC + $totalAvoirsEmitted;
-                if (abs($soldeFinal) < 0.01) {
-                    $invoice->setStatut(InvoiceStatus::CANCELLED->value);
-                    $invoice->setDateModification(new \DateTime());
-                    $this->entityManager->persist($invoice);
-                    $this->entityManager->flush();
-
-                    $this->addFlash('success', sprintf(
-                        'Avoir émis avec succès. La facture %s a été automatiquement annulée car cet avoir annule complètement la facture (Total avoirs: %.2f € = Montant facture: %.2f €).',
-                        $invoice->getNumero(),
-                        $totalAvoirsEmitted,
-                        $montantFactureTTC
+            if ($invoice) {
+                $this->entityManager->refresh($invoice);
+                if ($invoice->getStatutEnum() === InvoiceStatus::CANCELLED) {
+                    $this->addFlash('info', sprintf(
+                        'Avoir émis avec succès. La facture %s a été automatiquement annulée car le total des avoirs émis annule complètement la facture.',
+                        $invoice->getNumero()
                     ));
                 } else {
                     $this->addFlash('success', 'Avoir émis avec succès');
@@ -640,11 +645,81 @@ class CreditNoteController extends AbstractController
             } else {
                 $this->addFlash('success', 'Avoir émis avec succès');
             }
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
         } catch (\RuntimeException $e) {
-            $this->addFlash('error', 'RuntimeException: ' . $e->getMessage());
-        } catch (\Exception $e) {
-            // Capturer toutes les exceptions pour debug
-            $this->addFlash('error', 'Exception: ' . $e->getMessage() . ' - ' . $e->getTraceAsString());
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+    }
+
+    #[Route('/{id}/send', name: 'send', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('CREDIT_NOTE_SEND', subject: 'creditNote')]
+    public function send(Request $request, CreditNote $creditNote): Response
+    {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('credit_note_send_' . $creditNote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+
+        // Vérifier le multi-tenant
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+
+        if ($companyId && $creditNote->getCompanyId() !== $companyId) {
+            $this->addFlash('error', 'Vous n\'avez pas accès à cet avoir.');
+            return $this->redirectToRoute('admin_credit_note_index');
+        }
+
+        try {
+            $this->creditNoteService->send($creditNote);
+            $this->addFlash('success', 'Avoir envoyé au client');
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+    }
+
+    #[Route('/{id}/cancel', name: 'cancel', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('CREDIT_NOTE_CANCEL', subject: 'creditNote')]
+    public function cancel(Request $request, CreditNote $creditNote): Response
+    {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('credit_note_cancel_' . $creditNote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+
+        // Vérifier le multi-tenant
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+
+        if ($companyId && $creditNote->getCompanyId() !== $companyId) {
+            $this->addFlash('error', 'Vous n\'avez pas accès à cet avoir.');
+            return $this->redirectToRoute('admin_credit_note_index');
+        }
+
+        try {
+            $reason = $request->request->get('reason');
+            $this->creditNoteService->cancel($creditNote, $reason);
+            $this->addFlash('success', 'Avoir annulé');
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
         }
 
         return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);

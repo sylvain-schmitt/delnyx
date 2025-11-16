@@ -64,8 +64,10 @@ class InvoiceController extends AbstractController
         // S'assurer que la page demandée existe
         $page = min($page, max(1, $totalPages));
 
-        // Récupérer les factures de la page courante
+        // Récupérer les factures de la page courante avec les avoirs pour éviter les requêtes N+1
         $invoices = $qb->select('i')
+            ->leftJoin('i.creditNotes', 'cn')
+            ->addSelect('cn')
             ->orderBy('i.dateCreation', 'DESC')
             ->setMaxResults($limit)
             ->setFirstResult(($page - 1) * $limit)

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\CreditNoteLine;
+use App\Entity\InvoiceLine;
 use App\Entity\Tariff;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
@@ -21,6 +22,45 @@ class CreditNoteLineType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
+            // Champ sourceLine en premier pour permettre de sélectionner la ligne à corriger
+            ->add('sourceLine', EntityType::class, [
+                'label' => 'Ligne de la facture à corriger (optionnel)',
+                'class' => InvoiceLine::class,
+                'choice_label' => function (InvoiceLine $line) {
+                    return sprintf('%s - %s × %s € = %s € HT', 
+                        $line->getDescription(),
+                        $line->getQuantity(),
+                        number_format((float)$line->getUnitPrice(), 2, ',', ' '),
+                        number_format((float)$line->getTotalHt(), 2, ',', ' ')
+                    );
+                },
+                'required' => false,
+                'placeholder' => 'Nouvelle ligne (pas de correction)',
+                'query_builder' => function (EntityRepository $er) use ($options) {
+                    // Récupérer la facture depuis l'avoir
+                    $creditNote = $options['credit_note'] ?? null;
+                    $invoice = null;
+                    
+                    // Essayer de récupérer la facture depuis l'avoir
+                    if ($creditNote && $creditNote->getInvoice()) {
+                        $invoice = $creditNote->getInvoice();
+                    }
+                    
+                    // Si pas de facture, retourner une requête vide
+                    if (!$invoice) {
+                        return $er->createQueryBuilder('il')
+                            ->where('1 = 0'); // Aucune ligne si pas de facture
+                    }
+                    
+                    return $er->createQueryBuilder('il')
+                        ->where('il.invoice = :invoice')
+                        ->setParameter('invoice', $invoice)
+                        ->orderBy('il.id', 'ASC');
+                },
+                'attr' => ['class' => 'form-select'],
+                'help' => 'Sélectionnez une ligne de la facture à corriger, ou laissez vide pour ajouter une nouvelle ligne',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
             ->add('tariff', EntityType::class, [
                 'label' => 'Tarif du catalogue',
                 'class' => Tariff::class,
@@ -78,7 +118,9 @@ class CreditNoteLineType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => CreditNoteLine::class,
+            'credit_note' => null,
         ]);
+        $resolver->setAllowedTypes('credit_note', ['null', \App\Entity\CreditNote::class]);
     }
 }
 

@@ -50,10 +50,11 @@ enum AmendmentStatus: string
 
     /**
      * Vérifie si l'avenant peut être modifié
+     * DRAFT et SENT peuvent être modifiés (selon workflow légal)
      */
     public function isModifiable(): bool
     {
-        return $this === self::DRAFT;
+        return in_array($this, [self::DRAFT, self::SENT]);
     }
 
     /**

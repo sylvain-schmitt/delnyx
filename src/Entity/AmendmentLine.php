@@ -83,6 +83,42 @@ class AmendmentLine
     #[Groups(['amendment_line:read', 'amendment_line:write'])]
     private ?Tariff $tariff = null;
 
+    // ===== CHAMPS POUR LE PRINCIPE DU DELTA (CONFORMITÉ LÉGALE) =====
+    /**
+     * Référence à la ligne du devis d'origine (si cette ligne modifie une ligne existante)
+     * NULL si c'est une ligne ajoutée (pas de modification d'une ligne existante)
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['amendment_line:read', 'amendment_line:write'])]
+    private ?QuoteLine $sourceLine = null;
+
+    /**
+     * Valeur d'origine (en euros, DECIMAL)
+     * Pour une ligne modifiée : total HT de la ligne source
+     * Pour une ligne ajoutée : 0.00
+     */
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
+    #[Groups(['amendment_line:read'])]
+    private string $oldValue = '0.00';
+
+    /**
+     * Nouvelle valeur (en euros, DECIMAL)
+     * Pour une ligne modifiée : nouveau total HT calculé
+     * Pour une ligne ajoutée : total HT de la nouvelle ligne
+     */
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
+    #[Groups(['amendment_line:read'])]
+    private string $newValue = '0.00';
+
+    /**
+     * Delta = newValue - oldValue (en euros, DECIMAL)
+     * Peut être positif (augmentation) ou négatif (diminution)
+     */
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
+    #[Groups(['amendment_line:read'])]
+    private string $delta = '0.00';
+
     public function getId(): ?int
     {
         return $this->id;
@@ -179,12 +215,43 @@ class AmendmentLine
     /**
      * Recalcule automatiquement le total HT à partir de la quantité et du prix unitaire
      * Les montants sont stockés en DECIMAL (euros)
+     * Met aussi à jour newValue et recalcule le delta
+     * 
+     * LOGIQUE :
+     * - Si sourceLine est défini : unitPrice représente le DELTA (ajustement)
+     *   → oldValue = sourceLine.totalHt
+     *   → newValue = oldValue + (unitPrice × quantity)
+     * - Si sourceLine est NULL : unitPrice représente la nouvelle valeur totale
+     *   → oldValue = 0.00
+     *   → newValue = unitPrice × quantity
      */
     public function recalculateTotalHt(): void
     {
         if ($this->quantity !== null && $this->unitPrice !== null) {
-            $total = (float) $this->unitPrice * $this->quantity;
-            $this->totalHt = number_format($total, 2, '.', '');
+            // Définir oldValue en premier si sourceLine est défini
+            if ($this->sourceLine && !$this->oldValue) {
+                $oldValue = (float) $this->sourceLine->getTotalHt();
+                $this->oldValue = number_format($oldValue, 2, '.', '');
+            } elseif (!$this->sourceLine && !$this->oldValue) {
+                $this->oldValue = '0.00';
+            }
+            
+            if ($this->sourceLine) {
+                // MODIFICATION : unitPrice représente le DELTA (ajustement)
+                // newValue = oldValue + delta
+                $oldValue = (float) $this->oldValue;
+                $delta = (float) $this->unitPrice * $this->quantity;
+                $newValue = $oldValue + $delta;
+                $this->totalHt = number_format($newValue, 2, '.', '');
+                $this->newValue = $this->totalHt;
+            } else {
+                // AJOUT : unitPrice représente la nouvelle valeur totale
+                $total = (float) $this->unitPrice * $this->quantity;
+                $this->totalHt = number_format($total, 2, '.', '');
+                $this->newValue = $this->totalHt;
+            }
+            // Recalculer le delta
+            $this->recalculateDelta();
         }
     }
 
@@ -220,5 +287,90 @@ class AmendmentLine
     {
         $montant = (float) $this->getTotalTtc(); // Déjà en euros (DECIMAL)
         return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    // ===== GETTERS/SETTERS POUR LE PRINCIPE DU DELTA =====
+
+    public function getSourceLine(): ?QuoteLine
+    {
+        return $this->sourceLine;
+    }
+
+    public function setSourceLine(?QuoteLine $sourceLine): static
+    {
+        $this->sourceLine = $sourceLine;
+        return $this;
+    }
+
+    public function getOldValue(): string
+    {
+        return $this->oldValue;
+    }
+
+    public function setOldValue(string $oldValue): static
+    {
+        $this->oldValue = $oldValue;
+        $this->recalculateDelta();
+        return $this;
+    }
+
+    public function getNewValue(): string
+    {
+        return $this->newValue;
+    }
+
+    public function setNewValue(string $newValue): static
+    {
+        $this->newValue = $newValue;
+        $this->recalculateDelta();
+        return $this;
+    }
+
+    public function getDelta(): string
+    {
+        return $this->delta;
+    }
+
+    public function setDelta(string $delta): static
+    {
+        $this->delta = $delta;
+        return $this;
+    }
+
+    /**
+     * Recalcule automatiquement le delta = newValue - oldValue
+     */
+    public function recalculateDelta(): void
+    {
+        $old = (float) $this->oldValue;
+        $new = (float) $this->newValue;
+        $delta = $new - $old;
+        $this->delta = number_format($delta, 2, '.', '');
+    }
+
+    /**
+     * Retourne le delta formaté pour l'affichage
+     */
+    public function getDeltaFormatted(): string
+    {
+        $delta = (float) $this->delta;
+        $sign = $delta >= 0 ? '+' : '';
+        return $sign . number_format($delta, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Indique si cette ligne modifie une ligne existante ou en ajoute une nouvelle
+     */
+    public function isModification(): bool
+    {
+        return $this->sourceLine !== null;
+    }
+
+    /**
+     * Indique si cette ligne est une nouvelle ligne (pas de modification)
+     */
+    public function isAddition(): bool
+    {
+        return $this->sourceLine === null;
     }
 }

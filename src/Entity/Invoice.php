@@ -869,4 +869,44 @@ class Invoice
             }
         }
     }
+
+    /**
+     * Calcule le total corrigé de la facture en tenant compte des avoirs modifiables
+     * totalCorrected = totalOriginal + sum(all deltas from modifiable credit notes)
+     * 
+     * CONFORMITÉ LÉGALE : 
+     * - Les avoirs en brouillon (DRAFT) peuvent encore être modifiés, donc on les inclut dans le calcul
+     * - Les avoirs émis (ISSUED) ou envoyés (SENT) sont définitifs et doivent être inclus
+     * - Les avoirs annulés (CANCELLED) ne doivent pas être inclus
+     */
+    public function getTotalCorrected(): string
+    {
+        $totalOriginal = (float) $this->montantTTC;
+        $totalDeltas = 0.0;
+
+        // Somme des deltas de tous les avoirs modifiables (DRAFT) ou émis/envoyés (ISSUED, SENT)
+        // Les avoirs annulés (CANCELLED) ne sont pas pris en compte
+        foreach ($this->creditNotes as $creditNote) {
+            $status = $creditNote->getStatutEnum();
+            // Inclure tous les avoirs sauf ceux annulés (CANCELLED)
+            // Cela inclut DRAFT, ISSUED, et SENT
+            if ($status && $status !== \App\Entity\CreditNoteStatus::CANCELLED) {
+                foreach ($creditNote->getLines() as $line) {
+                    $totalDeltas += (float) $line->getDelta();
+                }
+            }
+        }
+
+        $totalCorrected = $totalOriginal + $totalDeltas;
+        return number_format($totalCorrected, 2, '.', '');
+    }
+
+    /**
+     * Retourne le total corrigé formaté pour l'affichage
+     */
+    public function getTotalCorrectedFormatted(): string
+    {
+        $montant = (float) $this->getTotalCorrected();
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
 }

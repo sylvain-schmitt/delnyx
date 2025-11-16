@@ -361,11 +361,24 @@
 						</div>
 
 						{% if quote.acomptePourcentage > 0 %}
+							{% set totalFinal = quote.montantTTC|number_format(2, '.', '') %}
+							{% if avenantsSignes|length > 0 %}
+								{% set montantInitial = quote.montantTTC|number_format(2, '.', '') %}
+								{% set totalFinal = montantInitial + totalAvenants %}
+							{% endif %}
+							{% set montantAcompte = quote.montantAcompte|number_format(2, '.', '') %}
+							{% set resteAPayer = totalFinal - montantAcompte %}
 							<div class="pt-4 border-t border-white/20">
 								<div class="flex justify-between items-center mb-2">
 									<span class="text-white/60">Acompte ({{ quote.acomptePourcentage }}%)</span>
 									<span class="text-white font-semibold">
 										{{ quote.montantAcompteFormate }}
+									</span>
+								</div>
+								<div class="flex justify-between items-center">
+									<span class="text-white font-medium">Reste à payer</span>
+									<span class="text-white font-bold">
+										{{ resteAPayer|number_format(2, ',', ' ') }} €
 									</span>
 								</div>
 							</div>
@@ -394,7 +407,7 @@
 							<form action="{{ path('admin_quote_send', {id: quote.id}) }}" method="POST" class="w-full" data-controller="confirm-modal" data-confirm-modal-message="Êtes-vous sûr de vouloir envoyer ce devis au client ?">
 								<input type="hidden" name="_token" value="{{ csrf_token('quote_send_' ~ quote.id) }}">
 								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
-									{{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
+									{{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
 									Envoyer
 								</button>
 							</form>

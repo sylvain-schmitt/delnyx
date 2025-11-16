@@ -120,7 +120,7 @@
                                             <form action="{{ path('admin_quote_send', {id: quote.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Êtes-vous sûr de vouloir envoyer ce devis au client ?">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('quote_send_' ~ quote.id) }}">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Envoyer">
-                                                    {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
+                                                    {{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
                                                 </button>
                                             </form>
                                         {% endif %}
@@ -235,7 +235,7 @@
                                 <form action="{{ path('admin_quote_send', {id: quote.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Êtes-vous sûr de vouloir envoyer ce devis au client ?">
                                     <input type="hidden" name="_token" value="{{ csrf_token('quote_send_' ~ quote.id) }}">
                                     <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Envoyer">
-                                        {{ ux_icon('lucide:send', {class: 'w-5 h-5'}) }}
+                                        {{ ux_icon('lucide:mail', {class: 'w-5 h-5'}) }}
                                     </button>
                                 </form>
                             {% endif %}

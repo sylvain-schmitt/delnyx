@@ -12,6 +12,7 @@ use App\Form\AmendmentType;
 use App\Repository\AmendmentRepository;
 use App\Repository\QuoteRepository;
 use App\Repository\CompanySettingsRepository;
+use App\Service\AmendmentService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,6 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 #[Route('/admin/amendment', name: 'admin_amendment_')]
 #[IsGranted('ROLE_USER')]
@@ -28,8 +30,50 @@ class AmendmentController extends AbstractController
         private AmendmentRepository $amendmentRepository,
         private QuoteRepository $quoteRepository,
         private CompanySettingsRepository $companySettingsRepository,
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private AmendmentService $amendmentService
     ) {}
+
+    #[Route('/api/quote/{id}/lines', name: 'api_quote_lines', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getQuoteLines(int $id): JsonResponse
+    {
+        $quote = $this->quoteRepository->find($id);
+        if (!$quote) {
+            return new JsonResponse(['error' => 'Devis non trouvé'], 404);
+        }
+
+        // Vérifier le multi-tenant
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+
+        if ($companyId && $quote->getCompanyId() !== $companyId) {
+            return new JsonResponse(['error' => 'Accès refusé'], 403);
+        }
+
+        $lines = [];
+        foreach ($quote->getLines() as $line) {
+            $lines[] = [
+                'id' => $line->getId(),
+                'label' => sprintf('%s - %s × %s € = %s € HT', 
+                    $line->getDescription(),
+                    $line->getQuantity(),
+                    number_format((float)$line->getUnitPrice(), 2, ',', ' '),
+                    number_format((float)$line->getTotalHt(), 2, ',', ' ')
+                ),
+                'description' => $line->getDescription(),
+                'quantity' => $line->getQuantity(),
+                'unitPrice' => $line->getUnitPrice(),
+                'totalHt' => $line->getTotalHt(),
+            ];
+        }
+
+        return new JsonResponse($lines);
+    }
 
     #[Route('/', name: 'index')]
     public function index(Request $request): Response
@@ -166,12 +210,15 @@ class AmendmentController extends AbstractController
                     return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
                 }
 
-                $amendment->setQuote($quote);
-                $amendment->setTauxTVA($quote->getTauxTVA());
-                
-                // IMPORTANT : Ne PAS copier les lignes du devis
-                // Les lignes d'avenant sont des AJUSTEMENTS (deltas) uniquement
-                // Les lignes du devis restent figées et seront affichées en lecture seule dans le formulaire
+                // Utiliser le service pour créer l'avenant depuis le devis
+                try {
+                    $amendment = $this->amendmentService->createFromQuote($quote);
+                    // L'avenant est déjà persisté par le service, rediriger vers l'édition
+                    return $this->redirectToRoute('admin_amendment_edit', ['id' => $amendment->getId()]);
+                } catch (\Exception $e) {
+                    $this->addFlash('error', $e->getMessage());
+                    return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+                }
             }
         }
 
@@ -284,8 +331,15 @@ class AmendmentController extends AbstractController
     }
 
     #[Route('/{id}/send', name: 'send', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function send(Amendment $amendment): Response
+    #[IsGranted('AMENDMENT_SEND', subject: 'amendment')]
+    public function send(Request $request, Amendment $amendment): Response
     {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('amendment_send_' . $amendment->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
+        }
+
         // Vérifier le multi-tenant
         $user = $this->getUser();
         $companyId = null;
@@ -299,21 +353,28 @@ class AmendmentController extends AbstractController
             return $this->redirectToRoute('admin_amendment_index');
         }
 
-        if ($amendment->getStatut() !== AmendmentStatus::DRAFT) {
-            $this->addFlash('error', 'Seuls les avenants en brouillon peuvent être envoyés.');
-            return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
+        try {
+            $this->amendmentService->send($amendment);
+            $this->addFlash('success', 'Avenant envoyé au client');
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
         }
 
-        $amendment->setStatut(AmendmentStatus::SENT);
-        $this->entityManager->flush();
-
-        $this->addFlash('success', 'Avenant envoyé au client');
         return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
     }
 
     #[Route('/{id}/sign', name: 'sign', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('AMENDMENT_SIGN', subject: 'amendment')]
     public function sign(Request $request, Amendment $amendment): Response
     {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('amendment_sign_' . $amendment->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
+        }
+
         // Vérifier le multi-tenant
         $user = $this->getUser();
         $companyId = null;
@@ -327,25 +388,12 @@ class AmendmentController extends AbstractController
             return $this->redirectToRoute('admin_amendment_index');
         }
 
-        if (!$amendment->canBeSigned()) {
-            $this->addFlash('error', 'Cet avenant ne peut pas être signé dans son état actuel.');
-            return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
-        }
-
         try {
-            $amendment->validateCanBeSigned();
-            
             $signature = $request->request->get('signature');
-            if ($signature) {
-                $amendment->setSignatureClient($signature);
-            }
-            
-            $amendment->setStatut(AmendmentStatus::SIGNED);
-            $amendment->setDateSignature(new \DateTime());
-            
-            $this->entityManager->flush();
-
+            $this->amendmentService->sign($amendment, $signature);
             $this->addFlash('success', 'Avenant signé avec succès');
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
         } catch (\RuntimeException $e) {
             $this->addFlash('error', $e->getMessage());
         }
@@ -354,8 +402,15 @@ class AmendmentController extends AbstractController
     }
 
     #[Route('/{id}/cancel', name: 'cancel', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function cancel(Amendment $amendment): Response
+    #[IsGranted('AMENDMENT_CANCEL', subject: 'amendment')]
+    public function cancel(Request $request, Amendment $amendment): Response
     {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('amendment_cancel_' . $amendment->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
+        }
+
         // Vérifier le multi-tenant
         $user = $this->getUser();
         $companyId = null;
@@ -369,15 +424,16 @@ class AmendmentController extends AbstractController
             return $this->redirectToRoute('admin_amendment_index');
         }
 
-        if (!$amendment->canBeCancelled()) {
-            $this->addFlash('error', 'Cet avenant ne peut pas être annulé.');
-            return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
+        try {
+            $reason = $request->request->get('reason');
+            $this->amendmentService->cancel($amendment, $reason);
+            $this->addFlash('success', 'Avenant annulé');
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
         }
 
-        $amendment->setStatut(AmendmentStatus::CANCELLED);
-        $this->entityManager->flush();
-
-        $this->addFlash('success', 'Avenant annulé');
         return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
     }
 }

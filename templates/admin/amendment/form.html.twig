@@ -45,7 +45,7 @@
 		{% endif %}
 
 		{# Formulaire #}
-		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100" data-controller="quote-form flash-messages">
+		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100" data-controller="amendment-form quote-form flash-messages">
 			{% set isReadOnly = amendment.statutEnum.value == 'signed' %}
 			{{ form_start(form, {'attr': {'class': 'space-y-6', 'data-controller': 'admin-form', 'data-admin-form-target': 'form', 'novalidate': 'novalidate', 'data-action': 'submit->admin-form#handleSubmit'}}) }}
 
@@ -187,6 +187,17 @@
 									<strong>négatif</strong> pour retirer/diminuer.
 								</p>
 							</div>
+							{# Champ sourceLine : sélection de la ligne du devis à modifier #}
+							<div class="mb-4">
+								{{ form_label(line.sourceLine, null, {'label_attr': {'class': 'form-label'}}) }}
+								{{ form_widget(line.sourceLine, {'attr': {
+									'class': 'form-select',
+									'data-admin-form-target': 'field',
+									'disabled': isReadOnly ? 'disabled' : false
+								}}) }}
+								{{ form_help(line.sourceLine) }}
+								{{ form_errors(line.sourceLine) }}
+							</div>
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 								{{ form_macros.simple_field(line, 'tariff', 'select', {'disabled': isReadOnly}) }}
 								<div class="form-group">
@@ -253,6 +264,20 @@
 				{# Template pour nouvelle ligne #}
 				<template data-quote-form-target="lineTemplate">
 					<div class="bg-white/5 border border-white/10 rounded-lg p-4" data-line-index="__name__">
+						<div class="bg-blue-500/10 border border-blue-500/20 rounded p-3 mb-4">
+							<p class="text-blue-300 text-sm">
+								<strong>💡 Ajustement :</strong> Saisissez un montant <strong>positif</strong> pour ajouter/augmenter, 
+								<strong>négatif</strong> pour retirer/diminuer.
+							</p>
+						</div>
+						{# Champ sourceLine : sélection de la ligne du devis à modifier #}
+						<div class="mb-4">
+							<label class="form-label">Ligne du devis à modifier (optionnel)</label>
+							<select name="{{ form.lines.vars.full_name }}[__name__][sourceLine]" class="form-select" data-admin-form-target="field">
+								<option value="">Nouvelle ligne (pas de modification)</option>
+							</select>
+							<p class="text-xs text-white/60 mt-1">Sélectionnez une ligne du devis à modifier, ou laissez vide pour ajouter une nouvelle ligne</p>
+						</div>
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div class="form-group">
 								<label class="form-label">Tarif du catalogue</label>
