@@ -67,7 +67,7 @@ export default class extends Controller {
                 adresseInput.dispatchEvent(new Event('input'))
             }
         } catch (error) {
-            console.error('Erreur lors de la récupération des informations du client:', error)
+            // Erreur silencieuse
         }
     }
 
@@ -76,6 +76,21 @@ export default class extends Controller {
      */
     addLine(event) {
         event.preventDefault()
+
+        // Vérifier si le bouton est désactivé
+        const button = event.target.closest('button') || event.target
+        if (button && (button.disabled || button.style.display === 'none' || !button.hasAttribute('data-action'))) {
+            return
+        }
+
+        // Vérifier si un devis est associé (pour les factures) - empêcher l'ajout de lignes
+        const dataHasQuoteInElement = this.element.querySelector('[data-has-quote]') !== null
+        const dataHasQuoteInParent = this.element.closest('[data-has-quote]') !== null
+        const hasQuote = dataHasQuoteInElement || dataHasQuoteInParent
+
+        if (hasQuote) {
+            return
+        }
 
         if (!this.hasLinesContainerTarget || !this.hasLineTemplateTarget) {
             return
@@ -173,6 +188,16 @@ export default class extends Controller {
      */
     removeLine(event) {
         event.preventDefault()
+
+        // Vérifier si un devis est associé (pour les factures) - empêcher la suppression de lignes
+        const dataHasQuoteInElement = this.element.querySelector('[data-has-quote]') !== null
+        const dataHasQuoteInParent = this.element.closest('[data-has-quote]') !== null
+        const hasQuote = dataHasQuoteInElement || dataHasQuoteInParent
+
+        if (hasQuote) {
+            return
+        }
+
         const lineElement = event.target.closest('[data-line-index]')
         if (lineElement) {
             lineElement.remove()

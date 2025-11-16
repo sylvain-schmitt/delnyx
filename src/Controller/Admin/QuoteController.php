@@ -12,6 +12,7 @@ use App\Repository\ClientRepository;
 use App\Repository\CompanySettingsRepository;
 use App\Repository\AmendmentRepository;
 use App\Service\QuoteService;
+use App\Service\InvoiceService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -31,7 +32,8 @@ class QuoteController extends AbstractController
         private CompanySettingsRepository $companySettingsRepository,
         private AmendmentRepository $amendmentRepository,
         private EntityManagerInterface $entityManager,
-        private QuoteService $quoteService
+        private QuoteService $quoteService,
+        private InvoiceService $invoiceService
     ) {}
 
     #[Route('/', name: 'index')]
@@ -60,8 +62,10 @@ class QuoteController extends AbstractController
         // S'assurer que la page demandée existe
         $page = min($page, max(1, $totalPages));
 
-        // Récupérer les devis de la page courante
+        // Récupérer les devis de la page courante avec eager loading des avenants
         $quotes = $qb->select('q')
+            ->leftJoin('q.amendments', 'a')
+            ->addSelect('a')
             ->orderBy('q.dateCreation', 'DESC')
             ->setMaxResults($limit)
             ->setFirstResult(($page - 1) * $limit)
@@ -190,6 +194,22 @@ class QuoteController extends AbstractController
 
                     // Recalculer les totaux du devis depuis les lignes en respectant usePerLineTva / TVA globale
                     $quote->recalculateTotalsFromLines();
+
+                    // Si le statut est SIGNED, valider maintenant que les lignes sont bien associées
+                    if ($quote->getStatut() === QuoteStatus::SIGNED) {
+                        try {
+                            $quote->validateCanBeSigned();
+                        } catch (\RuntimeException $e) {
+                            $this->addFlash('error', $e->getMessage());
+                            // Ne pas persister si la validation échoue
+                            return $this->render('admin/quote/form.html.twig', [
+                                'quote' => $quote,
+                                'form' => $form,
+                                'title' => 'Nouveau Devis',
+                                'companySettings' => $companySettings,
+                            ]);
+                        }
+                    }
 
                     // Générer le numéro si ce n'est pas déjà fait (fallback si l'EventSubscriber ne fonctionne pas)
                     if (!$quote->getNumero()) {
@@ -347,6 +367,22 @@ class QuoteController extends AbstractController
 
                     // Recalculer les totaux du devis depuis les lignes en respectant usePerLineTva / TVA globale
                     $quote->recalculateTotalsFromLines();
+
+                    // Si le statut est SIGNED, valider maintenant que les lignes sont bien associées
+                    if ($quote->getStatut() === QuoteStatus::SIGNED) {
+                        try {
+                            $quote->validateCanBeSigned();
+                        } catch (\RuntimeException $e) {
+                            $this->addFlash('error', $e->getMessage());
+                            // Ne pas persister si la validation échoue
+                            return $this->render('admin/quote/form.html.twig', [
+                                'quote' => $quote,
+                                'form' => $form,
+                                'title' => 'Modifier le devis ' . $quote->getNumero(),
+                                'companySettings' => $companySettings,
+                            ]);
+                        }
+                    }
 
                     $quote->setDateModification(new \DateTime());
                     $this->entityManager->flush();
@@ -529,9 +565,19 @@ class QuoteController extends AbstractController
             return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
         }
 
-        // TODO: Implémenter InvoiceService->createFromQuote($quote)
-        $this->addFlash('info', 'La génération de facture depuis un devis n\'est pas encore implémentée.');
-
-        return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        try {
+            // Créer la facture depuis le devis en statut brouillon (DRAFT)
+            // L'utilisateur pourra ensuite l'émettre manuellement quand il le souhaite
+            $invoice = $this->invoiceService->createFromQuote($quote, false);
+            
+            $this->addFlash('success', sprintf('Facture créée avec succès : %s', $invoice->getNumero() ?? 'N/A'));
+            return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
     }
 }

@@ -14,6 +14,7 @@ use App\Repository\QuoteRepository;
 use App\Repository\ClientRepository;
 use App\Repository\CompanySettingsRepository;
 use App\Repository\AmendmentRepository;
+use App\Service\InvoiceService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -33,7 +34,8 @@ class InvoiceController extends AbstractController
         private ClientRepository $clientRepository,
         private CompanySettingsRepository $companySettingsRepository,
         private AmendmentRepository $amendmentRepository,
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private InvoiceService $invoiceService
     ) {}
 
     #[Route('/', name: 'index')]
@@ -147,11 +149,19 @@ class InvoiceController extends AbstractController
             ];
         }
 
+        // Essayer d'extraire le délai de paiement depuis les conditions de paiement
+        $delaiPaiement = null;
+        if ($quote->getConditionsPaiement()) {
+            $delaiPaiement = $this->extractDelaiPaiement($quote->getConditionsPaiement());
+        }
+
         return new JsonResponse([
             'id' => $quote->getId(),
             'numero' => $quote->getNumero(),
             'clientId' => $quote->getClient()?->getId(),
             'conditionsPaiement' => $quote->getConditionsPaiement(),
+            'delaiPaiement' => $delaiPaiement,
+            'montantAcompte' => $quote->getMontantAcompte(),
             'lines' => $lines,
         ]);
     }
@@ -205,8 +215,16 @@ class InvoiceController extends AbstractController
 
         // Pré-remplir depuis un devis si fourni en paramètre
         $quoteId = $request->query->get('quote_id');
+        \error_log(sprintf('[InvoiceController] quote_id dans la requête: %s', $quoteId ?: 'NULL'));
+        
         if ($quoteId) {
             $quote = $this->quoteRepository->find($quoteId);
+            \error_log(sprintf('[InvoiceController] Devis trouvé: %s, statut: %s, a déjà une facture: %s', 
+                $quote ? 'OUI' : 'NON',
+                $quote ? $quote->getStatut() : 'N/A',
+                $quote && $quote->getInvoice() ? 'OUI' : 'NON'
+            ));
+            
             if ($quote && $quote->getStatut() === \App\Entity\QuoteStatus::SIGNED && !$quote->getInvoice()) {
                 $invoice->setQuote($quote);
                 $invoice->setClient($quote->getClient());
@@ -219,6 +237,18 @@ class InvoiceController extends AbstractController
                 // Copier les conditions de paiement
                 if ($quote->getConditionsPaiement()) {
                     $invoice->setConditionsPaiement($quote->getConditionsPaiement());
+                    
+                    // Essayer d'extraire le délai de paiement depuis les conditions de paiement
+                    $delaiPaiement = $this->extractDelaiPaiement($quote->getConditionsPaiement());
+                    if ($delaiPaiement !== null) {
+                        $invoice->setDelaiPaiement($delaiPaiement);
+                    }
+                }
+                
+                // Pré-remplir le montant d'accompte depuis le devis
+                $montantAcompte = $quote->getMontantAcompte();
+                if ($montantAcompte) {
+                    $invoice->setMontantAcompte($montantAcompte);
                 }
                 
                 // Copier les lignes du devis vers la facture
@@ -235,12 +265,21 @@ class InvoiceController extends AbstractController
                 
                 // Recalculer les totaux
                 $invoice->recalculateTotalsFromLines();
+                
+                // Debug: vérifier que les lignes sont bien dans la collection
+                \error_log(sprintf('[InvoiceController] Lignes ajoutées: %d lignes dans la collection', $invoice->getLines()->count()));
             }
         }
+
+        // Debug: vérifier le nombre de lignes avant la création du formulaire
+        \error_log(sprintf('[InvoiceController] Avant création formulaire: %d lignes dans la collection', $invoice->getLines()->count()));
 
         $form = $this->createForm(InvoiceType::class, $invoice, [
             'company_settings' => $companySettings,
         ]);
+        
+        // Debug: vérifier le nombre de lignes dans le formulaire
+        \error_log(sprintf('[InvoiceController] Après création formulaire: %d lignes dans form.lines', $form->get('lines')->count()));
         $form->handleRequest($request);
 
         if ($form->isSubmitted()) {
@@ -249,6 +288,37 @@ class InvoiceController extends AbstractController
                 if ($invoice->getLines()->isEmpty()) {
                     $this->addFlash('error', 'Au moins une ligne de facture est requise.');
                 } else {
+                    // S'assurer que le devis est bien associé si sélectionné dans le formulaire
+                    // Récupérer depuis le formulaire d'abord
+                    $quoteData = $form->get('quote')->getData();
+                    
+                    // Si le champ est désactivé, Symfony ne le traite pas, récupérer depuis la requête
+                    if (!$quoteData) {
+                        $quoteIdFromRequest = $request->request->get('invoice')['quote'] ?? null;
+                        if ($quoteIdFromRequest) {
+                            $quote = $this->quoteRepository->find($quoteIdFromRequest);
+                            if ($quote) {
+                                $quoteData = $quote;
+                            }
+                        }
+                    }
+                    
+                    // Associer le devis si trouvé
+                    if ($quoteData) {
+                        if ($quoteData instanceof \App\Entity\Quote) {
+                            // Si c'est déjà un objet Quote, l'associer directement
+                            if (!$invoice->getQuote() || $invoice->getQuote()->getId() !== $quoteData->getId()) {
+                                $invoice->setQuote($quoteData);
+                            }
+                        } else {
+                            // Si c'est un ID, chercher le devis
+                            $quote = $this->quoteRepository->find($quoteData);
+                            if ($quote && (!$invoice->getQuote() || $invoice->getQuote()->getId() !== $quote->getId())) {
+                                $invoice->setQuote($quote);
+                            }
+                        }
+                    }
+                    
                     // Pré-remplir le client depuis le devis si présent
                     if ($invoice->getQuote() && !$invoice->getClient()) {
                         $invoice->setClient($invoice->getQuote()->getClient());
@@ -342,15 +412,31 @@ class InvoiceController extends AbstractController
             $title = 'Modifier la facture ' . $invoice->getNumero();
         }
 
+        // Vérifier si un devis est associé (pour rendre les lignes en lecture seule)
+        $hasQuote = $invoice->getQuote() !== null;
+
+        // Si le formulaire est soumis mais invalide, retourner une réponse 422 pour Turbo
+        if ($form->isSubmitted() && !$form->isValid()) {
+            return $this->render('admin/invoice/form.html.twig', [
+                'invoice' => $invoice,
+                'form' => $form,
+                'title' => $title,
+                'companySettings' => $companySettings,
+                'hasQuote' => $hasQuote,
+            ], new \Symfony\Component\HttpFoundation\Response('', 422));
+        }
+
         return $this->render('admin/invoice/form.html.twig', [
             'invoice' => $invoice,
             'form' => $form,
             'title' => $title,
             'companySettings' => $companySettings,
+            'hasQuote' => $hasQuote,
         ]);
     }
 
     #[Route('/{id}/edit', name: 'edit', requirements: ['id' => '\d+'])]
+    #[IsGranted('INVOICE_EDIT', subject: 'invoice')]
     public function edit(Request $request, Invoice $invoice): Response
     {
         // Vérifier si la facture peut être modifiée
@@ -382,6 +468,37 @@ class InvoiceController extends AbstractController
                 if ($invoice->getLines()->isEmpty()) {
                     $this->addFlash('error', 'Au moins une ligne de facture est requise.');
                 } else {
+                    // S'assurer que le devis est bien associé si sélectionné dans le formulaire
+                    // Récupérer depuis le formulaire d'abord
+                    $quoteData = $form->get('quote')->getData();
+                    
+                    // Si le champ est désactivé, Symfony ne le traite pas, récupérer depuis la requête
+                    if (!$quoteData) {
+                        $quoteIdFromRequest = $request->request->get('invoice')['quote'] ?? null;
+                        if ($quoteIdFromRequest) {
+                            $quote = $this->quoteRepository->find($quoteIdFromRequest);
+                            if ($quote) {
+                                $quoteData = $quote;
+                            }
+                        }
+                    }
+                    
+                    // Associer le devis si trouvé
+                    if ($quoteData) {
+                        if ($quoteData instanceof \App\Entity\Quote) {
+                            // Si c'est déjà un objet Quote, l'associer directement
+                            if (!$invoice->getQuote() || $invoice->getQuote()->getId() !== $quoteData->getId()) {
+                                $invoice->setQuote($quoteData);
+                            }
+                        } else {
+                            // Si c'est un ID, chercher le devis
+                            $quote = $this->quoteRepository->find($quoteData);
+                            if ($quote && (!$invoice->getQuote() || $invoice->getQuote()->getId() !== $quote->getId())) {
+                                $invoice->setQuote($quote);
+                            }
+                        }
+                    }
+                    
                     // Pré-remplir le client depuis le devis si présent
                     if ($invoice->getQuote() && !$invoice->getClient()) {
                         $invoice->setClient($invoice->getQuote()->getClient());
@@ -451,15 +568,31 @@ class InvoiceController extends AbstractController
             $title = 'Modifier la facture ' . $invoice->getNumero();
         }
 
+        // Vérifier si un devis est associé (pour rendre les lignes en lecture seule)
+        $hasQuote = $invoice->getQuote() !== null;
+
+        // Si le formulaire est soumis mais invalide, retourner une réponse 422 pour Turbo
+        if ($form->isSubmitted() && !$form->isValid()) {
+            return $this->render('admin/invoice/form.html.twig', [
+                'invoice' => $invoice,
+                'form' => $form,
+                'title' => $title,
+                'companySettings' => $companySettings,
+                'hasQuote' => $hasQuote,
+            ], new \Symfony\Component\HttpFoundation\Response('', 422));
+        }
+
         return $this->render('admin/invoice/form.html.twig', [
             'invoice' => $invoice,
             'form' => $form,
             'title' => $title,
             'companySettings' => $companySettings,
+            'hasQuote' => $hasQuote,
         ]);
     }
 
     #[Route('/{id}/cancel', name: 'cancel', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('INVOICE_EDIT', subject: 'invoice')]
     public function cancel(Request $request, Invoice $invoice): Response
     {
         // Conformité légale française : on n'efface jamais une facture, on l'annule
@@ -483,7 +616,7 @@ class InvoiceController extends AbstractController
             return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
         }
 
-        if ($this->isCsrfTokenValid('cancel' . $invoice->getId(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('invoice_cancel_' . $invoice->getId(), $request->request->get('_token'))) {
             // Annuler la facture au lieu de la supprimer (conformité légale)
             $invoice->setStatutEnum(InvoiceStatus::CANCELLED);
             $invoice->setDateModification(new \DateTime());
@@ -498,75 +631,118 @@ class InvoiceController extends AbstractController
     }
 
     #[Route('/generate-from-quote/{id}', name: 'generate_from_quote', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('QUOTE_GENERATE_INVOICE', subject: 'quote')]
     public function generateFromQuote(Request $request, Quote $quote): Response
     {
-        // Vérifier que le devis appartient à la même entreprise
-        $user = $this->getUser();
-        $companyId = null;
-        if ($user && method_exists($user, 'getEmail')) {
-            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
-            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
-        }
-        
-        if ($companyId && $quote->getCompanyId() !== $companyId) {
-            $this->addFlash('error', 'Vous n\'avez pas accès à ce devis.');
-            return $this->redirectToRoute('admin_quote_index');
-        }
-
-        // Vérifier que le devis est signé
-        if ($quote->getStatut() !== QuoteStatus::SIGNED) {
-            $this->addFlash('error', 'Seuls les devis signés peuvent être convertis en facture.');
+        if (!$this->isCsrfTokenValid('generate_invoice' . $quote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token de sécurité invalide.');
             return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
         }
 
-        // Vérifier qu'une facture n'existe pas déjà
-        if ($quote->getInvoice()) {
-            $this->addFlash('error', 'Une facture existe déjà pour ce devis.');
+        try {
+            // Créer la facture depuis le devis en statut brouillon (DRAFT)
+            // L'utilisateur pourra ensuite l'émettre manuellement quand il le souhaite
+            $invoice = $this->invoiceService->createFromQuote($quote, false);
+
+            $this->addFlash('success', sprintf('Facture créée avec succès : %s', $invoice->getNumero() ?? 'N/A'));
+            return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
             return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
         }
+    }
 
-        if ($this->isCsrfTokenValid('generate_invoice' . $quote->getId(), $request->request->get('_token'))) {
-            // Créer la facture depuis le devis
-            $invoice = new Invoice();
-            $invoice->setQuote($quote);
-            $invoice->setClient($quote->getClient());
-            $invoice->setCompanyId($quote->getCompanyId());
-
-            // Pré-remplir la date d'échéance (30 jours par défaut)
-            $dateEcheance = new \DateTime();
-            $dateEcheance->modify('+30 days');
-            $invoice->setDateEcheance($dateEcheance);
-
-            // Copier les conditions de paiement
-            if ($quote->getConditionsPaiement()) {
-                $invoice->setConditionsPaiement($quote->getConditionsPaiement());
-            }
-
-            // Copier les lignes du devis vers la facture
-            foreach ($quote->getLines() as $quoteLine) {
-                $invoiceLine = new \App\Entity\InvoiceLine();
-                $invoiceLine->setDescription($quoteLine->getDescription());
-                $invoiceLine->setQuantity($quoteLine->getQuantity());
-                $invoiceLine->setUnitPrice($quoteLine->getUnitPrice());
-                $invoiceLine->setTotalHt($quoteLine->getTotalHt());
-                $invoiceLine->setTvaRate($quoteLine->getTvaRate());
-                $invoiceLine->setTariff($quoteLine->getTariff());
-                $invoiceLine->setInvoice($invoice);
-                $invoice->addLine($invoiceLine);
-            }
-
-            // Recalculer les totaux
-            $invoice->recalculateTotalsFromLines();
-
-            // Le numéro sera généré automatiquement par l'EventSubscriber
-            $this->entityManager->persist($invoice);
-            $this->entityManager->flush();
-
-            $this->addFlash('success', 'Facture créée depuis le devis avec succès');
+    #[Route('/{id}/issue', name: 'issue', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('INVOICE_ISSUE', subject: 'invoice')]
+    public function issue(Request $request, Invoice $invoice): Response
+    {
+        if (!$this->isCsrfTokenValid('invoice_issue_' . $invoice->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token de sécurité invalide.');
             return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
         }
 
-        return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        try {
+            $this->invoiceService->issue($invoice);
+            $this->addFlash('success', sprintf('Facture %s émise avec succès.', $invoice->getNumero() ?? 'N/A'));
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+    }
+
+    #[Route('/{id}/mark-paid', name: 'mark_paid', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('INVOICE_MARK_PAID', subject: 'invoice')]
+    public function markPaid(Request $request, Invoice $invoice): Response
+    {
+        if (!$this->isCsrfTokenValid('invoice_mark_paid_' . $invoice->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token de sécurité invalide.');
+            return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+        }
+
+        try {
+            $amount = $request->request->get('amount');
+            $amount = $amount ? (float) $amount : null;
+
+            $this->invoiceService->markPaid($invoice, $amount);
+            $this->addFlash('success', sprintf('Facture %s marquée comme payée.', $invoice->getNumero() ?? 'N/A'));
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+    }
+
+    #[Route('/{id}/send', name: 'send', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('INVOICE_SEND', subject: 'invoice')]
+    public function send(Request $request, Invoice $invoice): Response
+    {
+        if (!$this->isCsrfTokenValid('invoice_send_' . $invoice->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token de sécurité invalide.');
+            return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+        }
+
+        try {
+            $channel = $request->request->get('channel', 'email');
+            $this->invoiceService->send($invoice, $channel);
+            $this->addFlash('success', sprintf('Facture %s envoyée avec succès.', $invoice->getNumero() ?? 'N/A'));
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+    }
+
+    /**
+     * Extrait le délai de paiement en jours depuis le texte des conditions de paiement
+     * Exemples: "30 jours" -> 30, "30j" -> 30, "paiement à 30 jours" -> 30
+     */
+    private function extractDelaiPaiement(?string $conditionsPaiement): ?int
+    {
+        if (!$conditionsPaiement) {
+            return null;
+        }
+
+        // Rechercher un nombre suivi de "jour" ou "j" (avec ou sans "s")
+        // Patterns: "30 jours", "30j", "30 jours fin de mois", "paiement à 30 jours", etc.
+        if (preg_match('/(\d+)\s*(?:jour|j)(?:s)?/i', $conditionsPaiement, $matches)) {
+            $delai = (int) $matches[1];
+            // Limiter à un délai raisonnable (0-365 jours)
+            if ($delai >= 0 && $delai <= 365) {
+                return $delai;
+            }
+        }
+
+        return null;
     }
 }
 

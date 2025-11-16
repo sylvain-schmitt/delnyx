@@ -80,9 +80,9 @@
                                     {% set status = invoice.statutEnum %}
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                         {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-                                        {% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+                                        {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
+                                        {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
                                         {% elseif status.value == 'paid' %}bg-green-500/20 text-green-300
-                                        {% elseif status.value == 'overdue' %}bg-red-500/20 text-red-300
                                         {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
                                         {% else %}bg-gray-500/20 text-gray-300{% endif %}">
                                         {{ status.label }}
@@ -90,30 +90,70 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
+                                        {# Bouton Voir #}
                                         <a href="{{ path('admin_invoice_show', {id: invoice.id}) }}" 
                                            class="text-blue-400 hover:text-blue-300 transition-colors duration-200"
                                            title="Voir">
                                             {{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
                                         </a>
-                                        {% if invoice.canBeModified %}
+                                        
+                                        {# Bouton Modifier : visible si DRAFT #}
+                                        {% if invoice.statutEnum.value == 'draft' %}
                                             <a href="{{ path('admin_invoice_edit', {id: invoice.id}) }}" 
                                                class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200"
                                                title="Modifier">
                                                 {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
                                             </a>
                                         {% endif %}
-                                        {% if invoice.canBeCancelled %}
-                                            <button type="button" 
-                                                    data-action="click->confirm-modal#open"
-                                                    data-url="{{ path('admin_invoice_cancel', {id: invoice.id}) }}"
-                                                    data-method="POST"
-                                                    data-csrf-token="{{ csrf_token('cancel' ~ invoice.id) }}"
-                                                    data-item-name="cette facture"
-                                                    data-message="Êtes-vous sûr de vouloir annuler cette facture ? Le numéro sera conservé pour la traçabilité comptable (conformité légale française)."
-                                                    class="text-red-400 hover:text-red-300 transition-colors duration-200"
-                                                    title="Annuler">
-                                                {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
-                                            </button>
+                                        
+                                        {# Bouton Émettre : visible si DRAFT #}
+                                        {% if invoice.statutEnum.value == 'draft' %}
+                                            <form action="{{ path('admin_invoice_issue', {id: invoice.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="⚠️ ATTENTION : Émettre cette facture la rend immuable. Continuer ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('invoice_issue_' ~ invoice.id) }}">
+                                                <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Émettre">
+                                                    {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        {# Bouton Envoyer : visible si ISSUED ou PAID (pas si déjà SENT) #}
+                                        {% if invoice.statutEnum.value in ['issued', 'paid'] %}
+                                            <form action="{{ path('admin_invoice_send', {id: invoice.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Envoyer cette facture au client ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('invoice_send_' ~ invoice.id) }}">
+                                                <input type="hidden" name="channel" value="email">
+                                                <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Envoyer">
+                                                    {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+
+                                        {# Bouton Marquer comme payée : visible si ISSUED ou SENT #}
+                                        {% if invoice.statutEnum.value in ['issued', 'sent'] %}
+                                            <form action="{{ path('admin_invoice_mark_paid', {id: invoice.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Marquer cette facture comme payée ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('invoice_mark_paid_' ~ invoice.id) }}">
+                                                <button type="submit" class="text-green-400 hover:text-green-300 transition-colors duration-200" title="Marquer comme payée">
+                                                    {{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        {# Bouton Créer un avoir : visible si ISSUED, SENT ou PAID #}
+                                        {% if invoice.statutEnum.value in ['issued', 'sent', 'paid'] %}
+                                            <a href="{{ path('admin_credit_note_new', {invoice_id: invoice.id}) }}" 
+                                               class="text-blue-400 hover:text-blue-300 transition-colors duration-200"
+                                               title="Créer un avoir">
+                                                {{ ux_icon('lucide:file-minus', {class: 'w-4 h-4'}) }}
+                                            </a>
+                                        {% endif %}
+                                        
+                                        {# Bouton Annuler : visible si DRAFT uniquement #}
+                                        {% if invoice.statutEnum.value == 'draft' %}
+                                            <form action="{{ path('admin_invoice_cancel', {id: invoice.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Annuler cette facture la marquera comme annulée. Continuer ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('invoice_cancel_' ~ invoice.id) }}">
+                                                <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200" title="Annuler">
+                                                    {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -134,31 +174,71 @@
                             <div class="text-sm text-white">{{ invoice.client.nomComplet }}</div>
                             <div class="text-xs text-white/60">{{ invoice.client.email }}</div>
                         </div>
-                        <div class="flex items-center gap-2 ml-4">
+                        <div class="flex items-center gap-2 ml-4 flex-wrap">
+                            {# Bouton Voir #}
                             <a href="{{ path('admin_invoice_show', {id: invoice.id}) }}" 
                                class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2"
                                title="Voir">
                                 {{ ux_icon('lucide:eye', {class: 'w-5 h-5'}) }}
                             </a>
-                            {% if invoice.canBeModified %}
+                            
+                            {# Bouton Modifier : visible si DRAFT #}
+                            {% if invoice.statutEnum.value == 'draft' %}
                                 <a href="{{ path('admin_invoice_edit', {id: invoice.id}) }}" 
                                    class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200 p-2"
                                    title="Modifier">
                                     {{ ux_icon('lucide:edit', {class: 'w-5 h-5'}) }}
                                 </a>
                             {% endif %}
-                            {% if invoice.canBeCancelled %}
-                                <button type="button" 
-                                        data-action="click->confirm-modal#open"
-                                        data-url="{{ path('admin_invoice_cancel', {id: invoice.id}) }}"
-                                        data-method="POST"
-                                        data-csrf-token="{{ csrf_token('cancel' ~ invoice.id) }}"
-                                        data-item-name="cette facture"
-                                        data-message="Êtes-vous sûr de vouloir annuler cette facture ? Le numéro sera conservé pour la traçabilité comptable (conformité légale française)."
-                                        class="text-red-400 hover:text-red-300 transition-colors duration-200 p-2"
-                                        title="Annuler">
-                                    {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5'}) }}
-                                </button>
+                            
+                            {# Bouton Émettre : visible si DRAFT #}
+                            {% if invoice.statutEnum.value == 'draft' %}
+                                <form action="{{ path('admin_invoice_issue', {id: invoice.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="⚠️ ATTENTION : Émettre cette facture la rend immuable. Continuer ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('invoice_issue_' ~ invoice.id) }}">
+                                    <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Émettre">
+                                        {{ ux_icon('lucide:send', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            {# Bouton Envoyer : visible si ISSUED ou PAID (pas si déjà SENT) #}
+                            {% if invoice.statutEnum.value in ['issued', 'paid'] %}
+                                <form action="{{ path('admin_invoice_send', {id: invoice.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Envoyer cette facture au client ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('invoice_send_' ~ invoice.id) }}">
+                                    <input type="hidden" name="channel" value="email">
+                                    <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Envoyer">
+                                        {{ ux_icon('lucide:send', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
+                            {% endif %}
+
+                            {# Bouton Marquer comme payée : visible si ISSUED ou SENT #}
+                            {% if invoice.statutEnum.value in ['issued', 'sent'] %}
+                                <form action="{{ path('admin_invoice_mark_paid', {id: invoice.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Marquer cette facture comme payée ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('invoice_mark_paid_' ~ invoice.id) }}">
+                                    <button type="submit" class="text-green-400 hover:text-green-300 transition-colors duration-200 p-2" title="Marquer comme payée">
+                                        {{ ux_icon('lucide:check-circle', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            {# Bouton Créer un avoir : visible si ISSUED, SENT ou PAID #}
+                            {% if invoice.statutEnum.value in ['issued', 'sent', 'paid'] %}
+                                <a href="{{ path('admin_credit_note_new', {invoice_id: invoice.id}) }}" 
+                                   class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2"
+                                   title="Créer un avoir">
+                                    {{ ux_icon('lucide:file-minus', {class: 'w-5 h-5'}) }}
+                                </a>
+                            {% endif %}
+                            
+                            {# Bouton Annuler : visible si DRAFT uniquement #}
+                            {% if invoice.statutEnum.value == 'draft' %}
+                                <form action="{{ path('admin_invoice_cancel', {id: invoice.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Annuler cette facture la marquera comme annulée. Continuer ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('invoice_cancel_' ~ invoice.id) }}">
+                                    <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200 p-2" title="Annuler">
+                                        {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
                             {% endif %}
                         </div>
                     </div>
@@ -186,9 +266,9 @@
                             {% set status = invoice.statutEnum %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                 {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-                                {% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+                                {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
+                                {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
                                 {% elseif status.value == 'paid' %}bg-green-500/20 text-green-300
-                                {% elseif status.value == 'overdue' %}bg-red-500/20 text-red-300
                                 {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
                                 {% else %}bg-gray-500/20 text-gray-300{% endif %}">
                                 {{ status.label }}

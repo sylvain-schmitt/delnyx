@@ -29,16 +29,40 @@ use ApiPlatform\Metadata\Patch;
             securityMessage: "Seuls les utilisateurs authentifiés peuvent créer des factures via l'API. Si un devis est associé, il doit être signé."
         ),
         new Put(
-            security: "object.getStatut() === 'draft'",
+            security: "is_granted('INVOICE_EDIT', object)",
             securityMessage: "Seules les factures en brouillon peuvent être modifiées via l'API."
         ),
         new Patch(
-            security: "object.getStatut() === 'draft'",
+            security: "is_granted('INVOICE_EDIT', object)",
             securityMessage: "Seules les factures en brouillon peuvent être modifiées via l'API."
         ),
         new Delete(
             security: "false",
             securityMessage: "Les factures ne peuvent pas être supprimées. Utilisez l'annulation."
+        ),
+        new Post(
+            uriTemplate: '/invoices/{id}/issue',
+            controller: \App\Controller\Api\InvoiceIssueController::class,
+            security: "is_granted('INVOICE_ISSUE', object)",
+            securityMessage: "Vous n'avez pas la permission d'émettre cette facture.",
+            read: false,
+            name: 'invoice_issue'
+        ),
+        new Post(
+            uriTemplate: '/invoices/{id}/send',
+            controller: \App\Controller\Api\InvoiceSendController::class,
+            security: "is_granted('INVOICE_SEND', object)",
+            securityMessage: "Vous n'avez pas la permission d'envoyer cette facture.",
+            read: false,
+            name: 'invoice_send'
+        ),
+        new Post(
+            uriTemplate: '/invoices/{id}/mark-paid',
+            controller: \App\Controller\Api\InvoiceMarkPaidController::class,
+            security: "is_granted('INVOICE_MARK_PAID', object)",
+            securityMessage: "Vous n'avez pas la permission de marquer cette facture comme payée.",
+            read: false,
+            name: 'invoice_mark_paid'
         )
     ],
     normalizationContext: ['groups' => ['invoice:read']],
@@ -117,6 +141,14 @@ class Invoice
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Groups(['invoice:read', 'invoice:write'])]
     private ?\DateTimeInterface $dateEnvoi = null;
+
+    #[ORM\Column(type: Types::INTEGER, options: ['default' => 0])]
+    #[Groups(['invoice:read'])]
+    private int $sentCount = 0;
+
+    #[ORM\Column(type: Types::STRING, length: 20, nullable: true)]
+    #[Groups(['invoice:read'])]
+    private ?string $deliveryChannel = null; // 'email', 'pdp', 'both'
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Groups(['invoice:read'])]
@@ -365,6 +397,34 @@ class Invoice
         return $this;
     }
 
+    public function getSentCount(): int
+    {
+        return $this->sentCount;
+    }
+
+    public function setSentCount(int $sentCount): self
+    {
+        $this->sentCount = $sentCount;
+        return $this;
+    }
+
+    public function incrementSentCount(): self
+    {
+        $this->sentCount++;
+        return $this;
+    }
+
+    public function getDeliveryChannel(): ?string
+    {
+        return $this->deliveryChannel;
+    }
+
+    public function setDeliveryChannel(?string $deliveryChannel): self
+    {
+        $this->deliveryChannel = $deliveryChannel;
+        return $this;
+    }
+
     public function getDateModification(): ?\DateTimeInterface
     {
         return $this->dateModification;
@@ -584,6 +644,49 @@ class Invoice
             InvoiceStatus::PAID->value,
             InvoiceStatus::CANCELLED->value
         ]);
+    }
+
+    /**
+     * Valide que la facture peut être émise
+     * 
+     * @throws \RuntimeException si la facture ne peut pas être émise
+     */
+    public function validateCanBeIssued(): void
+    {
+        // Vérifier le statut
+        $statutEnum = $this->getStatutEnum();
+        if (!$statutEnum || !$statutEnum->canBeIssued()) {
+            throw new \RuntimeException(
+                sprintf(
+                    'La facture ne peut pas être émise depuis l\'état "%s".',
+                    $statutEnum?->getLabel() ?? 'inconnu'
+                )
+            );
+        }
+
+        // Vérifier qu'il y a au moins une ligne
+        if ($this->lines->isEmpty()) {
+            throw new \RuntimeException('Une facture ne peut pas être émise sans ligne.');
+        }
+
+        // Vérifier que les montants sont cohérents
+        if (empty($this->montantHT) || (float) $this->montantHT < 0) {
+            throw new \RuntimeException('Le montant HT doit être positif.');
+        }
+
+        if (empty($this->montantTTC) || (float) $this->montantTTC < 0) {
+            throw new \RuntimeException('Le montant TTC doit être positif.');
+        }
+
+        // Vérifier que la date d'échéance est définie
+        if (!$this->dateEcheance) {
+            throw new \RuntimeException('La date d\'échéance est obligatoire pour émettre une facture.');
+        }
+
+        // Vérifier que le client est défini
+        if (!$this->client) {
+            throw new \RuntimeException('Le client est obligatoire pour émettre une facture.');
+        }
     }
 
     /**

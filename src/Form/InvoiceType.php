@@ -28,6 +28,19 @@ class InvoiceType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $invoice = $options['data'] ?? null;
+        $hasQuote = $invoice && $invoice->getQuote() !== null;
+        
+        // Vérifier si chaque champ a une valeur pré-remplie depuis le devis
+        $hasMontantAcompteFromQuote = $hasQuote && $invoice->getMontantAcompte() !== null && $invoice->getMontantAcompte() > 0;
+        $hasConditionsPaiementFromQuote = $hasQuote && $invoice->getConditionsPaiement() !== null && trim($invoice->getConditionsPaiement()) !== '';
+        $hasDelaiPaiementFromQuote = $hasQuote && $invoice->getDelaiPaiement() !== null;
+        $isEdit = $invoice && $invoice->getId();
+        $canEdit = !$isEdit || ($invoice && $invoice->canBeModified());
+        
+        // Si un devis est associé, les lignes ne peuvent pas être modifiées (légalité)
+        $linesEditable = $canEdit && !$hasQuote;
+
         $builder
             ->add('numero', TextType::class, [
                 'label' => 'Numéro de la facture',
@@ -71,6 +84,7 @@ class InvoiceType extends AbstractType
                     return $qb->orderBy('q.dateCreation', 'DESC');
                 },
                 'attr' => ['class' => 'form-select'],
+                'disabled' => $hasQuote, // Désactiver si un devis est déjà associé (mais créer un champ caché pour la soumission)
                 'help' => 'Sélectionnez un devis signé pour créer la facture automatiquement (seuls les devis sans facture sont affichés)',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
@@ -109,32 +123,44 @@ class InvoiceType extends AbstractType
                 'label' => 'Montant d\'acompte (€)',
                 'scale' => 2,
                 'required' => false,
+                // Ne pas utiliser 'disabled' car cela empêche la soumission du formulaire
+                // Utiliser seulement 'readonly' dans les attributs pour que la valeur soit soumise
+                // Rendre readonly seulement si une valeur a été pré-remplie depuis le devis
                 'attr' => [
                     'class' => 'form-input',
                     'step' => '0.01',
-                    'min' => '0'
+                    'min' => '0',
+                    'readonly' => $hasMontantAcompteFromQuote ? 'readonly' : false
                 ],
-                'help' => 'Montant d\'acompte déjà reçu',
+                'help' => $hasMontantAcompteFromQuote ? 'Montant d\'acompte du devis associé (lecture seule)' : 'Montant d\'acompte déjà reçu',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('conditionsPaiement', TextareaType::class, [
                 'label' => 'Conditions de paiement',
                 'required' => false,
+                // Ne pas utiliser 'disabled' car cela empêche la soumission du formulaire
+                // Utiliser seulement 'readonly' dans les attributs pour que la valeur soit soumise
+                // Rendre readonly seulement si une valeur a été pré-remplie depuis le devis
                 'attr' => [
                     'class' => 'form-textarea',
-                    'rows' => 3
+                    'rows' => 3,
+                    'readonly' => $hasConditionsPaiementFromQuote ? 'readonly' : false
                 ],
-                'help' => 'Conditions de paiement (ex: 30 jours, à réception, etc.)',
+                'help' => $hasConditionsPaiementFromQuote ? 'Conditions de paiement du devis associé (lecture seule)' : 'Conditions de paiement (ex: 30 jours, à réception, etc.)',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('delaiPaiement', NumberType::class, [
                 'label' => 'Délai de paiement (jours)',
                 'required' => false,
+                // Ne pas utiliser 'disabled' car cela empêche la soumission du formulaire
+                // Utiliser seulement 'readonly' dans les attributs pour que la valeur soit soumise
+                // Rendre readonly seulement si une valeur a été pré-remplie depuis le devis
                 'attr' => [
                     'class' => 'form-input',
-                    'min' => '0'
+                    'min' => '0',
+                    'readonly' => $hasDelaiPaiementFromQuote ? 'readonly' : false
                 ],
-                'help' => 'Délai de paiement en jours',
+                'help' => $hasDelaiPaiementFromQuote ? 'Délai de paiement du devis associé (lecture seule)' : 'Délai de paiement en jours',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('penalitesRetard', NumberType::class, [
@@ -163,22 +189,17 @@ class InvoiceType extends AbstractType
             ->add('lines', CollectionType::class, [
                 'entry_type' => InvoiceLineType::class,
                 'entry_options' => ['label' => false],
-                'allow_add' => true,
-                'allow_delete' => true,
+                'allow_add' => $linesEditable,
+                'allow_delete' => $linesEditable,
                 'by_reference' => false,
                 'label' => false,
+                // Ne pas utiliser 'disabled' sur la collection car cela empêche la soumission
+                // Les champs individuels seront en readonly via le template Twig
                 'attr' => ['class' => 'invoice-lines-collection']
             ]);
 
-        // Pré-remplir le client depuis le devis si sélectionné
-        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
-            $data = $event->getData();
-            $form = $event->getForm();
-
-            if (isset($data['quote']) && $data['quote']) {
-                // Le client sera pré-rempli dans le contrôleur
-            }
-        });
+        // Note: Le devis sera associé dans le contrôleur si fourni via champ caché
+        // (car les champs désactivés ne sont pas traités par Symfony)
     }
 
     public function configureOptions(OptionsResolver $resolver): void

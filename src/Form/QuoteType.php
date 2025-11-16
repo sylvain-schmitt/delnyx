@@ -179,6 +179,22 @@ class QuoteType extends AbstractType
                 $event->setData($data);
             }
         });
+
+        // Associer les lignes au devis AVANT que la validation du statut ne se déclenche
+        // Cela évite l'erreur "un devis ne peut pas être soumis sans ligne" quand le statut est SIGNED
+        $builder->addEventListener(FormEvents::SUBMIT, function (FormEvent $event) {
+            $quote = $event->getData();
+            if (!$quote) {
+                return;
+            }
+
+            // S'assurer que toutes les lignes sont bien associées au devis
+            foreach ($quote->getLines() as $line) {
+                if ($line->getQuote() !== $quote) {
+                    $line->setQuote($quote);
+                }
+            }
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void

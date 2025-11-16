@@ -34,3 +34,8 @@ services:
     App\Service\QuoteService:
         calls:
             - [setAuditService, ['@App\Service\AuditService']]
+
+    # Configuration du InvoiceService avec injection d'AuditService
+    App\Service\InvoiceService:
+        calls:
+            - [setAuditService, ['@App\Service\AuditService']]

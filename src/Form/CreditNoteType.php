@@ -55,9 +55,9 @@ class CreditNoteType extends AbstractType
                     $qb = $er->createQueryBuilder('i')
                         ->where('i.statut IN (:emitted)')
                         ->setParameter('emitted', [
+                            InvoiceStatus::ISSUED->value,
                             InvoiceStatus::SENT->value,
                             InvoiceStatus::PAID->value,
-                            InvoiceStatus::OVERDUE->value,
                         ]);
                     
                     // Si on édite un avoir existant, permettre de voir la facture associée

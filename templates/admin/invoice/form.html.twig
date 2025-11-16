@@ -45,9 +45,31 @@
 			</div>
 		{% endif %}
 
+		{# Alerte si facture créée depuis un devis #}
+		{% if hasQuote %}
+			<div class="bg-amber-500/20 border border-amber-500/30 rounded-xl p-4 scroll-animate mb-6">
+				<div class="flex items-start gap-3">
+					{{ ux_icon('lucide:file-text', {class: 'w-5 h-5 text-amber-400 mt-0.5'}) }}
+					<div class="flex-1">
+						<p class="text-amber-300 font-medium mb-1">Facture créée depuis un devis signé</p>
+						<p class="text-amber-200/80 text-sm">Les lignes de cette facture proviennent d'un devis signé et ne peuvent pas être modifiées pour des raisons légales. Les montants doivent correspondre exactement au devis.</p>
+					</div>
+				</div>
+			</div>
+		{% endif %}
+
 		{# Formulaire #}
-		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100" data-controller="invoice-form quote-form flash-messages">
-			{% set isReadOnly = invoice.statutEnum and invoice.statutEnum.isEmitted() %}
+		{% set isReadOnly = invoice.statutEnum and invoice.statutEnum.isEmitted() %}
+		{% set hasQuote = hasQuote|default(false) %}
+		{% set linesReadOnly = hasQuote or isReadOnly or (form.lines.vars.disabled|default(false)) %}
+		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100" 
+			 data-controller="invoice-form quote-form flash-messages"
+			 {% if hasQuote %}data-has-quote="true"{% endif %}
+			 {% if companySettings %}
+				 data-company-settings
+				 data-tva-enabled="{{ companySettings.isTvaEnabled() ? 'true' : 'false' }}"
+				 data-use-per-line-tva="{% if invoice.quote %}{{ invoice.quote.usePerLineTva ? 'true' : 'false' }}{% else %}false{% endif %}"
+			 {% endif %}>
 			{{ form_start(form, {'attr': {'class': 'space-y-6', 'data-controller': 'admin-form', 'data-admin-form-target': 'form', 'novalidate': 'novalidate', 'data-action': 'submit->admin-form#handleSubmit'}}) }}
 
 			{# Messages flash avec contrôleur Stimulus #}
@@ -85,7 +107,20 @@
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div class="form-group" data-controller="select-search" data-select-search-type="quote">
 						{{ form_label(form.quote, null, {'label_attr': {'class': 'form-label'}}) }}
-						{{ form_widget(form.quote, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field', 'disabled': isReadOnly ? 'disabled' : false}}) }}
+						{% if hasQuote or isReadOnly %}
+							{{ form_widget(form.quote, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field', 'disabled': 'disabled'}}) }}
+							{% if hasQuote %}
+								<p class="text-sm text-white/60 mt-1">Le devis est verrouillé car la facture a été créée depuis ce devis.</p>
+							{% endif %}
+						{% else %}
+							{{ form_widget(form.quote, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field'}}) }}
+						{% endif %}
+						{# Toujours créer un champ caché si le select a une valeur, pour s'assurer que la valeur est soumise même si le select est désactivé #}
+						{% if form.quote.vars.value %}
+							{% set quoteValue = form.quote.vars.value %}
+							{% set quoteId = attribute(quoteValue, 'id')|default(quoteValue) %}
+							<input type="hidden" name="{{ form.quote.vars.full_name }}" value="{{ quoteId }}" id="{{ form.quote.vars.id }}_hidden">
+						{% endif %}
 						{{ form_help(form.quote) }}
 						{{ form_errors(form.quote) }}
 					</div>
@@ -122,7 +157,14 @@
 						{{ ux_icon('lucide:list', {class: 'w-5 h-5'}) }}
 						Lignes de facture
 					</h3>
-					{% if not isReadOnly %}
+					{% if hasQuote %}
+						<div class="bg-blue-500/20 border border-blue-500/30 rounded-lg px-3 py-2">
+							<p class="text-blue-300 text-sm flex items-center gap-2">
+								{{ ux_icon('lucide:lock', {class: 'w-4 h-4'}) }}
+								Lignes du devis (lecture seule)
+							</p>
+						</div>
+					{% elseif not isReadOnly %}
 						<button type="button" class="btn-secondary text-sm py-2 px-4" data-action="click->quote-form#addLine">
 							{{ ux_icon('lucide:plus', {class: 'w-4 h-4'}) }}
 							Ajouter une ligne
@@ -130,53 +172,101 @@
 					{% endif %}
 				</div>
 
-				<div data-quote-form-target="linesContainer" class="space-y-4" data-admin-form-target="linesContainer">
-					{% for line in form.lines %}
-						<div class="bg-white/5 border border-white/10 rounded-lg p-4 {% if not line.vars.valid %}border-red-500/50{% endif %}" data-line-index="{{ loop.index0 }}">
-							{% if not line.vars.valid %}
-								<div class="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
-									<p class="text-red-300 text-sm font-medium mb-2">Erreurs dans cette ligne :</p>
-									{{ form_errors(line) }}
-									{% for child in line.children %}
-										{% if not child.vars.valid %}
-											<div class="mt-1 text-sm">
-												<strong class="text-red-300">{{ form_label(child) }}
-													:</strong>
-												{{ form_errors(child) }}
-											</div>
+				{% if hasQuote and invoice.lines|length > 0 %}
+					{# Affichage en tableau pour les lignes du devis #}
+					<div class="bg-white/5 border border-white/10 rounded-lg overflow-hidden">
+						<div class="overflow-x-auto">
+							<table class="w-full">
+								<thead class="bg-white/10 border-b border-white/20">
+									<tr>
+										<th class="px-4 py-3 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Description</th>
+										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase tracking-wider">Quantité</th>
+										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase tracking-wider">Prix unitaire HT</th>
+										{% if companySettings and companySettings.isTvaEnabled() and invoice.quote and invoice.quote.usePerLineTva %}
+											<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase tracking-wider">TVA</th>
 										{% endif %}
+										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase tracking-wider">Total HT</th>
+										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase tracking-wider">Total TTC</th>
+									</tr>
+								</thead>
+								<tbody class="divide-y divide-white/10">
+									{% for line in invoice.lines %}
+										<tr class="hover:bg-white/5 transition-colors">
+											<td class="px-4 py-3 text-sm text-white/90">
+												<div class="font-medium">{{ line.description|default('N/A') }}</div>
+												{% if line.tariff %}
+													<div class="text-xs text-white/60 mt-1">{{ line.tariff.name }}</div>
+												{% endif %}
+											</td>
+											<td class="px-4 py-3 text-sm text-white/90 text-right">{{ line.quantity|default(0) }}</td>
+											<td class="px-4 py-3 text-sm text-white/90 text-right">{{ line.unitPrice|number_format(2, ',', ' ') }} €</td>
+											{% if companySettings and companySettings.isTvaEnabled() and invoice.quote and invoice.quote.usePerLineTva %}
+												<td class="px-4 py-3 text-sm text-white/90 text-right">{{ line.tvaRate|default(0) }}%</td>
+											{% endif %}
+											<td class="px-4 py-3 text-sm text-white/90 text-right font-medium">{{ line.totalHt|number_format(2, ',', ' ') }} €</td>
+											<td class="px-4 py-3 text-sm text-white/90 text-right font-semibold">{{ line.getTotalTtc()|number_format(2, ',', ' ') }} €</td>
+										</tr>
 									{% endfor %}
-								</div>
-							{% endif %}
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-								{{ form_macros.simple_field(line, 'tariff', 'select', {'disabled': isReadOnly}) }}
-								{{ form_macros.simple_field(line, 'description', 'text', {'disabled': isReadOnly}) }}
-							</div>
-							<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-								{{ form_macros.simple_field(line, 'quantity', 'number', {'disabled': isReadOnly}) }}
-								{{ form_macros.simple_field(line, 'unitPrice', 'number', {'disabled': isReadOnly}) }}
-								{% if companySettings and companySettings.isTvaEnabled() and invoice.quote and invoice.quote.usePerLineTva %}
-									<div data-tva-settings-target="rateWrapper">
-										{{ form_macros.simple_field(line, 'tvaRate', 'select', {'disabled': isReadOnly}) }}
+								</tbody>
+							</table>
+						</div>
+					</div>
+					{# Champs cachés pour la soumission du formulaire #}
+					<div style="display: none;">
+						{% for line in form.lines %}
+							{{ form_widget(line) }}
+						{% endfor %}
+					</div>
+				{% else %}
+					{# Affichage normal avec formulaire pour les lignes modifiables #}
+					<div data-quote-form-target="linesContainer" class="space-y-4" data-admin-form-target="linesContainer">
+						{% for line in form.lines %}
+							<div class="bg-white/5 border border-white/10 rounded-lg p-4 {% if not line.vars.valid %}border-red-500/50{% endif %}" data-line-index="{{ loop.index0 }}">
+								{% if not line.vars.valid %}
+									<div class="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+										<p class="text-red-300 text-sm font-medium mb-2">Erreurs dans cette ligne :</p>
+										{{ form_errors(line) }}
+										{% for child in line.children %}
+											{% if not child.vars.valid %}
+												<div class="mt-1 text-sm">
+													<strong class="text-red-300">{{ form_label(child) }}
+														:</strong>
+													{{ form_errors(child) }}
+												</div>
+											{% endif %}
+										{% endfor %}
 									</div>
-								{% else %}
-									{# Cacher le champ tvaRate si TVA désactivée ou usePerLineTva = false #}
-									<div style="display: none;">
-										{{ form_widget(line.tvaRate) }}
+								{% endif %}
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+									{{ form_macros.simple_field(line, 'tariff', 'select', {'disabled': linesReadOnly}) }}
+									{{ form_macros.simple_field(line, 'description', 'text', {'disabled': linesReadOnly}) }}
+								</div>
+								<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+									{{ form_macros.simple_field(line, 'quantity', 'number', {'disabled': linesReadOnly}) }}
+									{{ form_macros.simple_field(line, 'unitPrice', 'number', {'disabled': linesReadOnly}) }}
+									{% if companySettings and companySettings.isTvaEnabled() and invoice.quote and invoice.quote.usePerLineTva %}
+										<div data-tva-settings-target="rateWrapper">
+											{{ form_macros.simple_field(line, 'tvaRate', 'select', {'disabled': linesReadOnly}) }}
+										</div>
+									{% else %}
+										{# Cacher le champ tvaRate si TVA désactivée ou usePerLineTva = false #}
+										<div style="display: none;">
+											{{ form_widget(line.tvaRate) }}
+										</div>
+									{% endif %}
+								</div>
+								{% if not linesReadOnly %}
+									<div class="flex items-center justify-end mt-4 pt-4 border-t border-white/10">
+										<button type="button" class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1" data-action="click->quote-form#removeLine">
+											{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+											Supprimer
+										</button>
 									</div>
 								{% endif %}
 							</div>
-							{% if not isReadOnly %}
-								<div class="flex items-center justify-end mt-4 pt-4 border-t border-white/10">
-									<button type="button" class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1" data-action="click->quote-form#removeLine">
-										{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
-										Supprimer
-									</button>
-								</div>
-							{% endif %}
-						</div>
-					{% endfor %}
-				</div>
+						{% endfor %}
+					</div>
+				{% endif %}
 
 				{# Template pour nouvelle ligne (caché) #}
 				<template data-quote-form-target="lineTemplate">

@@ -48,7 +48,7 @@ class PDPTransmissionSubscriber
         $changeset = $uow->getEntityChangeSet($entity);
 
         // Vérifier si le statut a changé vers SENT (facture émise)
-        if (isset($changeset['statut']) && $entity->getStatut() === InvoiceStatus::SENT->value) {
+        if (isset($changeset['statut']) && $entity->getStatut() === InvoiceStatus::ISSUED->value) {
             $this->handleInvoiceEmission($entity, $args);
         }
     }

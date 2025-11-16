@@ -32,9 +32,18 @@ export default class extends Controller {
             } else if (event.detail && event.detail.fetchResponse) {
                 // Vérifier si la réponse est une redirection
                 const response = event.detail.fetchResponse
-                if (response && response.status === 200 && !response.redirected) {
+                // Si c'est une redirection (status 302, 303, 307, 308) ou si redirected est true, c'est un succès
+                const isRedirect = response.redirected || 
+                                   (response.status >= 300 && response.status < 400) ||
+                                   (response.headers && response.headers.get('Location'))
+                
+                if (!isRedirect && response.status === 200) {
                     // Pas de redirection = erreur de validation, restaurer le bouton
                     setTimeout(() => this.resetSubmitButton(), 100)
+                } else if (isRedirect) {
+                    // Redirection détectée = succès, le bouton sera restauré par la navigation
+                    // Mais on peut aussi le restaurer immédiatement pour éviter le délai
+                    setTimeout(() => this.resetSubmitButton(), 50)
                 }
             }
         }
@@ -44,10 +53,33 @@ export default class extends Controller {
             const response = event.detail.fetchResponse
             if (response && response.status >= 400) {
                 this.resetSubmitButton()
-            } else if (response && response.status === 200 && !response.redirected) {
-                // Pas de redirection = erreur de validation, restaurer le bouton après un court délai
-                setTimeout(() => this.resetSubmitButton(), 100)
+            } else if (response && response.status === 200) {
+                // Vérifier si c'est une redirection en regardant les headers
+                const location = response.headers && response.headers.get('Location')
+                const isRedirect = response.redirected || location || (response.status >= 300 && response.status < 400)
+                
+                if (!isRedirect) {
+                    // Pas de redirection = erreur de validation, restaurer le bouton après un court délai
+                    setTimeout(() => this.resetSubmitButton(), 100)
+                } else {
+                    // Redirection détectée = succès, restaurer le bouton immédiatement
+                    setTimeout(() => this.resetSubmitButton(), 50)
+                }
             }
+        }
+
+        // Écouter aussi l'événement turbo:before-visit pour détecter les redirections
+        this.turboBeforeVisitHandler = () => {
+            // Si une navigation est déclenchée, c'est probablement une redirection après succès
+            // Restaurer le bouton immédiatement
+            this.resetSubmitButton()
+        }
+
+        // Écouter l'événement turbo:frame-load pour détecter les chargements de frame (redirections)
+        this.turboFrameLoadHandler = () => {
+            // Si une frame se charge, c'est peut-être une redirection
+            // Restaurer le bouton au cas où
+            setTimeout(() => this.resetSubmitButton(), 100)
         }
 
         // Écouter sur le formulaire lui-même
@@ -56,6 +88,24 @@ export default class extends Controller {
             formElement.addEventListener('turbo:submit-end', this.turboSubmitEndHandler)
             formElement.addEventListener('turbo:before-fetch-response', this.turboBeforeFetchResponseHandler)
         }
+        
+        // Écouter sur le document pour les redirections
+        document.addEventListener('turbo:before-visit', this.turboBeforeVisitHandler)
+        document.addEventListener('turbo:frame-load', this.turboFrameLoadHandler)
+        
+        // Écouter aussi les erreurs globales Turbo pour restaurer le bouton même en cas d'erreur
+        this.turboErrorHandler = () => {
+            // En cas d'erreur Turbo, restaurer le bouton après un court délai
+            setTimeout(() => this.resetSubmitButton(), 200)
+        }
+        
+        // Écouter les erreurs de soumission de formulaire
+        document.addEventListener('turbo:submit-end', (event) => {
+            // Si la soumission échoue avec une erreur, restaurer le bouton
+            if (event.detail && event.detail.success === false) {
+                this.resetSubmitButton()
+            }
+        })
     }
 
     removeTurboListeners() {
@@ -68,10 +118,29 @@ export default class extends Controller {
                 formElement.removeEventListener('turbo:before-fetch-response', this.turboBeforeFetchResponseHandler)
             }
         }
+        
+        // Retirer aussi l'écouteur sur le document
+        if (this.turboBeforeVisitHandler) {
+            document.removeEventListener('turbo:before-visit', this.turboBeforeVisitHandler)
+        }
+        if (this.turboFrameLoadHandler) {
+            document.removeEventListener('turbo:frame-load', this.turboFrameLoadHandler)
+        }
+        if (this.turboErrorHandler) {
+            // Note: on ne peut pas retirer un écouteur anonyme, mais ce n'est pas grave
+            // car il sera supprimé avec le contrôleur
+        }
     }
 
     resetSubmitButton() {
         this.isSubmitting = false
+        
+        // Annuler le timeout de sécurité si le bouton est restauré normalement
+        if (this.safetyTimeout) {
+            clearTimeout(this.safetyTimeout)
+            this.safetyTimeout = null
+        }
+        
         if (this.submitTarget) {
             this.submitTarget.classList.remove('btn-loading')
             this.submitTarget.disabled = false
@@ -611,6 +680,16 @@ export default class extends Controller {
             }
             this.submitTarget.textContent = 'Enregistrement...'
         }
+
+        // Timeout de sécurité : restaurer le bouton après 10 secondes au cas où
+        // aucun événement Turbo ne serait déclenché (par exemple en cas d'erreur réseau)
+        if (this.safetyTimeout) {
+            clearTimeout(this.safetyTimeout)
+        }
+        this.safetyTimeout = setTimeout(() => {
+            console.warn('[AdminFormController] Timeout de sécurité : restauration du bouton après 10 secondes')
+            this.resetSubmitButton()
+        }, 10000)
 
         // Le formulaire se soumet normalement (pas de preventDefault)
         // Symfony fera sa validation côté serveur

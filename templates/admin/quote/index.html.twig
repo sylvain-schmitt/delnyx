@@ -88,30 +88,100 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
+                                        {# Indicateur d'avenants #}
+                                        {% set amendmentsCount = quote.amendments|length %}
+                                        {% if amendmentsCount > 0 %}
+                                            <a href="{{ path('admin_amendment_index', {quote_id: quote.id}) }}" 
+                                               class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition-colors duration-200"
+                                               title="{{ amendmentsCount }} avenant{{ amendmentsCount > 1 ? 's' : '' }}">
+                                                {{ ux_icon('lucide:file-edit', {class: 'w-3 h-3'}) }}
+                                                <span>{{ amendmentsCount }}</span>
+                                            </a>
+                                        {% endif %}
+                                        
+                                        {# Bouton Voir #}
                                         <a href="{{ path('admin_quote_show', {id: quote.id}) }}" 
                                            class="text-blue-400 hover:text-blue-300 transition-colors duration-200"
                                            title="Voir">
                                             {{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
                                         </a>
-                                        {% if quote.statut.value != 'signed' %}
+                                        
+                                        {# Bouton Modifier : visible si DRAFT, SENT, ACCEPTED #}
+                                        {% if quote.statut.value in ['draft', 'sent', 'accepted'] %}
                                             <a href="{{ path('admin_quote_edit', {id: quote.id}) }}" 
                                                class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200"
                                                title="Modifier">
                                                 {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
                                             </a>
                                         {% endif %}
-                                        {% if quote.statut.value == 'draft' and not quote.invoice %}
-                                            <button type="button" 
-                                                    data-action="click->confirm-modal#open"
-                                                    data-url="{{ path('admin_quote_cancel', {id: quote.id}) }}"
-                                                    data-method="POST"
-                                                    data-csrf-token="{{ csrf_token('cancel' ~ quote.id) }}"
-                                                    data-item-name="ce devis"
-                                                    data-message="Êtes-vous sûr de vouloir annuler ce devis ? Le numéro sera conservé pour la traçabilité comptable (conformité légale française)."
-                                                    class="text-red-400 hover:text-red-300 transition-colors duration-200"
-                                                    title="Annuler">
-                                                {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
-                                            </button>
+                                        
+                                        {# Bouton Envoyer : visible si DRAFT #}
+                                        {% if quote.statut.value == 'draft' %}
+                                            <form action="{{ path('admin_quote_send', {id: quote.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Êtes-vous sûr de vouloir envoyer ce devis au client ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('quote_send_' ~ quote.id) }}">
+                                                <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Envoyer">
+                                                    {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        {# Bouton Accepter : visible si SENT #}
+                                        {% if quote.statut.value == 'sent' %}
+                                            <form action="{{ path('admin_quote_accept', {id: quote.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Marquer ce devis comme accepté ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('quote_accept_' ~ quote.id) }}">
+                                                <button type="submit" class="text-green-400 hover:text-green-300 transition-colors duration-200" title="Accepter">
+                                                    {{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        {# Bouton Signer : visible si SENT ou ACCEPTED #}
+                                        {% if quote.statut.value in ['sent', 'accepted'] %}
+                                            <form action="{{ path('admin_quote_sign', {id: quote.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="⚠️ ATTENTION : Signer ce devis le transforme en CONTRAT et le rend immuable. Continuer ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('quote_sign_' ~ quote.id) }}">
+                                                <button type="submit" class="text-purple-400 hover:text-purple-300 transition-colors duration-200" title="Signer">
+                                                    {{ ux_icon('lucide:pen-tool', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        {# Bouton Refuser : visible si SENT ou ACCEPTED #}
+                                        {% if quote.statut.value in ['sent', 'accepted'] %}
+                                            <form action="{{ path('admin_quote_refuse', {id: quote.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Marquer ce devis comme refusé ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('quote_refuse_' ~ quote.id) }}">
+                                                <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200" title="Refuser">
+                                                    {{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        {# Bouton Annuler : visible si DRAFT, SENT, ACCEPTED #}
+                                        {% if quote.statut.value in ['draft', 'sent', 'accepted'] %}
+                                            <form action="{{ path('admin_quote_cancel', {id: quote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler ce devis ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('quote_cancel_' ~ quote.id) }}">
+                                                <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200" title="Annuler">
+                                                    {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        {# Bouton Créer un avenant : visible si SIGNED #}
+                                        {% if quote.statut.value == 'signed' %}
+                                            <a href="{{ path('admin_amendment_new', {quote_id: quote.id}) }}" 
+                                               class="text-blue-400 hover:text-blue-300 transition-colors duration-200"
+                                               title="Créer un avenant">
+                                                {{ ux_icon('lucide:file-edit', {class: 'w-4 h-4'}) }}
+                                            </a>
+                                        {% endif %}
+                                        
+                                        {# Bouton Générer facture : visible si SIGNED et pas de facture existante #}
+                                        {% if quote.statut.value == 'signed' and not quote.invoice %}
+                                            <form action="{{ path('admin_quote_generate_invoice', {id: quote.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Générer une facture depuis ce devis signé ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('quote_generate_invoice_' ~ quote.id) }}">
+                                                <button type="submit" class="text-green-400 hover:text-green-300 transition-colors duration-200" title="Générer facture">
+                                                    {{ ux_icon('lucide:receipt', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -132,31 +202,101 @@
                             <div class="text-sm text-white">{{ quote.client.nomComplet }}</div>
                             <div class="text-xs text-white/60">{{ quote.client.email }}</div>
                         </div>
-                        <div class="flex items-center gap-2 ml-4">
+                        <div class="flex items-center gap-2 ml-4 flex-wrap">
+                            {# Indicateur d'avenants #}
+                            {% set amendmentsCount = quote.amendments|length %}
+                            {% if amendmentsCount > 0 %}
+                                <a href="{{ path('admin_amendment_index', {quote_id: quote.id}) }}" 
+                                   class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition-colors duration-200"
+                                   title="{{ amendmentsCount }} avenant{{ amendmentsCount > 1 ? 's' : '' }}">
+                                    {{ ux_icon('lucide:file-edit', {class: 'w-3 h-3'}) }}
+                                    <span>{{ amendmentsCount }}</span>
+                                </a>
+                            {% endif %}
+                            
+                            {# Bouton Voir #}
                             <a href="{{ path('admin_quote_show', {id: quote.id}) }}" 
                                class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2"
                                title="Voir">
                                 {{ ux_icon('lucide:eye', {class: 'w-5 h-5'}) }}
                             </a>
-                            {% if quote.statut.value != 'signed' %}
+                            
+                            {# Bouton Modifier : visible si DRAFT, SENT, ACCEPTED #}
+                            {% if quote.statut.value in ['draft', 'sent', 'accepted'] %}
                                 <a href="{{ path('admin_quote_edit', {id: quote.id}) }}" 
                                    class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200 p-2"
                                    title="Modifier">
                                     {{ ux_icon('lucide:edit', {class: 'w-5 h-5'}) }}
                                 </a>
                             {% endif %}
-                            {% if quote.statut.value == 'draft' and not quote.invoice %}
-                                <button type="button" 
-                                        data-action="click->confirm-modal#open"
-                                        data-url="{{ path('admin_quote_cancel', {id: quote.id}) }}"
-                                        data-method="POST"
-                                        data-csrf-token="{{ csrf_token('cancel' ~ quote.id) }}"
-                                        data-item-name="ce devis"
-                                        data-message="Êtes-vous sûr de vouloir annuler ce devis ? Le numéro sera conservé pour la traçabilité comptable (conformité légale française)."
-                                        class="text-red-400 hover:text-red-300 transition-colors duration-200 p-2"
-                                        title="Annuler">
-                                    {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5'}) }}
-                                </button>
+                            
+                            {# Bouton Envoyer : visible si DRAFT #}
+                            {% if quote.statut.value == 'draft' %}
+                                <form action="{{ path('admin_quote_send', {id: quote.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Êtes-vous sûr de vouloir envoyer ce devis au client ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('quote_send_' ~ quote.id) }}">
+                                    <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Envoyer">
+                                        {{ ux_icon('lucide:send', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            {# Bouton Accepter : visible si SENT #}
+                            {% if quote.statut.value == 'sent' %}
+                                <form action="{{ path('admin_quote_accept', {id: quote.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Marquer ce devis comme accepté ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('quote_accept_' ~ quote.id) }}">
+                                    <button type="submit" class="text-green-400 hover:text-green-300 transition-colors duration-200 p-2" title="Accepter">
+                                        {{ ux_icon('lucide:check-circle', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            {# Bouton Signer : visible si SENT ou ACCEPTED #}
+                            {% if quote.statut.value in ['sent', 'accepted'] %}
+                                <form action="{{ path('admin_quote_sign', {id: quote.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="⚠️ ATTENTION : Signer ce devis le transforme en CONTRAT et le rend immuable. Continuer ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('quote_sign_' ~ quote.id) }}">
+                                    <button type="submit" class="text-purple-400 hover:text-purple-300 transition-colors duration-200 p-2" title="Signer">
+                                        {{ ux_icon('lucide:pen-tool', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            {# Bouton Refuser : visible si SENT ou ACCEPTED #}
+                            {% if quote.statut.value in ['sent', 'accepted'] %}
+                                <form action="{{ path('admin_quote_refuse', {id: quote.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Marquer ce devis comme refusé ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('quote_refuse_' ~ quote.id) }}">
+                                    <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200 p-2" title="Refuser">
+                                        {{ ux_icon('lucide:x', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            {# Bouton Annuler : visible si DRAFT, SENT, ACCEPTED #}
+                            {% if quote.statut.value in ['draft', 'sent', 'accepted'] %}
+                                <form action="{{ path('admin_quote_cancel', {id: quote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler ce devis ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('quote_cancel_' ~ quote.id) }}">
+                                    <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200 p-2" title="Annuler">
+                                        {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            
+                            {# Bouton Créer un avenant : visible si SIGNED #}
+                            {% if quote.statut.value == 'signed' %}
+                                <a href="{{ path('admin_amendment_new', {quote_id: quote.id}) }}" 
+                                   class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2"
+                                   title="Créer un avenant">
+                                    {{ ux_icon('lucide:file-edit', {class: 'w-5 h-5'}) }}
+                                </a>
+                            {% endif %}
+                            
+                            {# Bouton Générer facture : visible si SIGNED et pas de facture existante #}
+                            {% if quote.statut.value == 'signed' and not quote.invoice %}
+                                <form action="{{ path('admin_quote_generate_invoice', {id: quote.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Générer une facture depuis ce devis signé ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('quote_generate_invoice_' ~ quote.id) }}">
+                                    <button type="submit" class="text-green-400 hover:text-green-300 transition-colors duration-200 p-2" title="Générer facture">
+                                        {{ ux_icon('lucide:receipt', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
                             {% endif %}
                         </div>
                     </div>

@@ -333,8 +333,14 @@ class Quote
     public function setStatut(?QuoteStatus $statut): self
     {
         // Si passage à SIGNED, valider que c'est possible
+        // Mais seulement si l'entité a déjà un ID (créée en base) ou si les lignes sont déjà associées
+        // Cela évite l'erreur lors de la création via formulaire où les lignes ne sont pas encore associées
         if ($statut === QuoteStatus::SIGNED && $this->statut !== QuoteStatus::SIGNED) {
-            $this->validateCanBeSigned();
+            // Vérifier si les lignes sont déjà associées (via la collection)
+            // Si l'entité n'a pas d'ID, on est en création et les lignes seront associées plus tard
+            if ($this->id !== null || !$this->lines->isEmpty()) {
+                $this->validateCanBeSigned();
+            }
         }
         
         $this->statut = $statut;

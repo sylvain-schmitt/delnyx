@@ -33,3 +33,8 @@ Dockerfile
 
 ### Ignore uploaded files (managed by Docker volume)
 /public/uploads/
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
