@@ -50,6 +50,7 @@
             </button>
             
             {# User Menu #}
+            {% if app.user %}
             <div class="relative" data-controller="dropdown">
                 <button class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/10 transition-colors duration-200"
                         data-action="click->dropdown#toggle">
@@ -109,6 +110,12 @@
                     </div>
                 </div>
             </div>
+            {% else %}
+            {# Bouton de connexion si non authentifié #}
+            <a href="{{ path('app_login') }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200">
+                Se connecter
+            </a>
+            {% endif %}
         </div>
     </div>
 </header>

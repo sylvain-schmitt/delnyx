@@ -1,0 +1,77 @@
+# Routes publiques pour les "Magic Links" - Actions clients sans authentification
+
+# === DEVIS (Quote) ===
+public_quote_view:
+    path: /public/quote/{id}/view
+    controller: App\Controller\Public\PublicDocumentController::viewQuote
+    methods: [GET]
+    requirements:
+        id: '\d+'
+
+public_quote_sign:
+    path: /public/quote/{id}/sign
+    controller: App\Controller\Public\PublicDocumentController::signQuote
+    methods: [GET, POST]
+    requirements:
+        id: '\d+'
+
+public_quote_refuse:
+    path: /public/quote/{id}/refuse
+    controller: App\Controller\Public\PublicDocumentController::refuseQuote
+    methods: [GET, POST]
+    requirements:
+        id: '\d+'
+
+# === AVENANTS (Amendment) ===
+public_amendment_view:
+    path: /public/amendment/{id}/view
+    controller: App\Controller\Public\PublicDocumentController::viewAmendment
+    methods: [GET]
+    requirements:
+        id: '\d+'
+
+public_amendment_sign:
+    path: /public/amendment/{id}/sign
+    controller: App\Controller\Public\PublicDocumentController::signAmendment
+    methods: [GET, POST]
+    requirements:
+        id: '\d+'
+
+public_amendment_refuse:
+    path: /public/amendment/{id}/refuse
+    controller: App\Controller\Public\PublicDocumentController::refuseAmendment
+    methods: [GET, POST]
+    requirements:
+        id: '\d+'
+
+# === FACTURES (Invoice) ===
+public_invoice_view:
+    path: /public/invoice/{id}/view
+    controller: App\Controller\Public\PublicDocumentController::viewInvoice
+    methods: [GET]
+    requirements:
+        id: '\d+'
+
+public_invoice_pay:
+    path: /public/invoice/{id}/pay
+    controller: App\Controller\Public\PublicDocumentController::payInvoice
+    methods: [GET, POST]
+    requirements:
+        id: '\d+'
+
+# === AVOIRS (CreditNote) ===
+public_credit_note_view:
+    path: /public/credit-note/{id}/view
+    controller: App\Controller\Public\PublicDocumentController::viewCreditNote
+    methods: [GET]
+    requirements:
+        id: '\d+'
+
+public_credit_note_apply:
+    path: /public/credit-note/{id}/apply
+    controller: App\Controller\Public\PublicDocumentController::applyCreditNote
+    methods: [GET, POST]
+    requirements:
+        id: '\d+'
+
+

@@ -272,8 +272,22 @@
                     
                 </div>
             </div>
+
+            {# Magic Links - Liens signés pour le client #}
+            {% if amendment.statut.value in ['issued', 'sent'] %}
+                <div class="scroll-animate animate-delay-300">
+                    {{ component('MagicLinks', {
+                        entity: amendment,
+                        entityType: 'amendment',
+                        availableActions: ['view', 'sign', 'refuse']
+                    }) }}
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
+
+{# Modal d'envoi d'email #}
+{{ component('EmailModal') }}
 
 {% endblock %}

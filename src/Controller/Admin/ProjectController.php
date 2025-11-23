@@ -155,7 +155,7 @@ class ProjectController extends AbstractController
 
         $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/projects';
         // Ne tente pas de créer le dossier si l'environnement ne le permet pas
-        // On vérifie simplement qu'il est présent et inscriptible (comme avec EasyAdmin)
+        // On vérifie simplement qu'il est présent et inscriptible
         if (!is_dir($uploadDir) || !is_writable($uploadDir)) {
             $this->addFlash('error', "Le dossier d'upload n'est pas accessible en écriture: " . $uploadDir);
             return;

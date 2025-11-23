@@ -15,6 +15,7 @@ use App\Repository\ClientRepository;
 use App\Repository\CompanySettingsRepository;
 use App\Repository\AmendmentRepository;
 use App\Service\InvoiceService;
+use App\Service\EmailService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -37,7 +38,8 @@ class InvoiceController extends AbstractController
         private AmendmentRepository $amendmentRepository,
         private EntityManagerInterface $entityManager,
         private InvoiceService $invoiceService,
-        private \App\Service\PdfGeneratorService $pdfGeneratorService
+        private \App\Service\PdfGeneratorService $pdfGeneratorService,
+        private EmailService $emailService
     ) {}
 
     #[Route('/', name: 'index')]
@@ -829,6 +831,42 @@ class InvoiceController extends AbstractController
         }
 
         return null;
+    }
+
+    /**
+     * Envoie la facture par email
+     */
+    #[Route('/{id}/send-email', name: 'send_email', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function sendEmail(Request $request, Invoice $invoice): Response
+    {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('invoice_send_email_' . $invoice->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+        }
+
+        // Vérifier que la facture a un client avec un email
+        $client = $invoice->getClient();
+        
+        if (!$client || !$client->getEmail()) {
+            $this->addFlash('error', 'Impossible d\'envoyer la facture : aucun email client configuré.');
+            return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+        }
+
+        try {
+            $customMessage = $request->request->get('custom_message');
+            $emailLog = $this->emailService->sendInvoice($invoice, $customMessage);
+            
+            if ($emailLog->getStatus() === 'sent') {
+                $this->addFlash('success', sprintf('Facture envoyée avec succès à %s', $client->getEmail()));
+            } else {
+                $this->addFlash('error', sprintf('Erreur lors de l\'envoi : %s', $emailLog->getErrorMessage()));
+            }
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de l\'envoi de l\'email : ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
     }
 }
 

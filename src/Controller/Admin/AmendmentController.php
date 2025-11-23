@@ -13,6 +13,7 @@ use App\Repository\AmendmentRepository;
 use App\Repository\QuoteRepository;
 use App\Repository\CompanySettingsRepository;
 use App\Service\AmendmentService;
+use App\Service\EmailService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -33,7 +34,8 @@ class AmendmentController extends AbstractController
         private CompanySettingsRepository $companySettingsRepository,
         private EntityManagerInterface $entityManager,
         private AmendmentService $amendmentService,
-        private \App\Service\PdfGeneratorService $pdfGeneratorService
+        private \App\Service\PdfGeneratorService $pdfGeneratorService,
+        private EmailService $emailService
     ) {}
 
     /**
@@ -659,5 +661,42 @@ class AmendmentController extends AbstractController
             $this->addFlash('error', 'Erreur lors du téléchargement du PDF : ' . $e->getMessage());
             return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
         }
+    }
+
+    /**
+     * Envoie l'avenant par email
+     */
+    #[Route('/{id}/send-email', name: 'send_email', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function sendEmail(Request $request, Amendment $amendment): Response
+    {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('amendment_send_email_' . $amendment->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
+        }
+
+        // Vérifier que l'avenant a un client avec un email
+        $quote = $amendment->getQuote();
+        $client = $quote?->getClient();
+        
+        if (!$client || !$client->getEmail()) {
+            $this->addFlash('error', 'Impossible d\'envoyer l\'avenant : aucun email client configuré.');
+            return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
+        }
+
+        try {
+            $customMessage = $request->request->get('custom_message');
+            $emailLog = $this->emailService->sendAmendment($amendment, $customMessage);
+            
+            if ($emailLog->getStatus() === 'sent') {
+                $this->addFlash('success', sprintf('Avenant envoyé avec succès à %s', $client->getEmail()));
+            } else {
+                $this->addFlash('error', sprintf('Erreur lors de l\'envoi : %s', $emailLog->getErrorMessage()));
+            }
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de l\'envoi de l\'email : ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
     }
 }

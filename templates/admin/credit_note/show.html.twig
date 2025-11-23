@@ -237,8 +237,22 @@
                     }) }}
                 </div>
             </div>
+
+            {# Magic Links - Liens signés pour le client #}
+            {% if creditNote.statutEnum.value in ['issued', 'sent'] %}
+                <div class="scroll-animate animate-delay-300">
+                    {{ component('MagicLinks', {
+                        entity: creditNote,
+                        entityType: 'credit_note',
+                        availableActions: ['view', 'apply']
+                    }) }}
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
+
+{# Modal d'envoi d'email #}
+{{ component('EmailModal') }}
 
 {% endblock %}

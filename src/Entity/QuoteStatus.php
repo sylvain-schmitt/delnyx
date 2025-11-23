@@ -65,9 +65,9 @@ enum QuoteStatus: string
     }
 
     /**
-     * Retourne les choix pour EasyAdmin (retourne les enums directement)
+     * Retourne les choix pour les formulaires (retourne les enums directement)
      */
-    public static function getEasyAdminChoices(): array
+    public static function getChoicesForForm(): array
     {
         $choices = [];
         foreach (self::cases() as $case) {

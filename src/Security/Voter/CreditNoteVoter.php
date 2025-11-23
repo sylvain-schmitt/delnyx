@@ -149,8 +149,8 @@ class CreditNoteVoter extends Voter
      */
     private function canSend(CreditNote $creditNote, UserInterface $user, CreditNoteStatus $status): bool
     {
-        // Autoriser uniquement depuis ISSUED
-        return $status === CreditNoteStatus::ISSUED;
+        // Autoriser depuis ISSUED et SENT (pour permettre les renvois)
+        return in_array($status, [CreditNoteStatus::ISSUED, CreditNoteStatus::SENT]);
     }
 
     /**

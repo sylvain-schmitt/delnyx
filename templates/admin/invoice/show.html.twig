@@ -496,8 +496,7 @@
 						Actions
 					</h2>
 
-					<div
-												class="space-y-3">
+					<div class="space-y-3">
 						{{ component('EntityActions', {
 							entity: invoice,
 							type: 'invoice',
@@ -505,7 +504,21 @@
 						}) }}
 					</div>
 				</div>
+
+				{# Magic Links - Liens signés pour le client #}
+				{% if invoice.statutEnum.value in ['issued', 'sent'] %}
+					<div class="scroll-animate animate-delay-300">
+						{{ component('MagicLinks', {
+							entity: invoice,
+							entityType: 'invoice',
+							availableActions: ['view', 'pay']
+						}) }}
+					</div>
+				{% endif %}
 			</div>
 		</div>
 	</div>
+	
+	{# Modal d'envoi d'email #}
+	{{ component('EmailModal') }}
 {% endblock %}

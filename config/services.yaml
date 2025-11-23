@@ -39,3 +39,8 @@ services:
     App\Service\InvoiceService:
         calls:
             - [setAuditService, ['@App\Service\AuditService']]
+
+    # Configuration du MagicLinkService pour les liens signés
+    App\Service\MagicLinkService:
+        arguments:
+            $appSecret: '%env(APP_SECRET)%'

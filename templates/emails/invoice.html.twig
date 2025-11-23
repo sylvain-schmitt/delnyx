@@ -1,0 +1,40 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block body %}
+    <h1>Votre facture est disponible</h1>
+    
+    <p>Bonjour {{ client.nomComplet }},</p>
+    
+    {% if customMessage %}
+        <div class="custom-message">
+            {{ customMessage|nl2br }}
+        </div>
+    {% else %}
+        <p>Veuillez trouver ci-joint votre facture.</p>
+    {% endif %}
+    
+    <div class="info-box">
+        <p><strong>Numéro de facture :</strong> {{ invoice.numero }}</p>
+        <p><strong>Date d'émission :</strong> {{ invoice.dateCreation|date('d/m/Y') }}</p>
+        {% if invoice.dateEcheance %}
+            <p><strong>Date d'échéance :</strong> {{ invoice.dateEcheance|date('d/m/Y') }}</p>
+        {% endif %}
+        <p><strong>Montant TTC :</strong> <span style="font-size: 18px; color: #1e293b;">{{ invoice.montantTTCFormate }}</span></p>
+        <p><strong>Statut :</strong> {{ invoice.statutEnum.label }}</p>
+    </div>
+    
+    <div style="background-color: #f0f9ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 30px 0;">
+        <p style="margin: 0; color: #1e40af;">
+            📎 <strong>La facture complète est disponible en pièce jointe de cet email (PDF).</strong>
+        </p>
+    </div>
+    
+    <p>Merci de procéder au règlement avant la date d'échéance.</p>
+    
+    <p style="margin-top: 30px;">
+        Cordialement,<br>
+        <strong>L'équipe Delnyx</strong>
+    </p>
+{% endblock %}
+
+

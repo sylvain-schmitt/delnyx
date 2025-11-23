@@ -13,6 +13,7 @@ use App\Repository\CompanySettingsRepository;
 use App\Repository\AmendmentRepository;
 use App\Service\QuoteService;
 use App\Service\InvoiceService;
+use App\Service\EmailService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -35,7 +36,8 @@ class QuoteController extends AbstractController
         private EntityManagerInterface $entityManager,
         private QuoteService $quoteService,
         private InvoiceService $invoiceService,
-        private \App\Service\PdfGeneratorService $pdfGeneratorService
+        private \App\Service\PdfGeneratorService $pdfGeneratorService,
+        private EmailService $emailService
     ) {}
 
     #[Route('/', name: 'index')]
@@ -674,5 +676,41 @@ class QuoteController extends AbstractController
             $this->addFlash('error', $e->getMessage());
             return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
         }
+    }
+
+    /**
+     * Envoie le devis par email
+     */
+    #[Route('/{id}/send-email', name: 'send_email', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function sendEmail(Request $request, Quote $quote): Response
+    {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('quote_send_email_' . $quote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        // Vérifier que le devis a un client avec un email
+        $client = $quote->getClient();
+        
+        if (!$client || !$client->getEmail()) {
+            $this->addFlash('error', 'Impossible d\'envoyer le devis : aucun email client configuré.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        try {
+            $customMessage = $request->request->get('custom_message');
+            $emailLog = $this->emailService->sendQuote($quote, $customMessage);
+            
+            if ($emailLog->getStatus() === 'sent') {
+                $this->addFlash('success', sprintf('Devis envoyé avec succès à %s', $client->getEmail()));
+            } else {
+                $this->addFlash('error', sprintf('Erreur lors de l\'envoi : %s', $emailLog->getErrorMessage()));
+            }
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de l\'envoi de l\'email : ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
     }
 }

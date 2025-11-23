@@ -1,0 +1,40 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block body %}
+    <h1>Votre avoir est disponible</h1>
+    
+    <p>Bonjour {{ client.nomComplet }},</p>
+    
+    {% if customMessage %}
+        <div class="custom-message">
+            {{ customMessage|nl2br }}
+        </div>
+    {% else %}
+        <p>Suite à votre demande, veuillez trouver ci-joint votre avoir.</p>
+    {% endif %}
+    
+    <div class="info-box">
+        <p><strong>Numéro d'avoir :</strong> {{ creditNote.number }}</p>
+        <p><strong>Facture associée :</strong> {{ invoice.numero }}</p>
+        <p><strong>Date d'émission :</strong> {{ creditNote.dateCreation|date('d/m/Y') }}</p>
+        <p><strong>Montant de l'avoir :</strong> <span style="font-size: 18px; color: #1e293b;">{{ creditNote.montantTTCFormatted }}</span></p>
+        {% if creditNote.reason %}
+            <p><strong>Raison :</strong> {{ creditNote.reason }}</p>
+        {% endif %}
+    </div>
+    
+    <div style="background-color: #f0f9ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 30px 0;">
+        <p style="margin: 0; color: #1e40af;">
+            📎 <strong>L'avoir complet est disponible en pièce jointe de cet email (PDF).</strong>
+        </p>
+    </div>
+    
+    <p>Cet avoir sera déduit de votre prochaine facture ou vous sera remboursé selon les modalités convenues.</p>
+    
+    <p style="margin-top: 30px;">
+        Cordialement,<br>
+        <strong>L'équipe Delnyx</strong>
+    </p>
+{% endblock %}
+
+

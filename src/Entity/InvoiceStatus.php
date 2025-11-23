@@ -53,18 +53,6 @@ enum InvoiceStatus: string
     }
 
     /**
-     * Retourne les choix pour EasyAdmin
-     */
-    public static function getEasyAdminChoices(): array
-    {
-        $choices = [];
-        foreach (self::cases() as $case) {
-            $choices[$case->getLabel()] = $case;
-        }
-        return $choices;
-    }
-
-    /**
      * Retourne les choix pour les formulaires
      */
     public static function getChoices(): array

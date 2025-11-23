@@ -25,10 +25,6 @@ return [
     '@hotwired/turbo' => [
         'version' => '7.3.0',
     ],
-    'admin' => [
-        'path' => './assets/admin.js',
-        'entrypoint' => true,
-    ],
     'scroll-to-top' => [
         'path' => './assets/controllers/scroll_to_top_controller.js',
     ],

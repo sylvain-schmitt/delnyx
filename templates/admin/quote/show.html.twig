@@ -444,7 +444,21 @@
 						
 					</div>
 				</div>
+
+				{# Magic Links - Liens signés pour le client #}
+				{% if quote.statut.value in ['issued', 'sent'] %}
+					<div class="scroll-animate animate-delay-300">
+						{{ component('MagicLinks', {
+							entity: quote,
+							entityType: 'quote',
+							availableActions: ['view', 'sign', 'refuse']
+						}) }}
+					</div>
+				{% endif %}
 			</div>
 		</div>
 	</div>
+	
+	{# Modal d'envoi d'email #}
+	{{ component('EmailModal') }}
 {% endblock %}

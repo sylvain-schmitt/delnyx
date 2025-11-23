@@ -13,6 +13,8 @@ use App\Repository\CreditNoteRepository;
 use App\Repository\InvoiceRepository;
 use App\Repository\CompanySettingsRepository;
 use App\Service\CreditNoteService;
+use App\Service\PdfGeneratorService;
+use App\Service\EmailService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,7 +33,9 @@ class CreditNoteController extends AbstractController
         private InvoiceRepository $invoiceRepository,
         private CompanySettingsRepository $companySettingsRepository,
         private EntityManagerInterface $entityManager,
-        private CreditNoteService $creditNoteService
+        private CreditNoteService $creditNoteService,
+        private PdfGeneratorService $pdfGeneratorService,
+        private EmailService $emailService
     ) {}
 
     #[Route('/api/invoice/{id}', name: 'api_invoice_info', requirements: ['id' => '\d+'], methods: ['GET'])]
@@ -797,6 +801,77 @@ class CreditNoteController extends AbstractController
             $this->addFlash('error', $e->getMessage());
         } catch (\RuntimeException $e) {
             $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+    }
+
+    /**
+     * Télécharge le PDF de l'avoir (génère et sauvegarde si nécessaire)
+     */
+    #[Route('/{id}/download-pdf', name: 'download_pdf', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function downloadPdf(CreditNote $creditNote): Response
+    {
+        try {
+            // Si le PDF n'a pas encore été généré, le générer et sauvegarder
+            if (!$creditNote->getPdfFilename()) {
+                $result = $this->pdfGeneratorService->generateCreditNotePdf($creditNote, true);
+                
+                // Sauvegarder le nom de fichier et le hash dans l'entité
+                $creditNote->setPdfFilename($result['filename']);
+                $creditNote->setPdfHash($result['hash']);
+                $this->entityManager->flush();
+                
+                return new Response(
+                    $result['pdf'],
+                    200,
+                    [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => 'attachment; filename="' . $result['filename'] . '.pdf"'
+                    ]
+                );
+            }
+            
+            // Sinon, retourner le PDF existant
+            return $this->pdfGeneratorService->generateCreditNotePdf($creditNote, false);
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de la génération du PDF : ' . $e->getMessage());
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+    }
+
+    /**
+     * Envoie l'avoir par email
+     */
+    #[Route('/{id}/send-email', name: 'send_email', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function sendEmail(Request $request, CreditNote $creditNote): Response
+    {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('credit_note_send_email_' . $creditNote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+
+        // Vérifier que l'avoir a un client avec un email
+        $invoice = $creditNote->getInvoice();
+        $client = $invoice?->getClient();
+        
+        if (!$client || !$client->getEmail()) {
+            $this->addFlash('error', 'Impossible d\'envoyer l\'avoir : aucun email client configuré.');
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+
+        try {
+            $customMessage = $request->request->get('custom_message');
+            $emailLog = $this->emailService->sendCreditNote($creditNote, $customMessage);
+            
+            if ($emailLog->getStatus() === 'sent') {
+                $this->addFlash('success', sprintf('Avoir envoyé avec succès à %s', $client->getEmail()));
+            } else {
+                $this->addFlash('error', sprintf('Erreur lors de l\'envoi : %s', $emailLog->getErrorMessage()));
+            }
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de l\'envoi de l\'email : ' . $e->getMessage());
         }
 
         return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);

@@ -50,9 +50,9 @@ enum ClientStatus: string
     }
 
     /**
-     * Retourne tous les statuts disponibles pour EasyAdmin
+     * Retourne tous les statuts disponibles pour les formulaires
      */
-    public static function getEasyAdminChoices(): array
+    public static function getChoicesForForm(): array
     {
         $choices = [];
         foreach (self::cases() as $case) {
