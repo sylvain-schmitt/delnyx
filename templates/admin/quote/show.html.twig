@@ -435,109 +435,13 @@
 					</h2>
 
 					<div class="space-y-3">
-						{# Bouton Modifier #}
-						{% if is_granted('QUOTE_EDIT', quote) %}
-							<a href="{{ path('admin_quote_edit', {id: quote.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2">
-								{{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
-								Modifier
-							</a>
-						{% endif %}
-
-						{# Bouton Émettre #}
-						{% if is_granted('QUOTE_ISSUE', quote) %}
-							<form action="{{ path('admin_quote_issue', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre ce devis le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
-								<input type="hidden" name="_token" value="{{ csrf_token('quote_issue_' ~ quote.id) }}">
-								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
-									{{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
-									Émettre
-								</button>
-							</form>
-						{% endif %}
-
-						{# Bouton Envoyer #}
-						{% if is_granted('QUOTE_SEND', quote) %}
-							<form action="{{ path('admin_quote_send', {id: quote.id}) }}" method="POST" class="w-full">
-								<input type="hidden" name="_token" value="{{ csrf_token('quote_send_' ~ quote.id) }}">
-								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
-									{{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
-									Envoyer
-								</button>
-							</form>
-						{% endif %}
-
-						{# Bouton Accepter #}
-						{% if is_granted('QUOTE_ACCEPT', quote) %}
-							<form action="{{ path('admin_quote_accept', {id: quote.id}) }}" method="POST" class="w-full">
-								<input type="hidden" name="_token" value="{{ csrf_token('quote_accept_' ~ quote.id) }}">
-								<button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
-									{{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
-									Accepter
-								</button>
-							</form>
-						{% endif %}
-
-						{# Bouton Signer #}
-						{% if is_granted('QUOTE_SIGN', quote) %}
-							<form action="{{ path('admin_quote_sign', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer ce devis le transforme en CONTRAT et le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
-								<input type="hidden" name="_token" value="{{ csrf_token('quote_sign_' ~ quote.id) }}">
-								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
-									{{ ux_icon('lucide:pen-tool', {class: 'w-4 h-4'}) }}
-									Signer
-								</button>
-							</form>
-						{% endif %}
-
-						{# Bouton Refuser #}
-						{% if is_granted('QUOTE_REFUSE', quote) %}
-							<form action="{{ path('admin_quote_refuse', {id: quote.id}) }}" method="POST" class="w-full">
-								<input type="hidden" name="_token" value="{{ csrf_token('quote_refuse_' ~ quote.id) }}">
-								<button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
-									{{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
-									Refuser
-								</button>
-							</form>
-						{% endif %}
-
-						{# Bouton Annuler #}
-						{% if is_granted('QUOTE_CANCEL', quote) %}
-							<form action="{{ path('admin_quote_cancel', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler ce devis ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
-								<input type="hidden" name="_token" value="{{ csrf_token('quote_cancel_' ~ quote.id) }}">
-								<button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
-									{{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
-									Annuler le devis
-								</button>
-							</form>
-						{% endif %}
-
-						{# Bouton Créer un avenant #}
-						{% if quote.statut.value == 'signed' %}
-							<a href="{{ path('admin_amendment_new', {quote_id: quote.id}) }}" class="w-full btn-primary flex items-center justify-center gap-2">
-								{{ ux_icon('lucide:file-edit', {class: 'w-4 h-4'}) }}
-								Créer un avenant
-							</a>
-						{% endif %}
-
-						{# Bouton Générer facture #}
-						{% if is_granted('QUOTE_GENERATE_INVOICE', quote) %}
-							<form action="{{ path('admin_quote_generate_invoice', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Générer une facture depuis ce devis signé ?" data-confirm-modal-title="Confirmer la génération" data-confirm-modal-button="Générer">
-								<input type="hidden" name="_token" value="{{ csrf_token('quote_generate_invoice_' ~ quote.id) }}">
-								<button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
-									{{ ux_icon('lucide:receipt', {class: 'w-4 h-4'}) }}
-									Générer une facture
-								</button>
-							</form>
-						{% endif %}
-
-						{# Bouton Télécharger PDF #}
-						<a href="{{ path('admin_quote_download_pdf', {id: quote.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2" target="_blank">
-							{{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
-							Télécharger le PDF
-						</a>
-						{% if quote.pdfHash %}
-							<div class="text-xs text-white/40 break-all mt-2 text-center">
-								<span title="Empreinte numérique SHA256 pour conformité légale">SHA256: {{ quote.pdfHash|slice(0, 16) }}...</span>
-							</div>
-						{% endif %}
+						{# Composant Actions #}
+						{{ component('EntityActions', { 
+							entity: quote, 
+							type: 'quote',
+							layout: 'vertical'
+						}) }}
+						
 					</div>
 				</div>
 			</div>

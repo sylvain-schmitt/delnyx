@@ -102,61 +102,11 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
-                                        {# Bouton Voir #}
-                                        <a href="{{ path('admin_amendment_show', {id: amendment.id}) }}" 
-                                           class="text-blue-400 hover:text-blue-300 transition-colors duration-200"
-                                           title="Voir">
-                                            {{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
-                                        </a>
-                                        
-                                        {# Bouton Modifier : visible si DRAFT ou SENT #}
-                                        {% if amendment.canBeModified %}
-                                            <a href="{{ path('admin_amendment_edit', {id: amendment.id}) }}" 
-                                               class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200"
-                                               title="Modifier">
-                                                {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
-                                            </a>
-                                        {% endif %}
-                                        
-                                        {# Bouton Émettre #}
-                                        {% if is_granted('AMENDMENT_ISSUE', amendment) %}
-                                            <form action="{{ path('admin_amendment_issue', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avenant le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
-                                                <input type="hidden" name="_token" value="{{ csrf_token('amendment_issue_' ~ amendment.id) }}">
-                                                <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Émettre">
-                                                    {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
-                                                </button>
-                                            </form>
-                                        {% endif %}
-
-                                        {# Bouton Envoyer #}
-                                        {% if is_granted('AMENDMENT_SEND', amendment) %}
-                                            <form action="{{ path('admin_amendment_send', {id: amendment.id}) }}" method="POST" class="inline">
-                                                <input type="hidden" name="_token" value="{{ csrf_token('amendment_send_' ~ amendment.id) }}">
-                                                <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Envoyer">
-                                                    {{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
-                                                </button>
-                                            </form>
-                                        {% endif %}
-                                        
-                                        {# Bouton Signer #}
-                                        {% if is_granted('AMENDMENT_SIGN', amendment) %}
-                                            <form action="{{ path('admin_amendment_sign', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer cet avenant le rend opposable et immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
-                                                <input type="hidden" name="_token" value="{{ csrf_token('amendment_sign_' ~ amendment.id) }}">
-                                                <button type="submit" class="text-purple-400 hover:text-purple-300 transition-colors duration-200" title="Signer">
-                                                    {{ ux_icon('lucide:pen-tool', {class: 'w-4 h-4'}) }}
-                                                </button>
-                                            </form>
-                                        {% endif %}
-                                        
-                                        {# Bouton Annuler : visible si DRAFT ou SENT #}
-                                        {% if amendment.canBeCancelled %}
-                                            <form action="{{ path('admin_amendment_cancel', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avenant ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
-                                                <input type="hidden" name="_token" value="{{ csrf_token('amendment_cancel_' ~ amendment.id) }}">
-                                                <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200" title="Annuler">
-                                                    {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
-                                                </button>
-                                            </form>
-                                        {% endif %}
+                                        {{ component('EntityActions', { 
+                                            entity: amendment, 
+                                            type: 'amendment',
+                                            layout: 'inline'
+                                        }) }}
                                     </div>
                                 </td>
                             </tr>
@@ -167,7 +117,7 @@
         </div>
 
         {# Version mobile : cards #}
-        <div class="md:hidden space-y-4 scroll-animate animate-delay-100">
+        <div class="block md:hidden space-y-4 scroll-animate animate-delay-100">
             {% for amendment in amendments %}
                 <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-4">
                     <div class="flex items-start justify-between mb-3">
@@ -178,66 +128,9 @@
                                 <div class="text-xs text-white/60">{{ amendment.quote.client.nomComplet }}</div>
                             {% endif %}
                         </div>
-                        <div class="flex items-center gap-2 ml-4 flex-wrap">
-                            {# Bouton Voir #}
-                            <a href="{{ path('admin_amendment_show', {id: amendment.id}) }}" 
-                               class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2"
-                               title="Voir">
-                                {{ ux_icon('lucide:eye', {class: 'w-5 h-5'}) }}
-                            </a>
-                            
-                            {# Bouton Modifier : visible si DRAFT ou SENT #}
-                            {% if amendment.canBeModified %}
-                                <a href="{{ path('admin_amendment_edit', {id: amendment.id}) }}" 
-                                   class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200 p-2"
-                                   title="Modifier">
-                                    {{ ux_icon('lucide:edit', {class: 'w-5 h-5'}) }}
-                                </a>
-                            {% endif %}
-                            
-                            {# Bouton Émettre : visible si DRAFT #}
-                            {% if amendment.statutEnum.value == 'draft' %}
-                                <form action="{{ path('admin_amendment_issue', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avenant le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('amendment_issue_' ~ amendment.id) }}">
-                                    <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Émettre">
-                                        {{ ux_icon('lucide:send', {class: 'w-5 h-5'}) }}
-                                    </button>
-                                </form>
-                            {% endif %}
-
-                            {# Bouton Envoyer : visible si ISSUED, SENT, SIGNED (pas DRAFT, CANCELLED) #}
-                            {% if amendment.statutEnum.value in ['issued', 'sent', 'signed'] %}
-                                <form action="{{ path('admin_amendment_send', {id: amendment.id}) }}" method="POST" class="inline">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('amendment_send_' ~ amendment.id) }}">
-                                    <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Envoyer">
-                                        {{ ux_icon('lucide:mail', {class: 'w-5 h-5'}) }}
-                                    </button>
-                                </form>
-                            {% endif %}
-                            
-                            {# Bouton Signer : visible si DRAFT ou SENT #}
-                            {% if amendment.canBeSigned %}
-                                <form action="{{ path('admin_amendment_sign', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer cet avenant le rend opposable et immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('amendment_sign_' ~ amendment.id) }}">
-                                    <button type="submit" class="text-purple-400 hover:text-purple-300 transition-colors duration-200 p-2" title="Signer">
-                                        {{ ux_icon('lucide:pen-tool', {class: 'w-5 h-5'}) }}
-                                    </button>
-                                </form>
-                            {% endif %}
-                            
-                            {# Bouton Annuler : visible si DRAFT ou SENT #}
-                            {% if amendment.canBeCancelled %}
-                                <form action="{{ path('admin_amendment_cancel', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avenant ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('amendment_cancel_' ~ amendment.id) }}">
-                                    <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200 p-2" title="Annuler">
-                                        {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5'}) }}
-                                    </button>
-                                </form>
-                            {% endif %}
-                        </div>
                     </div>
                     
-                    <div class="space-y-2 text-sm">
+                    <div class="space-y-2 text-sm mb-3">
                         <div class="flex justify-between">
                             <span class="text-white/60">Date</span>
                             <span class="text-white">{{ amendment.dateCreation|date('d/m/Y') }}</span>
@@ -258,6 +151,14 @@
                                 {{ status.label }}
                             </span>
                         </div>
+                    </div>
+                    
+                    <div class="pt-3 border-t border-white/10">
+                        {{ component('EntityActions', { 
+                            entity: amendment, 
+                            type: 'amendment',
+                            layout: 'mobile'
+                        }) }}
                     </div>
                 </div>
             {% endfor %}

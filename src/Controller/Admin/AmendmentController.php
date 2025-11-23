@@ -220,6 +220,10 @@ class AmendmentController extends AbstractController
         $page = min($page, max(1, $totalPages));
 
         $amendments = $qb->select('a')
+            ->leftJoin('a.quote', 'q')
+            ->addSelect('q')
+            ->leftJoin('q.client', 'c')
+            ->addSelect('c')
             ->orderBy('a.dateCreation', 'DESC')
             ->setMaxResults($limit)
             ->setFirstResult(($page - 1) * $limit)

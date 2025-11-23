@@ -264,72 +264,16 @@
                 </h2>
 
                 <div class="space-y-3">
-                    {# Bouton Modifier #}
-                    {% if is_granted('AMENDMENT_EDIT', amendment) %}
-                        <a href="{{ path('admin_amendment_edit', {id: amendment.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2">
-                            {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
-                            Modifier
-                        </a>
-                    {% endif %}
-
-                    {# Bouton Émettre #}
-                    {% if is_granted('AMENDMENT_ISSUE', amendment) %}
-                        <form method="POST" action="{{ path('admin_amendment_issue', {id: amendment.id}) }}" class="w-full" data-controller="confirm-modal" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avenant le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
-                            <input type="hidden" name="_token" value="{{ csrf_token('amendment_issue_' ~ amendment.id) }}">
-                            <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
-                                {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
-                                Émettre
-                            </button>
-                        </form>
-                    {% endif %}
-
-                    {# Bouton Envoyer #}
-                    {% if is_granted('AMENDMENT_SEND', amendment) %}
-                        <form method="POST" action="{{ path('admin_amendment_send', {id: amendment.id}) }}" class="w-full">
-                            <input type="hidden" name="_token" value="{{ csrf_token('amendment_send_' ~ amendment.id) }}">
-                            <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
-                                {{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
-                                Envoyer
-                            </button>
-                        </form>
-                    {% endif %}
-
-                    {# Bouton Signer #}
-                    {% if is_granted('AMENDMENT_SIGN', amendment) %}
-                        <form method="POST" action="{{ path('admin_amendment_sign', {id: amendment.id}) }}" class="w-full" data-controller="confirm-modal" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer cet avenant le rend opposable et immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
-                            <input type="hidden" name="_token" value="{{ csrf_token('amendment_sign_' ~ amendment.id) }}">
-                            <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
-                                {{ ux_icon('lucide:pen-tool', {class: 'w-4 h-4'}) }}
-                                Signer
-                            </button>
-                        </form>
-                    {% endif %}
-
-                    {# Bouton Annuler #}
-                    {% if is_granted('AMENDMENT_CANCEL', amendment) %}
-                        <form method="POST" action="{{ path('admin_amendment_cancel', {id: amendment.id}) }}" class="w-full" data-controller="confirm-modal" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avenant ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
-                            <input type="hidden" name="_token" value="{{ csrf_token('amendment_cancel_' ~ amendment.id) }}">
-                            <button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
-                                {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
-                                Annuler l'avenant
-                            </button>
-                        </form>
-                    {% endif %}
-
-                    {# Bouton Télécharger PDF #}
-                    <a href="{{ path('admin_amendment_download_pdf', {id: amendment.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2" target="_blank">
-                        {{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
-                        Télécharger le PDF
-                    </a>
-                    {% if amendment.pdfHash %}
-                        <div class="text-xs text-white/40 break-all mt-2 text-center">
-                            <span title="Empreinte numérique SHA256 pour conformité légale">SHA256: {{ amendment.pdfHash|slice(0, 16) }}...</span>
-                        </div>
-                    {% endif %}
+                    {{ component('EntityActions', { 
+                        entity: amendment, 
+                        type: 'amendment',
+                        layout: 'vertical'
+                    }) }}
+                    
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
+{% endblock %}

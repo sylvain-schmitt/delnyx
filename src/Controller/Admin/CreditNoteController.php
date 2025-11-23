@@ -172,6 +172,10 @@ class CreditNoteController extends AbstractController
         $page = min($page, max(1, $totalPages));
 
         $creditNotes = $qb->select('cn')
+            ->leftJoin('cn.invoice', 'i')
+            ->addSelect('i')
+            ->leftJoin('i.client', 'c')
+            ->addSelect('c')
             ->orderBy('cn.dateCreation', 'DESC')
             ->setMaxResults($limit)
             ->setFirstResult(($page - 1) * $limit)

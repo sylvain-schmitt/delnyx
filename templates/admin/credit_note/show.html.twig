@@ -230,79 +230,15 @@
                 </h2>
 
                 <div class="space-y-3">
-                    {# Bouton Modifier #}
-                    {% if is_granted('CREDIT_NOTE_EDIT', creditNote) %}
-                        <a href="{{ path('admin_credit_note_edit', {id: creditNote.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2">
-                            {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
-                            Modifier
-                        </a>
-                    {% endif %}
-
-                    {# Bouton Émettre #}
-                    {% if is_granted('CREDIT_NOTE_ISSUE', creditNote) %}
-                        <form method="POST" action="{{ path('admin_credit_note_issue', {id: creditNote.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avoir le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
-                            <input type="hidden" name="_token" value="{{ csrf_token('credit_note_issue_' ~ creditNote.id) }}">
-                            <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
-                                {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
-                                Émettre
-                            </button>
-                        </form>
-                    {% endif %}
-
-                    {# Bouton Envoyer #}
-                    {% if is_granted('CREDIT_NOTE_SEND', creditNote) %}
-                        <form method="POST" action="{{ path('admin_credit_note_send', {id: creditNote.id}) }}" class="w-full">
-                            <input type="hidden" name="_token" value="{{ csrf_token('credit_note_send_' ~ creditNote.id) }}">
-                            <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
-                                {{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
-                                Envoyer
-                            </button>
-                        </form>
-                    {% endif %}
-
-                    {# Bouton Annuler #}
-                    {% if is_granted('CREDIT_NOTE_CANCEL', creditNote) %}
-                        <form method="POST" action="{{ path('admin_credit_note_cancel', {id: creditNote.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avoir ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
-                            <input type="hidden" name="_token" value="{{ csrf_token('credit_note_cancel_' ~ creditNote.id) }}">
-                            <button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
-                                {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
-                                Annuler l'avoir
-                            </button>
-                        </form>
-                    {% endif %}
-
-                    {# Bouton Appliquer #}
-                    {% if is_granted('CREDIT_NOTE_APPLY', creditNote) %}
-                        <form method="POST" action="{{ path('admin_credit_note_apply', {id: creditNote.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Marquer cet avoir comme appliqué (remboursé ou déduit) ?">
-                            <input type="hidden" name="_token" value="{{ csrf_token('credit_note_apply_' ~ creditNote.id) }}">
-                            <button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
-                                {{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
-                                Appliquer
-                            </button>
-                        </form>
-                    {% endif %}
-
-                    {# Bouton Télécharger PDF #}
-                    {% if creditNote.pdfFilename %}
-                        <a href="{{ asset('uploads/credit_notes/' ~ creditNote.pdfFilename) }}" target="_blank" class="w-full btn-secondary flex items-center justify-center gap-2">
-                            {{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
-                            Télécharger le PDF
-                        </a>
-                        {% if creditNote.pdfHash %}
-                            <div class="text-xs text-white/40 break-all mt-2 text-center">
-                                <span title="Empreinte numérique SHA256 pour conformité légale">SHA256: {{ creditNote.pdfHash|slice(0, 16) }}...</span>
-                            </div>
-                        {% endif %}
-                    {% else %}
-                        <span class="w-full btn-secondary opacity-50 cursor-not-allowed flex items-center justify-center gap-2" title="Le PDF sera généré lors de l'émission">
-                            {{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
-                            PDF non disponible
-                        </span>
-                    {% endif %}
+                    {{ component('EntityActions', { 
+                        entity: creditNote, 
+                        type: 'credit_note',
+                        layout: 'vertical'
+                    }) }}
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
+{% endblock %}

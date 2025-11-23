@@ -64,8 +64,10 @@ class QuoteController extends AbstractController
         // S'assurer que la page demandée existe
         $page = min($page, max(1, $totalPages));
 
-        // Récupérer les devis de la page courante avec eager loading des avenants
+        // Récupérer les devis de la page courante avec eager loading des avenants et clients
         $quotes = $qb->select('q')
+            ->leftJoin('q.client', 'c')
+            ->addSelect('c')
             ->leftJoin('q.amendments', 'a')
             ->addSelect('a')
             ->orderBy('q.dateCreation', 'DESC')
