@@ -118,9 +118,9 @@
                                             </a>
                                         {% endif %}
                                         
-                                        {# Bouton Émettre : visible si DRAFT uniquement #}
-                                        {% if creditNote.canBeIssued %}
-                                            <form action="{{ path('admin_credit_note_issue', {id: creditNote.id}) }}" method="POST" class="inline">
+                                        {# Bouton Émettre : visible si DRAFT #}
+                                        {% if creditNote.statutEnum.value == 'draft' %}
+                                            <form action="{{ path('admin_credit_note_issue', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avoir le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('credit_note_issue_' ~ creditNote.id) }}">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Émettre">
                                                     {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
@@ -128,9 +128,9 @@
                                             </form>
                                         {% endif %}
                                         
-                                        {# Bouton Envoyer : visible si ISSUED uniquement #}
-                                        {% if creditNote.statutEnum.value == 'issued' %}
-                                            <form action="{{ path('admin_credit_note_send', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Envoyer cet avoir au client ?">
+                                        {# Bouton Envoyer : visible sauf si DRAFT #}
+                                        {% if creditNote.statutEnum.value != 'draft' %}
+                                            <form action="{{ path('admin_credit_note_send', {id: creditNote.id}) }}" method="POST" class="inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('credit_note_send_' ~ creditNote.id) }}">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Envoyer">
                                                     {{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
@@ -138,9 +138,9 @@
                                             </form>
                                         {% endif %}
                                         
-                                        {# Bouton Annuler : visible si DRAFT ou ISSUED #}
-                                        {% if creditNote.statutEnum.canBeCancelled %}
-                                            <form action="{{ path('admin_credit_note_cancel', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avoir ?">
+                                        {# Bouton Annuler : visible si DRAFT uniquement #}
+                                        {% if creditNote.statutEnum.value == 'draft' %}
+                                            <form action="{{ path('admin_credit_note_cancel', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avoir ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('credit_note_cancel_' ~ creditNote.id) }}">
                                                 <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200" title="Annuler">
                                                     {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
@@ -185,9 +185,9 @@
                                 </a>
                             {% endif %}
                             
-                            {# Bouton Émettre : visible si DRAFT uniquement #}
-                            {% if creditNote.canBeIssued %}
-                                <form action="{{ path('admin_credit_note_issue', {id: creditNote.id}) }}" method="POST" class="inline">
+                            {# Bouton Émettre : visible si DRAFT #}
+                            {% if creditNote.statutEnum.value == 'draft' %}
+                                <form action="{{ path('admin_credit_note_issue', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avoir le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
                                     <input type="hidden" name="_token" value="{{ csrf_token('credit_note_issue_' ~ creditNote.id) }}">
                                     <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Émettre">
                                         {{ ux_icon('lucide:send', {class: 'w-5 h-5'}) }}
@@ -195,9 +195,9 @@
                                 </form>
                             {% endif %}
                             
-                            {# Bouton Envoyer : visible si ISSUED uniquement #}
-                            {% if creditNote.statutEnum.value == 'issued' %}
-                                <form action="{{ path('admin_credit_note_send', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Envoyer cet avoir au client ?">
+                            {# Bouton Envoyer : visible sauf si DRAFT #}
+                            {% if creditNote.statutEnum.value != 'draft' %}
+                                <form action="{{ path('admin_credit_note_send', {id: creditNote.id}) }}" method="POST" class="inline">
                                     <input type="hidden" name="_token" value="{{ csrf_token('credit_note_send_' ~ creditNote.id) }}">
                                     <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Envoyer">
                                         {{ ux_icon('lucide:mail', {class: 'w-5 h-5'}) }}
@@ -205,9 +205,9 @@
                                 </form>
                             {% endif %}
                             
-                            {# Bouton Annuler : visible si DRAFT ou ISSUED #}
-                            {% if creditNote.statutEnum.canBeCancelled %}
-                                <form action="{{ path('admin_credit_note_cancel', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avoir ?">
+                            {# Bouton Annuler : visible si DRAFT uniquement #}
+                            {% if creditNote.statutEnum.value == 'draft' %}
+                                <form action="{{ path('admin_credit_note_cancel', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avoir ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
                                     <input type="hidden" name="_token" value="{{ csrf_token('credit_note_cancel_' ~ creditNote.id) }}">
                                     <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200 p-2" title="Annuler">
                                         {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5'}) }}

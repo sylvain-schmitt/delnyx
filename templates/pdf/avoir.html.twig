@@ -1,0 +1,182 @@
+{% extends 'pdf/base.html.twig' %}
+
+{% block content %}
+	<!-- En-tête -->
+	<div class="header">
+		<div class="company-info">
+			<div class="company-logo">
+				{% if logo_base64 %}
+					<img src="{{ logo_base64 }}" alt="{{ company.raisonSociale ?? 'Logo' }}" style="height: 40px; width: auto;">
+				{% else %}
+					<span style="font-size: 24px; font-weight: bold; color: #2563eb; letter-spacing: 2px;">{{ company.raisonSociale ?? 'ENTREPRISE' }}</span>
+				{% endif %}
+			</div>
+			<div class="company-details">
+				{% if company %}
+					<strong>{{ company.raisonSociale }}</strong><br>
+					{% if not company.isTvaEnabled() %}
+						<em>Micro-entrepreneur</em><br>
+					{% endif %}
+					{{ company.adresse }}<br>
+					{{ company.codePostal }} {{ company.ville }}<br>
+					{% if company.siret %}SIRET: {{ company.siret }}<br>{% endif %}
+					{% if company.email %}Email: {{ company.email }}<br>{% endif %}
+					{% if company.telephone %}Tél: {{ company.telephone }}{% endif %}
+				{% else %}
+					<strong>Entreprise</strong><br>
+					Informations non disponibles
+				{% endif %}
+			</div>
+		</div>
+		<div class="document-info">
+			<div class="document-title">AVOIR</div>
+			<div class="document-number">{{ credit_note.number }}</div>
+			<div class="document-date">
+				Émis le
+				{{ credit_note.dateEmission|date('d/m/Y') }}<br>
+			</div>
+		</div>
+	</div>
+
+	<!-- Informations client -->
+	<div class="client-section">
+		<div class="client-info">
+			<div class="section-title">Client</div>
+			<div class="client-name">{{ credit_note.invoice.client.nomComplet }}</div>
+			<div class="client-details">
+				{% if credit_note.invoice.client.email %}
+					{{ credit_note.invoice.client.email }}<br>
+				{% endif %}
+				{% if credit_note.invoice.client.telephone %}
+					{{ credit_note.invoice.client.telephone }}<br>
+				{% endif %}
+				{% if credit_note.invoice.client.adresse %}
+					{{ credit_note.invoice.client.adresse }}<br>
+					{% if credit_note.invoice.client.codePostal %}
+						{{ credit_note.invoice.client.codePostal }}
+					{% endif %}
+					{% if credit_note.invoice.client.ville %}
+						{{ credit_note.invoice.client.ville }}
+					{% endif %}
+				{% endif %}
+				{% if credit_note.invoice.client.siret %}<br>SIRET:
+					{{ credit_note.invoice.client.siret }}
+				{% endif %}
+			</div>
+		</div>
+		<div class="company-billing">
+			<div class="section-title">Informations légales</div>
+			<div class="client-details">
+				{% if company %}
+					<strong>{{ company.raisonSociale }}</strong><br>
+					{% if company.siret %}SIRET: {{ company.siret }}<br>{% endif %}
+					{% if not company.isTvaEnabled() %}
+						Micro-entrepreneur<br>
+						TVA non applicable (art. 293 B du CGI)
+					{% endif %}
+				{% else %}
+					Informations non disponibles
+				{% endif %}
+			</div>
+		</div>
+	</div>
+
+	<!-- Référence Facture -->
+	<div class="conditions-section">
+		<div class="conditions-title">Référence</div>
+		<div class="conditions-content">
+			<strong>Concerne la facture:</strong>
+			{{ credit_note.invoice.numero }}
+			du
+			{{ credit_note.invoice.dateCreation|date('d/m/Y') }}
+		</div>
+	</div>
+
+    <!-- Motif -->
+    <div class="conditions-section">
+        <div class="conditions-title">Motif de l'avoir</div>
+        <div class="conditions-content">
+            {{ credit_note.reason|nl2br }}
+        </div>
+    </div>
+
+	<!-- Tableau des services -->
+	<table class="services-table">
+		<thead>
+			<tr>
+				<th style="width: 50%;">Description</th>
+				<th style="width: 15%;" class="text-center">Quantité</th>
+				<th style="width: 15%;" class="text-right">Prix unitaire</th>
+				{% if credit_note.tauxTVA > 0 %}
+					<th style="width: 15%;" class="text-right">TVA</th>
+				{% endif %}
+				<th style="width: 20%;" class="text-right">Total HT</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for line in credit_note.lines %}
+				<tr>
+					<td>
+						<strong>{{ line.description }}</strong>
+                        {% if line.sourceLine %}
+                            <br><small style="color: #666;">Correction ligne facture: {{ line.sourceLine.description }}</small>
+                        {% endif %}
+					</td>
+					<td class="text-center">{{ line.quantity }}</td>
+					<td class="text-right">{{ line.unitPrice|number_format(2, ',', ' ') }} €</td>
+					{% if credit_note.tauxTVA > 0 %}
+						<td class="text-right">
+                            {{ line.tvaRate }} %
+						</td>
+					{% endif %}
+					<td class="text-right">{{ line.totalHt|number_format(2, ',', ' ') }} €</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	<!-- Totaux -->
+	<div class="totals">
+		<table class="totals-table">
+			<tr>
+				<td class="label">Total HT:</td>
+				<td class="amount">{{ credit_note.montantHTFormatted }}</td>
+			</tr>
+			{% if credit_note.tauxTVA > 0 %}
+				<tr>
+					<td class="label">Total TVA:</td>
+					<td class="amount">{{ credit_note.montantTVAFormatted }}</td>
+				</tr>
+			{% endif %}
+			<tr class="total-row">
+				<td class="label">Total TTC (Avoir):</td>
+				<td class="amount">{{ credit_note.montantTTCFormatted }}</td>
+			</tr>
+		</table>
+	</div>
+
+	<!-- Mentions légales -->
+	<div class="legal-mentions">
+		<strong>Mentions légales:</strong><br>
+		Avoir émis le {{ credit_note.dateEmission|date('d/m/Y') }}.<br>
+		Cet avoir vient en déduction de la facture référencée ou sera remboursé selon les conditions convenues.
+		<br><br>
+		{% if company and not company.isTvaEnabled() %}
+			<strong>Micro-entrepreneur:</strong>
+			TVA non applicable selon l'article 293 B du Code Général des Impôts.
+		{% endif %}
+	</div>
+
+	<!-- Pied de page -->
+	<div class="footer">
+		{% if company %}
+			<strong>{{ company.raisonSociale }}</strong>
+			{% if company.email or company.telephone %}
+				|
+				{% if company.email %}{{ company.email }}{% endif %}
+				{% if company.email and company.telephone %} | {% endif %}
+				{% if company.telephone %}{{ company.telephone }}{% endif %}
+			{% endif %}
+		{% endif %}
+	</div>
+{% endblock %}

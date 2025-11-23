@@ -10,6 +10,7 @@ namespace App\Entity;
 enum QuoteStatus: string
 {
     case DRAFT = 'draft';
+    case ISSUED = 'issued';
     case SENT = 'sent';
     case SIGNED = 'signed';
     case ACCEPTED = 'accepted';
@@ -24,6 +25,7 @@ enum QuoteStatus: string
     {
         return match ($this) {
             self::DRAFT => 'Brouillon',
+            self::ISSUED => 'Émis',
             self::SENT => 'Envoyé',
             self::SIGNED => 'Signé',
             self::ACCEPTED => 'Accepté',
@@ -40,6 +42,7 @@ enum QuoteStatus: string
     {
         return match ($this) {
             self::DRAFT => 'secondary',
+            self::ISSUED => 'info',
             self::SENT => 'info',
             self::SIGNED => 'primary',
             self::ACCEPTED => 'success',
@@ -75,22 +78,40 @@ enum QuoteStatus: string
 
     /**
      * Vérifie si le devis est dans un état final (ne peut plus être modifié)
-     * États finaux : SIGNED, REFUSED, EXPIRED, CANCELLED
+     * États finaux : ISSUED, SIGNED, REFUSED, EXPIRED, CANCELLED
      * Note : ACCEPTED n'est PAS un état final car il reste modifiable
      */
     public function isFinal(): bool
     {
-        return in_array($this, [self::SIGNED, self::REFUSED, self::EXPIRED, self::CANCELLED]);
+        return in_array($this, [self::ISSUED, self::SIGNED, self::REFUSED, self::EXPIRED, self::CANCELLED]);
     }
 
     /**
      * Détermine si le devis est modifiable selon les règles légales
-     * Modifiable : DRAFT, SENT, ACCEPTED (avec audit)
-     * Non modifiable : SIGNED, REFUSED, EXPIRED, CANCELLED
+     * Modifiable : DRAFT uniquement
+     * Non modifiable : ISSUED, SENT, SIGNED, ACCEPTED, REFUSED, EXPIRED, CANCELLED
      */
     public function isModifiable(): bool
     {
-        return in_array($this, [self::DRAFT, self::SENT, self::ACCEPTED]);
+        return $this === self::DRAFT;
+    }
+
+    /**
+     * Détermine si le devis est émis (immutable)
+     * États émis : ISSUED, SENT, SIGNED, ACCEPTED, REFUSED, EXPIRED, CANCELLED
+     */
+    public function isEmitted(): bool
+    {
+        return in_array($this, [self::ISSUED, self::SENT, self::SIGNED, self::ACCEPTED, self::REFUSED, self::EXPIRED, self::CANCELLED]);
+    }
+
+    /**
+     * Vérifie si le devis peut être émis
+     * DRAFT → ISSUED
+     */
+    public function canBeIssued(): bool
+    {
+        return $this === self::DRAFT;
     }
 
     /**
@@ -113,11 +134,11 @@ enum QuoteStatus: string
 
     /**
      * Vérifie si le devis peut être envoyé
-     * DRAFT → SENT
+     * Peut être envoyé sauf si DRAFT, REFUSED, EXPIRED, CANCELLED
      */
     public function canBeSent(): bool
     {
-        return $this === self::DRAFT;
+        return !in_array($this, [self::DRAFT, self::REFUSED, self::EXPIRED, self::CANCELLED]);
     }
 
     /**
@@ -140,11 +161,11 @@ enum QuoteStatus: string
 
     /**
      * Vérifie si le devis peut être annulé
-     * DRAFT, SENT, ACCEPTED → CANCELLED
+     * DRAFT uniquement → CANCELLED
      */
     public function canBeCancelled(): bool
     {
-        return in_array($this, [self::DRAFT, self::SENT, self::ACCEPTED]);
+        return $this === self::DRAFT;
     }
 
     /**
@@ -154,15 +175,6 @@ enum QuoteStatus: string
     public function canBeRefused(): bool
     {
         return in_array($this, [self::SENT, self::ACCEPTED]);
-    }
-
-    /**
-     * Détermine si le devis est émis (envoyé au client)
-     * États émis : SENT, SIGNED, ACCEPTED, REFUSED, EXPIRED, CANCELLED
-     */
-    public function isEmitted(): bool
-    {
-        return in_array($this, [self::SENT, self::SIGNED, self::ACCEPTED, self::REFUSED, self::EXPIRED, self::CANCELLED]);
     }
 
     /**

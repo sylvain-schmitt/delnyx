@@ -152,9 +152,9 @@ class AmendmentLine
         return $this->unitPrice;
     }
 
-    public function setUnitPrice(string $unitPrice): static
+    public function setUnitPrice(?string $unitPrice): static
     {
-        $this->unitPrice = $unitPrice;
+        $this->unitPrice = $unitPrice ?? '0.00';
         $this->recalculateTotalHt();
         return $this;
     }
@@ -164,9 +164,9 @@ class AmendmentLine
         return $this->totalHt;
     }
 
-    public function setTotalHt(string $totalHt): static
+    public function setTotalHt(?string $totalHt): static
     {
-        $this->totalHt = $totalHt;
+        $this->totalHt = $totalHt ?? '0.00';
         return $this;
     }
 
@@ -228,16 +228,14 @@ class AmendmentLine
     public function recalculateTotalHt(): void
     {
         if ($this->quantity !== null && $this->unitPrice !== null) {
-            // Définir oldValue en premier si sourceLine est défini
-            if ($this->sourceLine && !$this->oldValue) {
-                $oldValue = (float) $this->sourceLine->getTotalHt();
-                $this->oldValue = number_format($oldValue, 2, '.', '');
-            } elseif (!$this->sourceLine && !$this->oldValue) {
-                $this->oldValue = '0.00';
-            }
-            
             if ($this->sourceLine) {
                 // MODIFICATION : unitPrice représente le DELTA (ajustement)
+                // Définir oldValue en premier si pas déjà défini
+                if (!$this->oldValue || $this->oldValue === '0.00') {
+                    $oldValue = (float) $this->sourceLine->getTotalHt();
+                    $this->oldValue = number_format($oldValue, 2, '.', '');
+                }
+                
                 // newValue = oldValue + delta
                 $oldValue = (float) $this->oldValue;
                 $delta = (float) $this->unitPrice * $this->quantity;
@@ -246,6 +244,10 @@ class AmendmentLine
                 $this->newValue = $this->totalHt;
             } else {
                 // AJOUT : unitPrice représente la nouvelle valeur totale
+                if (!$this->oldValue || $this->oldValue === '0.00') {
+                    $this->oldValue = '0.00';
+                }
+                
                 $total = (float) $this->unitPrice * $this->quantity;
                 $this->totalHt = number_format($total, 2, '.', '');
                 $this->newValue = $this->totalHt;
@@ -258,16 +260,56 @@ class AmendmentLine
     /**
      * Calcule le montant TTC de cette ligne
      * Les montants sont stockés en DECIMAL (euros)
+     * Utilise la même logique que getDeltaTtc() pour déterminer le taux de TVA
      */
     public function getTotalTtc(): string
     {
         $totalHt = (float) $this->totalHt;
 
-        if ($this->tvaRate && (float) $this->tvaRate > 0) {
-            $tvaAmount = $totalHt * ((float) $this->tvaRate / 100);
+        // Déterminer le taux de TVA à utiliser (même logique que getDeltaTtc())
+        $tvaRate = null;
+        
+        if ($this->sourceLine) {
+            // Pour une modification, utiliser le taux de TVA de la ligne source
+            $quote = $this->sourceLine->getQuote();
+            if ($quote) {
+                if ($quote->isUsePerLineTva()) {
+                    // TVA par ligne : utiliser le taux de la ligne source
+                    $sourceTvaRate = $this->sourceLine->getTvaRate();
+                    $tvaRate = ($sourceTvaRate && (float) $sourceTvaRate > 0) ? (float) $sourceTvaRate : null;
+                } else {
+                    // TVA globale : utiliser le taux global du devis
+                    $quoteTvaRate = $quote->getTauxTVA();
+                    $tvaRate = ($quoteTvaRate && (float) $quoteTvaRate > 0) ? (float) $quoteTvaRate : null;
+                }
+            }
+        }
+        
+        // Si pas de taux depuis la source (ligne ajoutée), utiliser celui de la ligne d'avenant ou de l'avenant
+        if ($tvaRate === null) {
+            if ($this->tvaRate && (float) $this->tvaRate > 0) {
+                $tvaRate = (float) $this->tvaRate;
+            } elseif ($this->amendment && $this->amendment->getTauxTVA()) {
+                $tvaRate = (float) $this->amendment->getTauxTVA();
+            }
+        }
+        
+        // Si toujours pas de taux, utiliser le taux global du devis
+        if ($tvaRate === null && $this->amendment && $this->amendment->getQuote()) {
+            $quote = $this->amendment->getQuote();
+            $quoteTvaRate = $quote->getTauxTVA();
+            if ($quoteTvaRate && (float) $quoteTvaRate > 0) {
+                $tvaRate = (float) $quoteTvaRate;
+            }
+        }
+
+        // Appliquer la TVA au total HT pour obtenir le total TTC
+        if ($tvaRate !== null && $tvaRate > 0) {
+            $tvaAmount = $totalHt * ($tvaRate / 100);
             return number_format($totalHt + $tvaAmount, 2, '.', '');
         }
 
+        // Pas de TVA : total TTC = total HT
         return $this->totalHt;
     }
 
@@ -356,6 +398,62 @@ class AmendmentLine
         $delta = (float) $this->delta;
         $sign = $delta >= 0 ? '+' : '';
         return $sign . number_format($delta, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Calcule le delta TTC à partir du delta HT
+     * IMPORTANT : Le delta TTC doit être calculé en appliquant la TVA directement au delta HT
+     * et non pas comme la différence entre newValueTTC et oldValueTTC, car cela créerait une double déduction
+     * 
+     * Le delta HT est déjà la différence entre newValue et oldValue,
+     * donc on applique simplement la TVA au delta HT pour obtenir le delta TTC
+     */
+    public function getDeltaTtc(): string
+    {
+        // Le delta HT est déjà calculé (newValue - oldValue)
+        $deltaHt = (float) $this->delta;
+        
+        // Récupérer le taux de TVA utilisé pour calculer le montant TTC du devis original
+        // C'est le taux de la ligne source si usePerLineTva, sinon le taux global du devis
+        $tvaRate = null;
+        if ($this->sourceLine) {
+            // Pour une modification, utiliser le taux de TVA de la ligne source
+            $quote = $this->sourceLine->getQuote();
+            if ($quote) {
+                if ($quote->isUsePerLineTva()) {
+                    // TVA par ligne : utiliser le taux de la ligne source
+                    $sourceTvaRate = $this->sourceLine->getTvaRate();
+                    $tvaRate = ($sourceTvaRate && (float) $sourceTvaRate > 0) ? (float) $sourceTvaRate : null;
+                } else {
+                    // TVA globale : utiliser le taux global du devis
+                    $quoteTvaRate = $quote->getTauxTVA();
+                    $tvaRate = ($quoteTvaRate && (float) $quoteTvaRate > 0) ? (float) $quoteTvaRate : null;
+                }
+            }
+        }
+        
+        // Si pas de taux depuis la source (ligne ajoutée), utiliser celui de la ligne d'avenant ou de l'avenant
+        if ($tvaRate === null) {
+            if ($this->tvaRate && (float) $this->tvaRate > 0) {
+                $tvaRate = (float) $this->tvaRate;
+            } elseif ($this->amendment && $this->amendment->getTauxTVA()) {
+                $tvaRate = (float) $this->amendment->getTauxTVA();
+            }
+        }
+        
+        // Appliquer la TVA au delta HT pour obtenir le delta TTC
+        // Si pas de TVA, le delta TTC = delta HT
+        if ($tvaRate !== null && $tvaRate > 0) {
+            $tvaAmount = $deltaHt * ($tvaRate / 100);
+            $deltaTtc = $deltaHt + $tvaAmount;
+        } else {
+            // Pas de TVA : delta TTC = delta HT
+            $deltaTtc = $deltaHt;
+        }
+        
+        // S'assurer que le résultat est arrondi correctement
+        $deltaTtc = round($deltaTtc, 2);
+        return number_format($deltaTtc, 2, '.', '');
     }
 
     /**

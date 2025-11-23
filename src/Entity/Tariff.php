@@ -124,6 +124,14 @@ class Tariff
         return $this->nom;
     }
 
+    /**
+     * Alias pour getNom() utilisé dans les entités Line
+     */
+    public function getTitre(): ?string
+    {
+        return $this->nom;
+    }
+
     public function setNom(?string $nom): self
     {
         $this->nom = $nom;

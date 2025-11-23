@@ -38,21 +38,21 @@ class QuoteLineType extends AbstractType
             ])
             ->add('description', TextType::class, [
                 'label' => 'Description',
-                'required' => true,
+                'required' => false,
                 'attr' => ['class' => 'form-input'],
                 'help' => 'Description de la prestation',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('quantity', IntegerType::class, [
                 'label' => 'Quantité',
-                'required' => true,
+                'required' => false,
                 'attr' => ['class' => 'form-input', 'min' => 1],
                 'help' => 'Quantité de la prestation',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('unitPrice', NumberType::class, [
-                'label' => 'Prix unitaire (€)',
-                'required' => true,
+                'label' => 'Prix unitaire HT',
+                'required' => false,
                 'scale' => 2,
                 'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0],
                 'help' => 'Prix unitaire en euros',

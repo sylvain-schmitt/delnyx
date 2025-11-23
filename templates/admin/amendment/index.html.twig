@@ -118,9 +118,19 @@
                                             </a>
                                         {% endif %}
                                         
-                                        {# Bouton Envoyer : visible si DRAFT ou SENT #}
-                                        {% if amendment.statutEnum.value in ['draft', 'sent'] %}
-                                            <form action="{{ path('admin_amendment_send', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Envoyer cet avenant au client ?">
+                                        {# Bouton Émettre : visible si DRAFT #}
+                                        {% if amendment.statutEnum.value == 'draft' %}
+                                            <form action="{{ path('admin_amendment_issue', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avenant le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('amendment_issue_' ~ amendment.id) }}">
+                                                <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Émettre">
+                                                    {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+
+                                        {# Bouton Envoyer : visible si ISSUED, SENT, SIGNED (pas DRAFT, CANCELLED) #}
+                                        {% if amendment.statutEnum.value in ['issued', 'sent', 'signed'] %}
+                                            <form action="{{ path('admin_amendment_send', {id: amendment.id}) }}" method="POST" class="inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('amendment_send_' ~ amendment.id) }}">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Envoyer">
                                                     {{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
@@ -128,9 +138,9 @@
                                             </form>
                                         {% endif %}
                                         
-                                        {# Bouton Signer : visible si DRAFT ou SENT #}
+                                        {# Bouton Signer : visible si SENT uniquement #}
                                         {% if amendment.canBeSigned %}
-                                            <form action="{{ path('admin_amendment_sign', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer cet avenant le rend opposable et immuable. Continuer ?">
+                                            <form action="{{ path('admin_amendment_sign', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer cet avenant le rend opposable et immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('amendment_sign_' ~ amendment.id) }}">
                                                 <button type="submit" class="text-purple-400 hover:text-purple-300 transition-colors duration-200" title="Signer">
                                                     {{ ux_icon('lucide:pen-tool', {class: 'w-4 h-4'}) }}
@@ -140,7 +150,7 @@
                                         
                                         {# Bouton Annuler : visible si DRAFT ou SENT #}
                                         {% if amendment.canBeCancelled %}
-                                            <form action="{{ path('admin_amendment_cancel', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avenant ?">
+                                            <form action="{{ path('admin_amendment_cancel', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avenant ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('amendment_cancel_' ~ amendment.id) }}">
                                                 <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200" title="Annuler">
                                                     {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
@@ -185,9 +195,19 @@
                                 </a>
                             {% endif %}
                             
-                            {# Bouton Envoyer : visible si DRAFT ou SENT #}
-                            {% if amendment.statutEnum.value in ['draft', 'sent'] %}
-                                <form action="{{ path('admin_amendment_send', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Envoyer cet avenant au client ?">
+                            {# Bouton Émettre : visible si DRAFT #}
+                            {% if amendment.statutEnum.value == 'draft' %}
+                                <form action="{{ path('admin_amendment_issue', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avenant le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('amendment_issue_' ~ amendment.id) }}">
+                                    <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Émettre">
+                                        {{ ux_icon('lucide:send', {class: 'w-5 h-5'}) }}
+                                    </button>
+                                </form>
+                            {% endif %}
+
+                            {# Bouton Envoyer : visible si ISSUED, SENT, SIGNED (pas DRAFT, CANCELLED) #}
+                            {% if amendment.statutEnum.value in ['issued', 'sent', 'signed'] %}
+                                <form action="{{ path('admin_amendment_send', {id: amendment.id}) }}" method="POST" class="inline">
                                     <input type="hidden" name="_token" value="{{ csrf_token('amendment_send_' ~ amendment.id) }}">
                                     <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Envoyer">
                                         {{ ux_icon('lucide:mail', {class: 'w-5 h-5'}) }}
@@ -197,7 +217,7 @@
                             
                             {# Bouton Signer : visible si DRAFT ou SENT #}
                             {% if amendment.canBeSigned %}
-                                <form action="{{ path('admin_amendment_sign', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer cet avenant le rend opposable et immuable. Continuer ?">
+                                <form action="{{ path('admin_amendment_sign', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer cet avenant le rend opposable et immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
                                     <input type="hidden" name="_token" value="{{ csrf_token('amendment_sign_' ~ amendment.id) }}">
                                     <button type="submit" class="text-purple-400 hover:text-purple-300 transition-colors duration-200 p-2" title="Signer">
                                         {{ ux_icon('lucide:pen-tool', {class: 'w-5 h-5'}) }}
@@ -207,7 +227,7 @@
                             
                             {# Bouton Annuler : visible si DRAFT ou SENT #}
                             {% if amendment.canBeCancelled %}
-                                <form action="{{ path('admin_amendment_cancel', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avenant ?">
+                                <form action="{{ path('admin_amendment_cancel', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avenant ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
                                     <input type="hidden" name="_token" value="{{ csrf_token('amendment_cancel_' ~ amendment.id) }}">
                                     <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200 p-2" title="Annuler">
                                         {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5'}) }}

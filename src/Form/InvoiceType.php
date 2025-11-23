@@ -23,6 +23,7 @@ use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Doctrine\ORM\EntityRepository;
 use App\Entity\CompanySettings;
+use App\EventSubscriber\RemoveEmptyLinesSubscriber;
 
 class InvoiceType extends AbstractType
 {
@@ -176,6 +177,7 @@ class InvoiceType extends AbstractType
                 'help' => 'Taux de pénalités de retard par jour',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
+            ->addEventSubscriber(new RemoveEmptyLinesSubscriber())
             ->add('notes', TextareaType::class, [
                 'label' => 'Notes',
                 'required' => false,
@@ -198,8 +200,72 @@ class InvoiceType extends AbstractType
                 'attr' => ['class' => 'invoice-lines-collection']
             ]);
 
-        // Note: Le devis sera associé dans le contrôleur si fourni via champ caché
-        // (car les champs désactivés ne sont pas traités par Symfony)
+        // Ajouter le subscriber pour gérer les mises à jour liées au devis
+        $builder->addEventSubscriber(new \App\Form\EventSubscriber\InvoiceQuoteSubscriber($this->entityManager));
+
+        // Ajouter un listener pour mettre à jour le query_builder du champ quote et ajouter les lignes manquantes
+        // Ce listener reste nécessaire pour la reconstruction du formulaire (query_builder) et l'ajout des champs de lignes
+        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
+            $data = $event->getData();
+            $form = $event->getForm();
+
+            // Récupérer l'ID du devis depuis les données soumises
+            $quoteId = null;
+            if (isset($data['quote'])) {
+                $quoteValue = $data['quote'];
+                
+                if (is_numeric($quoteValue)) {
+                    $quoteId = (int)$quoteValue;
+                } elseif (is_string($quoteValue) && is_numeric($quoteValue)) {
+                    $quoteId = (int)$quoteValue;
+                }
+            }
+
+            // Si on a un ID de devis, mettre à jour le query_builder du champ quote
+            if ($quoteId && $form->has('quote')) {
+                $quoteField = $form->get('quote');
+                $quoteOptions = $quoteField->getConfig()->getOptions();
+                
+                // Mettre à jour le query_builder pour inclure le devis sélectionné
+                $quoteOptions['query_builder'] = function (EntityRepository $er) use ($quoteId) {
+                    $qb = $er->createQueryBuilder('q')
+                        ->leftJoin('q.invoice', 'i')
+                        ->where('(q.statut = :signed AND i.id IS NULL) OR q.id = :quoteId')
+                        ->setParameter('signed', \App\Entity\QuoteStatus::SIGNED)
+                        ->setParameter('quoteId', $quoteId);
+                    
+                    return $qb->orderBy('q.dateCreation', 'DESC');
+                };
+                
+                // IMPORTANT: Ne pas désactiver le champ lors de la reconstruction
+                $quoteOptions['disabled'] = false;
+                
+                // Reconstruire le champ quote avec le nouveau query_builder
+                $form->remove('quote');
+                $form->add('quote', EntityType::class, $quoteOptions);
+            }
+
+            // Si on a un ID de devis, ajouter les lignes manquantes au formulaire
+            $linesData = $data['lines'] ?? [];
+            
+            if ($quoteId && $form->has('lines')) {
+                $linesForm = $form->get('lines');
+                
+                // Si des lignes sont dans les données mais pas dans le formulaire, les ajouter
+                if (count($linesData) > count($linesForm->all())) {
+                    for ($i = count($linesForm->all()); $i < count($linesData); $i++) {
+                        $linesForm->add((string)$i, InvoiceLineType::class, [
+                            'label' => false,
+                        ]);
+                    }
+                }
+            }
+        });
+    }
+
+    public function __construct(
+        private \Doctrine\ORM\EntityManagerInterface $entityManager
+    ) {
     }
 
     public function configureOptions(OptionsResolver $resolver): void

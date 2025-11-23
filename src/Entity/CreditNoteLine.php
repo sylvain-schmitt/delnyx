@@ -65,7 +65,6 @@ class CreditNoteLine
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Assert\NotNull(message: 'Le total HT est obligatoire')]
-    #[Assert\LessThanOrEqual(value: 0, message: 'Le total HT d\'une ligne d\'avoir doit être négatif ou nul (montant en crédit)')]
     #[Groups(['credit_note_line:read', 'credit_note_line:write'])]
     private string $totalHt = '0.00';
 
@@ -154,10 +153,11 @@ class CreditNoteLine
         return $this->unitPrice;
     }
 
-    public function setUnitPrice(string $unitPrice): static
+    public function setUnitPrice(?string $unitPrice): static
     {
-        $this->unitPrice = $unitPrice;
+        $this->unitPrice = $unitPrice ?? '0.00';
         $this->recalculateTotalHt();
+
         return $this;
     }
 
@@ -166,9 +166,10 @@ class CreditNoteLine
         return $this->totalHt;
     }
 
-    public function setTotalHt(string $totalHt): static
+    public function setTotalHt(?string $totalHt): static
     {
-        $this->totalHt = $totalHt;
+        $this->totalHt = $totalHt ?? '0.00';
+
         return $this;
     }
 
@@ -211,7 +212,7 @@ class CreditNoteLine
 
         // Si un tarif est associé, remplir automatiquement les informations
         if ($tariff) {
-            $this->description = $tariff->getTitre();
+            $this->description = $tariff->getNom();
             // Tariff stocke le prix en euros (DECIMAL)
             $this->unitPrice = $tariff->getPrix();
             $this->recalculateTotalHt();
@@ -247,12 +248,14 @@ class CreditNoteLine
             
             if ($this->sourceLine) {
                 // MODIFICATION : unitPrice représente le DELTA (ajustement, généralement négatif)
-                // newValue = oldValue + delta
+                // totalHt = delta
                 $oldValue = (float) $this->oldValue;
                 $delta = (float) $this->unitPrice * $this->quantity;
                 $newValue = $oldValue + $delta;
-                $this->totalHt = number_format($newValue, 2, '.', '');
-                $this->newValue = $this->totalHt;
+                
+                // FIX: totalHt stocke le delta (montant de l'avoir pour cette ligne)
+                $this->totalHt = number_format($delta, 2, '.', '');
+                $this->newValue = number_format($newValue, 2, '.', '');
             } else {
                 // AJOUT : unitPrice représente la nouvelle valeur totale (généralement négative pour un avoir)
                 $total = (float) $this->unitPrice * $this->quantity;

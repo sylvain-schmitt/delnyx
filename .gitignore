@@ -31,6 +31,11 @@ Dockerfile
 ### Ignore Cursor
 .cursor
 
+### Ignore Agent
+.agent
+
+.vscode
+
 ### Ignore uploaded files (managed by Docker volume)
 /public/uploads/
 

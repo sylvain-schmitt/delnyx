@@ -12,6 +12,7 @@ enum CreditNoteStatus: string
     case DRAFT = 'draft';
     case ISSUED = 'issued';
     case SENT = 'sent';
+    case APPLIED = 'applied';
     case CANCELLED = 'cancelled';
 
     /**
@@ -23,6 +24,7 @@ enum CreditNoteStatus: string
             self::DRAFT => 'Brouillon',
             self::ISSUED => 'Émis',
             self::SENT => 'Envoyé',
+            self::APPLIED => 'Appliqué',
             self::CANCELLED => 'Annulé',
         };
     }
@@ -36,6 +38,7 @@ enum CreditNoteStatus: string
             self::DRAFT => 'warning',
             self::ISSUED => 'info',
             self::SENT => 'primary',
+            self::APPLIED => 'success',
             self::CANCELLED => 'dark',
         };
     }
@@ -45,7 +48,7 @@ enum CreditNoteStatus: string
      */
     public function isFinal(): bool
     {
-        return in_array($this, [self::ISSUED, self::SENT, self::CANCELLED]);
+        return in_array($this, [self::ISSUED, self::SENT, self::APPLIED, self::CANCELLED]);
     }
 
     /**
@@ -61,15 +64,16 @@ enum CreditNoteStatus: string
      */
     public function isEmitted(): bool
     {
-        return in_array($this, [self::ISSUED, self::SENT]);
+        return in_array($this, [self::ISSUED, self::SENT, self::APPLIED]);
     }
 
     /**
      * Vérifie si l'avoir peut être envoyé
+     * Peut être envoyé sauf si DRAFT ou CANCELLED
      */
     public function canBeSent(): bool
     {
-        return $this === self::ISSUED;
+        return !in_array($this, [self::DRAFT, self::CANCELLED]);
     }
 
     /**

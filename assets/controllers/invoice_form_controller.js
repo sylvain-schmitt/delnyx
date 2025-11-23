@@ -5,6 +5,15 @@ import { Controller } from "@hotwired/stimulus"
  * Gère le pré-remplissage automatique depuis un devis sélectionné
  */
 export default class extends Controller {
+    currentQuoteId = null
+    quotePollingInterval = null
+
+    disconnect() {
+        if (this.quotePollingInterval) {
+            clearInterval(this.quotePollingInterval)
+        }
+    }
+
     connect() {
         // Attendre un peu que le DOM soit complètement chargé
         setTimeout(() => {
@@ -25,9 +34,14 @@ export default class extends Controller {
             // Si un devis est déjà associé, ne pas activer le pré-remplissage automatique
             // Les lignes sont déjà pré-remplies côté serveur et ne doivent pas être modifiées
             if (hasQuote) {
+                this.isServerLocked = true
                 // Appliquer readonly aux champs de paiement pré-remplis côté serveur
                 this.lockPaymentFieldsFromQuote()
+                // Verrouiller également les lignes (cache les boutons d'ajout et de TVA)
+                this.lockInvoiceLinesFromQuote()
                 return
+            } else {
+                this.isServerLocked = false
             }
 
             // Écouter les changements sur le select devis
@@ -38,10 +52,48 @@ export default class extends Controller {
             }
 
             if (quoteSelectForListener && !quoteSelectForListener.disabled) {
-                quoteSelectForListener.addEventListener('change', (e) => this.handleQuoteChange(e))
+                // Écouter les changements sur le select original
+                const handleChange = (e) => {
+                    const newQuoteId = e.target.value || quoteSelectForListener.value
+                    if (newQuoteId !== this.currentQuoteId) {
+                        this.currentQuoteId = newQuoteId
+                        this.handleQuoteChange({ target: quoteSelectForListener })
+                    }
+                }
+                quoteSelectForListener.addEventListener('change', handleChange)
+
+                // Écouter aussi les clics sur les options dans select-search
+                const searchInput = this.element.querySelector('input[data-sync-with*="[quote]"]')
+                if (searchInput) {
+                    const optionsContainer = searchInput.parentElement?.querySelector('[id^="options-"]')
+                    if (optionsContainer) {
+                        optionsContainer.addEventListener('click', (e) => {
+                            const optionDiv = e.target.closest('[data-value]')
+                            if (optionDiv) {
+                                setTimeout(() => {
+                                    handleChange({ target: quoteSelectForListener })
+                                }, 50)
+                            }
+                        })
+                    }
+
+                    // Polling léger en secours (vérifier toutes les 500ms si la valeur a changé)
+                    this.quotePollingInterval = setInterval(() => {
+                        if (quoteSelectForListener.disabled) {
+                            clearInterval(this.quotePollingInterval)
+                            return
+                        }
+                        const currentValue = quoteSelectForListener.value
+                        if (currentValue !== this.currentQuoteId) {
+                            this.currentQuoteId = currentValue
+                            handleChange({ target: quoteSelectForListener })
+                        }
+                    }, 500)
+                }
 
                 // Si un devis est déjà sélectionné (mais pas encore associé), déclencher le changement
                 if (quoteSelectForListener.value && !hasQuote) {
+                    this.currentQuoteId = quoteSelectForListener.value
                     this.handleQuoteChange({ target: quoteSelectForListener })
                 }
             }
@@ -50,39 +102,25 @@ export default class extends Controller {
 
     /**
      * Pré-remplit les champs de la facture quand un devis est sélectionné
+     * Met à jour en temps réel : supprime les lignes existantes et les remplace
      */
     async handleQuoteChange(event) {
         const quoteId = event.target.value
 
-        if (!quoteId) {
-            // Si aucun devis sélectionné, ne rien faire
-            return
-        }
-
-        // Vérifier si un devis est déjà associé (lignes en lecture seule)
-        const dataHasQuote = this.element.querySelector('[data-has-quote]') !== null
-        const quoteSelect = this.element.querySelector('select[name*="[quote]"]')
-        const quoteSelectDisabled = quoteSelect?.disabled === true
-
-        // Vérifier s'il y a déjà des lignes dans le conteneur
-        const linesContainer = this.element.querySelector('[data-quote-form-target="linesContainer"]')
-        const existingLines = linesContainer?.querySelectorAll('[data-line-index]') || []
-        const hasExistingLines = existingLines.length > 0
-
-        // Si le select est désactivé OU si data-has-quote est présent, c'est que le devis est déjà associé côté serveur
-        // Dans ce cas, les lignes sont déjà pré-remplies côté serveur
-        const hasQuoteFromServer = dataHasQuote || quoteSelectDisabled
-
         // Si un devis est déjà associé côté serveur (data-has-quote ou select désactivé), ne pas pré-remplir
         // Les lignes sont déjà pré-remplies côté serveur
-        if (hasQuoteFromServer) {
+        if (this.isServerLocked) {
             return
         }
 
-        // Si des lignes existent déjà, ne pas les supprimer et ne pas pré-remplir
-        if (hasExistingLines) {
+        // Si aucun devis sélectionné, supprimer les lignes existantes et réinitialiser les champs
+        if (!quoteId) {
+            this.clearQuoteData()
             return
         }
+
+        // Supprimer les lignes existantes et le tableau si présent (mise à jour en temps réel)
+        this.removeExistingLines()
 
         try {
             const response = await fetch(`/admin/invoice/api/quote/${quoteId}`)
@@ -153,33 +191,26 @@ export default class extends Controller {
                 }
             }
 
-            // Pré-remplir les lignes de la facture SEULEMENT si aucune ligne n'existe déjà
-            const linesContainer = this.element.querySelector('[data-quote-form-target="linesContainer"]')
-            const existingLines = linesContainer?.querySelectorAll('[data-line-index]') || []
-
-            if (existingLines.length === 0 && data.lines && data.lines.length > 0) {
+            // Pré-remplir les lignes de la facture
+            if (data.lines && data.lines.length > 0) {
                 this.populateInvoiceLines(data.lines)
             }
+
+
         } catch (error) {
             // Erreur silencieuse
         }
     }
 
+
+
     /**
      * Remplit les lignes de la facture avec les lignes du devis
+     * Amélioré pour ajouter toutes les lignes correctement
      */
     populateInvoiceLines(lines) {
-        // Vérifier si un devis est déjà associé côté serveur (lignes en lecture seule)
-        const dataHasQuote = this.element.querySelector('[data-has-quote]') !== null
-        const quoteSelect = this.element.querySelector('select[name*="[quote]"]')
-        const quoteSelectDisabled = quoteSelect?.disabled === true
-
-        // Si data-has-quote est présent OU si le select est désactivé, c'est que le devis est déjà associé côté serveur
-        // Dans ce cas, les lignes sont déjà pré-remplies côté serveur et on ne doit pas les toucher
-        const hasQuoteFromServer = dataHasQuote || quoteSelectDisabled
-
         // Si un devis est déjà associé côté serveur, ne pas pré-remplir (les lignes sont déjà là)
-        if (hasQuoteFromServer) {
+        if (this.isServerLocked) {
             return
         }
 
@@ -189,23 +220,50 @@ export default class extends Controller {
             return
         }
 
-        // Vérifier s'il y a déjà des lignes (pré-remplies côté serveur)
-        const existingLines = linesContainer.querySelectorAll('[data-line-index]')
-        if (existingLines.length > 0) {
-            return
-        }
-
-        // Vider les lignes existantes seulement si aucune ligne n'existe déjà
-        existingLines.forEach(line => line.remove())
-
         // Trouver le bouton d'ajout de ligne (utilise quote-form)
         const addButton = this.element.querySelector('[data-action*="quote-form#addLine"]')
         if (!addButton || addButton.style.display === 'none' || addButton.disabled) {
             return
         }
 
-        // Ajouter chaque ligne du devis
-        lines.forEach((lineData, index) => {
+        // Trouver le bouton de soumission pour le désactiver pendant le chargement
+        const submitButton = this.element.querySelector('[data-admin-form-target="submit"]')
+        let originalSubmitText = ''
+        if (submitButton) {
+            submitButton.disabled = true
+            originalSubmitText = submitButton.innerHTML
+            submitButton.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Chargement des lignes...
+            `
+        }
+
+        // Supprimer toutes les lignes existantes avant d'ajouter les nouvelles
+        const existingLines = linesContainer.querySelectorAll('[data-line-index]')
+        existingLines.forEach(line => line.remove())
+
+        // Utiliser une fonction récursive pour ajouter les lignes une par une
+        const addLine = (lineIndex) => {
+            if (lineIndex >= lines.length) {
+                // Toutes les lignes ont été ajoutées
+                setTimeout(() => {
+                    this.lockInvoiceLinesFromQuote()
+                    this.convertLinesToTable()
+
+                    // Réactiver le bouton de soumission
+                    if (submitButton) {
+                        submitButton.disabled = false
+                        submitButton.innerHTML = originalSubmitText
+                    }
+                }, 100)
+                return
+            }
+
+            const currentLineData = lines[lineIndex]
+
             // Déclencher le clic sur le bouton "Ajouter une ligne"
             addButton.click()
 
@@ -223,47 +281,54 @@ export default class extends Controller {
                     const tariffSelect = newLine.querySelector('select[name*="[tariff]"]')
 
                     if (descriptionInput) {
-                        descriptionInput.value = lineData.description || ''
+                        descriptionInput.value = currentLineData.description || ''
                         descriptionInput.dispatchEvent(new Event('input', { bubbles: true }))
                     }
 
                     if (quantityInput) {
-                        quantityInput.value = lineData.quantity || 1
+                        quantityInput.value = currentLineData.quantity || 1
                         quantityInput.dispatchEvent(new Event('input', { bubbles: true }))
                     }
 
                     if (unitPriceInput) {
-                        unitPriceInput.value = lineData.unitPrice || '0.00'
+                        unitPriceInput.value = currentLineData.unitPrice || '0.00'
                         unitPriceInput.dispatchEvent(new Event('input', { bubbles: true }))
                     }
 
-                    if (tvaRateSelect && lineData.tvaRate) {
-                        tvaRateSelect.value = lineData.tvaRate
+                    if (tvaRateSelect && currentLineData.tvaRate) {
+                        tvaRateSelect.value = currentLineData.tvaRate
                         tvaRateSelect.dispatchEvent(new Event('change', { bubbles: true }))
                     }
 
-                    if (tariffSelect && lineData.tariffId) {
-                        tariffSelect.value = lineData.tariffId
+                    if (tariffSelect && currentLineData.tariffId) {
+                        tariffSelect.value = currentLineData.tariffId
                         tariffSelect.dispatchEvent(new Event('change', { bubbles: true }))
                     }
 
-                    // Déclencher le recalcul du total HT via le contrôleur admin-form
+                    // Déclencher le recalcul du total HT
                     if (unitPriceInput && quantityInput) {
                         setTimeout(() => {
                             unitPriceInput.dispatchEvent(new Event('blur', { bubbles: true }))
                             quantityInput.dispatchEvent(new Event('blur', { bubbles: true }))
-                        }, 100)
+                        }, 50)
                     }
                 }
-            }, 200 * (index + 1)) // Délai progressif pour chaque ligne
-        })
 
-        // Après avoir ajouté toutes les lignes, les transformer en tableau et les verrouiller
-        setTimeout(() => {
-            this.lockInvoiceLinesFromQuote()
-            // Transformer les lignes en tableau si nécessaire
-            this.convertLinesToTable()
-        }, 200 * (lines.length + 1))
+                // Ajouter la ligne suivante
+                setTimeout(() => addLine(lineIndex + 1), 150)
+            }, 100)
+        }
+
+        // Démarrer l'ajout des lignes
+        if (lines.length > 0) {
+            addLine(0)
+        } else {
+            // Si aucune ligne, réactiver le bouton tout de suite
+            if (submitButton) {
+                submitButton.disabled = false
+                submitButton.innerHTML = originalSubmitText
+            }
+        }
     }
 
     /**
@@ -277,10 +342,16 @@ export default class extends Controller {
 
         const lines = linesContainer.querySelectorAll('[data-line-index]')
 
-        // Supprimer complètement le bouton "Ajouter une ligne" au lieu de le cacher
-        const addButton = this.element.querySelector('[data-action*="quote-form#addLine"]')
+        // Cacher le bouton "Ajouter une ligne"
+        const addButton = this.element.querySelector('[data-invoice-form-target="addLineButton"]') || this.element.querySelector('[data-action*="quote-form#addLine"]')
         if (addButton) {
-            addButton.remove()
+            addButton.classList.add('!hidden')
+        }
+
+        // Cacher le bouton "Appliquer la TVA par ligne"
+        const tvaButton = this.element.querySelector('[data-invoice-form-target="tvaPerLineButton"]')
+        if (tvaButton) {
+            tvaButton.classList.add('!hidden')
         }
 
         // Supprimer les boutons "Supprimer" de chaque ligne
@@ -312,35 +383,6 @@ export default class extends Controller {
                 }
             })
         })
-
-        // Ajouter un attribut data-has-quote au formulaire principal pour que quote_form_controller détecte qu'un devis est associé
-        // Chercher le div principal du formulaire (celui qui contient data-controller="invoice-form")
-        const formDiv = this.element.closest('[data-controller*="invoice-form"]') || this.element
-        if (formDiv) {
-            formDiv.setAttribute('data-has-quote', 'true')
-        }
-
-        // Ajouter aussi l'attribut au conteneur des lignes pour être sûr
-        if (linesContainer) {
-            linesContainer.setAttribute('data-has-quote', 'true')
-            linesContainer.closest('[data-controller*="quote-form"]')?.setAttribute('data-has-quote', 'true')
-        }
-
-        // Ajouter l'attribut à tous les parents jusqu'à trouver le contrôleur quote-form
-        let current = linesContainer
-        while (current && current !== document.body) {
-            if (current.hasAttribute('data-controller') && current.getAttribute('data-controller').includes('quote-form')) {
-                current.setAttribute('data-has-quote', 'true')
-                break
-            }
-            current = current.parentElement
-        }
-
-        // Désactiver le select du devis pour indiquer qu'il est verrouillé
-        const quoteSelect = this.element.querySelector('select[name*="[quote]"]')
-        if (quoteSelect) {
-            quoteSelect.disabled = true
-        }
 
         // Verrouiller aussi les champs de paiement
         this.lockPaymentFieldsFromQuote()
@@ -534,6 +576,73 @@ export default class extends Controller {
 
         // Ajouter le tableau dans le conteneur (sans vider)
         linesContainer.insertBefore(tableWrapper, linesContainer.firstChild)
+    }
+
+    /**
+     * Supprime les lignes existantes et le tableau si présent
+     */
+    removeExistingLines() {
+        const linesContainer = this.element.querySelector('[data-quote-form-target="linesContainer"]')
+        if (!linesContainer) {
+            return
+        }
+
+        // Vider complètement le conteneur
+        linesContainer.innerHTML = ''
+
+        // Réafficher le bouton "Ajouter une ligne" s'il était caché
+        const addButton = this.element.querySelector('[data-invoice-form-target="addLineButton"]') || this.element.querySelector('[data-action*="quote-form#addLine"]')
+        if (addButton) {
+            addButton.classList.remove('hidden')
+            addButton.classList.remove('!hidden')
+            addButton.disabled = false
+            // S'assurer que le style display n'est pas resté (si mélangé avec l'ancienne méthode)
+            addButton.style.display = ''
+        }
+
+        // Réafficher le bouton "Appliquer la TVA par ligne" s'il était caché
+        const tvaButton = this.element.querySelector('[data-invoice-form-target="tvaPerLineButton"]')
+        if (tvaButton) {
+            tvaButton.classList.remove('hidden')
+            tvaButton.classList.remove('!hidden')
+            // S'assurer que le style display n'est pas resté
+            tvaButton.style.display = ''
+        }
+    }
+
+    /**
+     * Réinitialise les champs liés au devis quand aucun devis n'est sélectionné
+     */
+    clearQuoteData() {
+        // Réinitialiser le client (optionnel, on peut le laisser)
+        // const clientSelect = this.element.querySelector('select[name*="[client]"]')
+        // if (clientSelect) {
+        //     clientSelect.value = ''
+        // }
+
+        // Réinitialiser les conditions de paiement
+        const conditionsInput = this.element.querySelector('textarea[name*="[conditionsPaiement]"]')
+        if (conditionsInput) {
+            conditionsInput.value = ''
+            conditionsInput.removeAttribute('readonly')
+        }
+
+        // Réinitialiser le montant d'accompte
+        const acompteInput = this.element.querySelector('input[name*="[montantAcompte]"]')
+        if (acompteInput) {
+            acompteInput.value = ''
+            acompteInput.removeAttribute('readonly')
+        }
+
+        // Réinitialiser le délai de paiement
+        const delaiInput = this.element.querySelector('input[name*="[delaiPaiement]"]')
+        if (delaiInput) {
+            delaiInput.value = ''
+            delaiInput.removeAttribute('readonly')
+        }
+
+        // Supprimer les lignes
+        this.removeExistingLines()
     }
 }
 

@@ -10,6 +10,7 @@ namespace App\Entity;
 enum AmendmentStatus: string
 {
     case DRAFT = 'draft';
+    case ISSUED = 'issued';
     case SENT = 'sent';
     case SIGNED = 'signed';
     case CANCELLED = 'cancelled';
@@ -21,6 +22,7 @@ enum AmendmentStatus: string
     {
         return match ($this) {
             self::DRAFT => 'Brouillon',
+            self::ISSUED => 'Émis',
             self::SENT => 'Envoyé',
             self::SIGNED => 'Signé',
             self::CANCELLED => 'Annulé',
@@ -34,6 +36,7 @@ enum AmendmentStatus: string
     {
         return match ($this) {
             self::DRAFT => 'warning',
+            self::ISSUED => 'info',
             self::SENT => 'info',
             self::SIGNED => 'success',
             self::CANCELLED => 'dark',
@@ -45,16 +48,33 @@ enum AmendmentStatus: string
      */
     public function isFinal(): bool
     {
-        return in_array($this, [self::SIGNED, self::CANCELLED]);
+        return in_array($this, [self::ISSUED, self::SIGNED, self::CANCELLED]);
     }
 
     /**
      * Vérifie si l'avenant peut être modifié
-     * DRAFT et SENT peuvent être modifiés (selon workflow légal)
+     * DRAFT uniquement peut être modifié
      */
     public function isModifiable(): bool
     {
-        return in_array($this, [self::DRAFT, self::SENT]);
+        return $this === self::DRAFT;
+    }
+
+    /**
+     * Détermine si l'avenant est émis (immutable)
+     */
+    public function isEmitted(): bool
+    {
+        return in_array($this, [self::ISSUED, self::SENT, self::SIGNED, self::CANCELLED]);
+    }
+
+    /**
+     * Vérifie si l'avenant peut être émis
+     * DRAFT → ISSUED
+     */
+    public function canBeIssued(): bool
+    {
+        return $this === self::DRAFT;
     }
 
     /**
@@ -67,6 +87,15 @@ enum AmendmentStatus: string
             $choices[$case->getLabel()] = $case->value;
         }
         return $choices;
+    }
+
+    /**
+     * Vérifie si l'avenant peut être envoyé
+     * Peut être envoyé sauf si DRAFT ou CANCELLED
+     */
+    public function canBeSent(): bool
+    {
+        return !in_array($this, [self::DRAFT, self::CANCELLED]);
     }
 }
 

@@ -23,6 +23,7 @@ class CreditNoteLineType extends AbstractType
     {
         $builder
             // Champ sourceLine en premier pour permettre de sélectionner la ligne à corriger
+            // Champ sourceLine en premier pour permettre de sélectionner la ligne à corriger
             ->add('sourceLine', EntityType::class, [
                 'label' => 'Ligne de la facture à corriger (optionnel)',
                 'class' => InvoiceLine::class,
@@ -37,25 +38,15 @@ class CreditNoteLineType extends AbstractType
                 'required' => false,
                 'placeholder' => 'Nouvelle ligne (pas de correction)',
                 'query_builder' => function (EntityRepository $er) use ($options) {
-                    // Récupérer la facture depuis l'avoir
-                    $creditNote = $options['credit_note'] ?? null;
-                    $invoice = null;
-                    
-                    // Essayer de récupérer la facture depuis l'avoir
-                    if ($creditNote && $creditNote->getInvoice()) {
-                        $invoice = $creditNote->getInvoice();
-                    }
-                    
-                    // Si pas de facture, retourner une requête vide
-                    if (!$invoice) {
-                        return $er->createQueryBuilder('il')
-                            ->where('1 = 0'); // Aucune ligne si pas de facture
-                    }
-                    
+                    // Retourner TOUTES les lignes InvoiceLine pour permettre la sélection de n'importe quelle ligne
+                    // Cela permet de contourner les problèmes de validation lorsque la ligne n'est pas dans la facture initiale
                     return $er->createQueryBuilder('il')
-                        ->where('il.invoice = :invoice')
-                        ->setParameter('invoice', $invoice)
-                        ->orderBy('il.id', 'ASC');
+                        ->orderBy('il.id', 'DESC');
+                },
+                // Permettre les choix qui ne sont pas dans le query_builder initial
+                // (nécessaire car les lignes sont chargées dynamiquement via JavaScript)
+                'choice_value' => function (?InvoiceLine $line) {
+                    return $line ? (string)$line->getId() : null;
                 },
                 'attr' => ['class' => 'form-select'],
                 'help' => 'Sélectionnez une ligne de la facture à corriger, ou laissez vide pour ajouter une nouvelle ligne',
@@ -78,21 +69,21 @@ class CreditNoteLineType extends AbstractType
             ])
             ->add('description', TextType::class, [
                 'label' => 'Description',
-                'required' => true,
+                'required' => false,
                 'attr' => ['class' => 'form-input'],
                 'help' => 'Description de la ligne d\'avoir',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('quantity', IntegerType::class, [
                 'label' => 'Quantité',
-                'required' => true,
+                'required' => false,
                 'attr' => ['class' => 'form-input', 'min' => 1],
                 'help' => 'Quantité de la prestation',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('unitPrice', NumberType::class, [
                 'label' => 'Prix unitaire (€)',
-                'required' => true,
+                'required' => false,
                 'scale' => 2,
                 'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0],
                 'help' => 'Prix unitaire en euros',
@@ -112,6 +103,13 @@ class CreditNoteLineType extends AbstractType
                 'help' => 'Taux de TVA pour cette ligne. Si non renseigné, le taux de la facture associée s\'applique.',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ]);
+
+        // $builder->addEventSubscriber(new \App\Form\EventSubscriber\CreditNoteLineSourceLineSubscriber($this->entityManager));
+    }
+
+    public function __construct(
+        private \Doctrine\ORM\EntityManagerInterface $entityManager
+    ) {
     }
 
     public function configureOptions(OptionsResolver $resolver): void

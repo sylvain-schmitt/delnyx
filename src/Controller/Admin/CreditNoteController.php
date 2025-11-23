@@ -34,6 +34,47 @@ class CreditNoteController extends AbstractController
         private CreditNoteService $creditNoteService
     ) {}
 
+    #[Route('/api/invoice/{id}', name: 'api_invoice_info', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getInvoiceInfo(int $id): JsonResponse
+    {
+        $invoice = $this->invoiceRepository->find($id);
+        if (!$invoice) {
+            return new JsonResponse(['error' => 'Facture non trouvée'], 404);
+        }
+
+        // Vérifier le multi-tenant
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+
+        if ($companyId && $invoice->getCompanyId() !== $companyId) {
+            return new JsonResponse(['error' => 'Accès refusé'], 403);
+        }
+
+        $lines = [];
+        foreach ($invoice->getLines() as $line) {
+            $lines[] = [
+                'id' => $line->getId(),
+                'description' => $line->getDescription(),
+                'quantity' => $line->getQuantity(),
+                'unitPrice' => $line->getUnitPrice(),
+                'totalHt' => $line->getTotalHt(),
+                'tvaRate' => $line->getTvaRate(),
+            ];
+        }
+
+        return new JsonResponse([
+            'id' => $invoice->getId(),
+            'numero' => $invoice->getNumero(),
+            'lines' => $lines,
+            'montantTTCFormate' => $invoice->getMontantTTCFormate(),
+        ]);
+    }
+
     #[Route('/api/invoice/{id}/lines', name: 'api_invoice_lines', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
     public function getInvoiceLines(int $id): JsonResponse
@@ -168,8 +209,15 @@ class CreditNoteController extends AbstractController
             return $this->redirectToRoute('admin_credit_note_index');
         }
 
+        // Récupérer CompanySettings pour l'affichage
+        $companySettings = null;
+        if ($creditNote->getCompanyId()) {
+            $companySettings = $this->companySettingsRepository->findByCompanyId($creditNote->getCompanyId());
+        }
+
         return $this->render('admin/credit_note/show.html.twig', [
             'creditNote' => $creditNote,
+            'companySettings' => $companySettings,
         ]);
     }
 
@@ -224,35 +272,11 @@ class CreditNoteController extends AbstractController
                 }
 
                 $creditNote->setInvoice($invoice);
-
-                // Copier les lignes de la facture vers l'avoir
-                // Pour un avoir, les montants doivent être négatifs (crédit)
-                foreach ($invoice->getLines() as $invoiceLine) {
-                    $creditNoteLine = new \App\Entity\CreditNoteLine();
-                    $creditNoteLine->setDescription($invoiceLine->getDescription());
-                    $creditNoteLine->setQuantity($invoiceLine->getQuantity());
-
-                    // Rendre le prix unitaire négatif pour un avoir
-                    $unitPrice = (float) $invoiceLine->getUnitPrice();
-                    if ($unitPrice > 0) {
-                        $unitPrice = -$unitPrice;
-                    }
-                    $creditNoteLine->setUnitPrice(number_format($unitPrice, 2, '.', ''));
-
-                    // Rendre le total HT négatif pour un avoir
-                    $totalHt = (float) $invoiceLine->getTotalHt();
-                    if ($totalHt > 0) {
-                        $totalHt = -$totalHt;
-                    }
-                    $creditNoteLine->setTotalHt(number_format($totalHt, 2, '.', ''));
-
-                    $creditNoteLine->setTvaRate($invoiceLine->getTvaRate());
-                    $creditNoteLine->setTariff($invoiceLine->getTariff());
-                    $creditNote->addLine($creditNoteLine);
+                // Pré-remplir le motif avec une valeur par défaut
+                if (!$creditNote->getReason()) {
+                    $creditNote->setReason('Avoir pour la facture ' . $invoice->getNumero());
                 }
-
-                // Recalculer les totaux
-                $creditNote->recalculateTotals();
+                // NE PAS pré-remplir les lignes - l'utilisateur doit créer les lignes d'ajustement manuellement
             }
         }
 
@@ -261,15 +285,22 @@ class CreditNoteController extends AbstractController
         ]);
         $form->handleRequest($request);
 
-        // Si le formulaire est soumis mais invalide, récupérer invoice_id depuis la requête
-        if ($form->isSubmitted() && !$form->isValid()) {
-            $submittedData = $request->request->all('credit_note');
-            if (isset($submittedData['invoice']) && $submittedData['invoice']) {
-                $invoiceId = $submittedData['invoice'];
-            }
-        }
-
         if ($form->isSubmitted() && $form->isValid()) {
+            // S'assurer que la facture est bien associée si sélectionnée dans le formulaire
+            // Récupérer depuis le formulaire d'abord
+            $invoiceData = $form->get('invoice')->getData();
+            
+            // Si le champ est désactivé, Symfony ne le traite pas, récupérer depuis la requête
+            if (!$invoiceData) {
+                $invoiceIdFromRequest = $request->request->get('credit_note')['invoice'] ?? null;
+                if ($invoiceIdFromRequest) {
+                    $invoiceData = $this->invoiceRepository->find($invoiceIdFromRequest);
+                    if ($invoiceData) {
+                        $creditNote->setInvoice($invoiceData);
+                    }
+                }
+            }
+            
             // Vérifier que la facture est émise
             if (!$creditNote->getInvoice()) {
                 $this->addFlash('error', 'Un avoir doit être lié à une facture.');
@@ -311,7 +342,7 @@ class CreditNoteController extends AbstractController
 
             // Vérifier qu'au moins une ligne est présente
             if ($creditNote->getLines()->isEmpty()) {
-                $this->addFlash('error', 'Au moins une ligne d\'avoir est requise.');
+                // $this->addFlash('error', 'Au moins une ligne d\'avoir est requise.');
                 return $this->render('admin/credit_note/form.html.twig', [
                     'creditNote' => $creditNote,
                     'form' => $form,
@@ -450,6 +481,7 @@ class CreditNoteController extends AbstractController
             'companySettings' => $companySettings,
             'invoice_locked' => $invoiceId !== null, // Verrouiller le champ si on vient d'une facture
             'invoice_id' => $invoiceId, // Passer l'ID directement pour le champ hidden
+            'invoice' => $creditNote->getInvoice(), // Passer la facture pour afficher ses lignes en lecture seule
         ]);
     }
 
@@ -596,11 +628,17 @@ class CreditNoteController extends AbstractController
             ], new \Symfony\Component\HttpFoundation\Response(null, 422));
         }
 
+        // Récupérer l'ID de la facture si elle existe
+        $invoiceId = $creditNote->getInvoice() ? $creditNote->getInvoice()->getId() : null;
+
         return $this->render('admin/credit_note/form.html.twig', [
             'creditNote' => $creditNote,
             'form' => $form,
             'title' => 'Modifier l\'Avoir ' . ($creditNote->getNumber() ?? ''),
             'companySettings' => $companySettings,
+            'invoice_locked' => false,
+            'invoice_id' => $invoiceId,
+            'invoice' => $creditNote->getInvoice(), // Passer la facture pour afficher ses lignes en lecture seule
         ]);
     }
 
@@ -680,6 +718,41 @@ class CreditNoteController extends AbstractController
         try {
             $this->creditNoteService->send($creditNote);
             $this->addFlash('success', 'Avoir envoyé au client');
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+    }
+
+    #[Route('/{id}/apply', name: 'apply', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('CREDIT_NOTE_ISSUE', subject: 'creditNote')]
+    public function apply(Request $request, CreditNote $creditNote): Response
+    {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('credit_note_apply_' . $creditNote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+
+        // Vérifier le multi-tenant
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+
+        if ($companyId && $creditNote->getCompanyId() !== $companyId) {
+            $this->addFlash('error', 'Vous n\'avez pas accès à cet avoir.');
+            return $this->redirectToRoute('admin_credit_note_index');
+        }
+
+        try {
+            $this->creditNoteService->apply($creditNote);
+            $this->addFlash('success', 'Avoir appliqué avec succès');
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
             $this->addFlash('error', $e->getMessage());
         } catch (\RuntimeException $e) {

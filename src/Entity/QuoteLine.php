@@ -116,9 +116,9 @@ class QuoteLine
         return $this->unitPrice;
     }
 
-    public function setUnitPrice(string $unitPrice): static
+    public function setUnitPrice(?string $unitPrice): static
     {
-        $this->unitPrice = $unitPrice;
+        $this->unitPrice = $unitPrice ?? '0.00';
         $this->recalculateTotalHt();
 
         return $this;
@@ -129,9 +129,9 @@ class QuoteLine
         return $this->totalHt;
     }
 
-    public function setTotalHt(string $totalHt): static
+    public function setTotalHt(?string $totalHt): static
     {
-        $this->totalHt = $totalHt;
+        $this->totalHt = $totalHt ?? '0.00';
 
         return $this;
     }

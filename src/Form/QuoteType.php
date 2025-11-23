@@ -24,6 +24,7 @@ use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Doctrine\ORM\EntityRepository;
 use App\Entity\CompanySettings;
+use App\EventSubscriber\RemoveEmptyLinesSubscriber;
 
 class QuoteType extends AbstractType
 {
@@ -107,6 +108,7 @@ class QuoteType extends AbstractType
                 'help' => 'Délai de livraison (ex: 2 semaines, 1 mois)',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
+            ->addEventSubscriber(new RemoveEmptyLinesSubscriber())
             ->add('notes', TextareaType::class, [
                 'label' => 'Notes',
                 'required' => false,

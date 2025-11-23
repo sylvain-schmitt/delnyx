@@ -26,11 +26,11 @@ class CreditNoteNumberGenerator
     }
 
     /**
-     * Génère un numéro d'avoir unique pour l'année/mois en cours
+     * Génère un numéro d'avoir unique pour l'année en cours
      * Utilise un verrou pessimiste pour garantir l'unicité
      * 
      * @param CreditNote $creditNote L'avoir pour lequel générer le numéro
-     * @return string Le numéro généré (ex: CN-202501-001)
+     * @return string Le numéro généré (ex: AV-2025-0001)
      * @throws \RuntimeException en cas d'erreur
      */
     public function generate(CreditNote $creditNote): string
@@ -40,18 +40,18 @@ class CreditNoteNumberGenerator
             return $creditNote->getNumber();
         }
 
-        $yearMonth = date('Ym'); // Format YYYYMM
+        $year = date('Y'); // Format YYYY
         $connection = $this->entityManager->getConnection();
 
         // Démarrer une transaction pour le verrou
         $connection->beginTransaction();
 
         try {
-            // Trouver le dernier numéro pour ce mois avec un verrou pessimiste
+            // Trouver le dernier numéro pour cette année avec un verrou pessimiste
             $lastCreditNote = $this->entityManager->getRepository(CreditNote::class)
                 ->createQueryBuilder('cn')
                 ->where('cn.number LIKE :pattern')
-                ->setParameter('pattern', sprintf('CN-%s-%%', $yearMonth))
+                ->setParameter('pattern', sprintf('AV-%s-%%', $year))
                 ->orderBy('cn.number', 'DESC')
                 ->setMaxResults(1)
                 ->getQuery()
@@ -61,15 +61,15 @@ class CreditNoteNumberGenerator
             $sequence = 1;
             if ($lastCreditNote && $lastCreditNote->getNumber()) {
                 // Extraire le numéro de séquence du dernier avoir
-                // Format attendu : CN-YYYYMM-XXX
+                // Format attendu : AV-YYYY-XXXX
                 $parts = explode('-', $lastCreditNote->getNumber());
                 if (count($parts) === 3 && is_numeric($parts[2])) {
                     $sequence = (int) $parts[2] + 1;
                 }
             }
 
-            // Générer le numéro au format CN-YYYYMM-XXX (ex: CN-202501-001)
-            $numero = sprintf('CN-%s-%03d', $yearMonth, $sequence);
+            // Générer le numéro au format AV-YYYY-XXXX (ex: AV-2025-0001)
+            $numero = sprintf('AV-%s-%04d', $year, $sequence);
 
             // Vérifier l'unicité (double vérification)
             $existing = $this->entityManager->getRepository(CreditNote::class)

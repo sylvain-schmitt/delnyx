@@ -113,11 +113,11 @@ enum InvoiceStatus: string
 
     /**
      * Vérifie si la facture peut être envoyée
-     * ISSUED → SENT
+     * Peut être envoyée sauf si DRAFT ou CANCELLED
      */
     public function canBeSent(): bool
     {
-        return in_array($this, [self::ISSUED, self::PAID]);
+        return !in_array($this, [self::DRAFT, self::CANCELLED]);
     }
 
     /**

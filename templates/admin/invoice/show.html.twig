@@ -163,8 +163,10 @@
 										<th class="px-4 py-3 text-left text-xs font-semibold text-white/80 uppercase">Description</th>
 										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Qté</th>
 										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Prix unitaire</th>
-										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">TVA</th>
-										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total HT</th>
+										{% if companySettings and companySettings.isTvaEnabled() %}
+											<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">TVA</th>
+											<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total HT</th>
+										{% endif %}
 										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total TTC</th>
 									</tr>
 								</thead>
@@ -175,19 +177,21 @@
 											<td class="px-4 py-3 text-right text-white">{{ line.quantity }}</td>
 											<td class="px-4 py-3 text-right text-white">{{ line.unitPrice|number_format(2, ',', ' ') }}
 												€</td>
-											<td class="px-4 py-3 text-right text-white">
-												{% if invoice.quote and invoice.quote.usePerLineTva and line.tvaRate %}
-													{{ line.tvaRate }}%
-												{% elseif invoice.quote and invoice.quote.usePerLineTva %}
-													{{ invoice.quote.tauxTVA }}%
-												{% elseif invoice.quote %}
-													{{ invoice.quote.tauxTVA }}%
-												{% else %}
-													-
-												{% endif %}
-											</td>
-											<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }}
-												€</td>
+											{% if companySettings and companySettings.isTvaEnabled() %}
+												<td class="px-4 py-3 text-right text-white">
+													{% if invoice.quote and invoice.quote.usePerLineTva and line.tvaRate %}
+														{{ line.tvaRate }}%
+													{% elseif invoice.quote and invoice.quote.usePerLineTva %}
+														{{ invoice.quote.tauxTVA }}%
+													{% elseif invoice.quote %}
+														{{ invoice.quote.tauxTVA }}%
+													{% else %}
+														-
+													{% endif %}
+												</td>
+												<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }}
+													€</td>
+											{% endif %}
 											<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalTtcFormatted }}</td>
 										</tr>
 									{% endfor %}
@@ -212,26 +216,28 @@
 											<span class="text-white">{{ line.unitPrice|number_format(2, ',', ' ') }}
 												€</span>
 										</div>
-										<div class="flex justify-between">
-											<span class="text-white/60">TVA</span>
-											<span class="text-white">
-												{% if invoice.quote and invoice.quote.usePerLineTva and line.tvaRate %}
-													{{ line.tvaRate }}%
-												{% elseif invoice.quote and invoice.quote.usePerLineTva %}
-													{{ invoice.quote.tauxTVA }}%
-												{% elseif invoice.quote %}
-													{{ invoice.quote.tauxTVA }}%
-												{% else %}
-													-
-												{% endif %}
-											</span>
-										</div>
-										<div class="flex justify-between pt-2 border-t border-white/10">
-											<span class="text-white/60">Total HT</span>
-											<span class="text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }}
-												€</span>
-										</div>
-										<div class="flex justify-between">
+										{% if companySettings and companySettings.isTvaEnabled() %}
+											<div class="flex justify-between">
+												<span class="text-white/60">TVA</span>
+												<span class="text-white">
+													{% if invoice.quote and invoice.quote.usePerLineTva and line.tvaRate %}
+														{{ line.tvaRate }}%
+													{% elseif invoice.quote and invoice.quote.usePerLineTva %}
+														{{ invoice.quote.tauxTVA }}%
+													{% elseif invoice.quote %}
+														{{ invoice.quote.tauxTVA }}%
+													{% else %}
+														-
+													{% endif %}
+												</span>
+											</div>
+											<div class="flex justify-between pt-2 border-t border-white/10">
+												<span class="text-white/60">Total HT</span>
+												<span class="text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }}
+													€</span>
+											</div>
+										{% endif %}
+										<div class="flex justify-between {% if companySettings and companySettings.isTvaEnabled() %}{% else %}pt-2 border-t border-white/10{% endif %}">
 											<span class="text-white font-medium">Total TTC</span>
 											<span class="text-white font-bold">{{ line.totalTtcFormatted }}</span>
 										</div>
@@ -263,9 +269,11 @@
 												</a>
 												{% set status = creditNote.statutEnum %}
 												<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-																																										                                                {% if status.value == 'draft' %}bg-yellow-500/20 text-yellow-300
-																																										                                                {% elseif status.value == 'issued' %}bg-green-500/20 text-green-300
-																																										                                                {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+													{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+													{% elseif status.value == 'issued' %}bg-green-500/20 text-green-300
+													{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+													{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+													{% else %}bg-gray-500/20 text-gray-300{% endif %}">
 													{{ status.label }}
 												</span>
 											</div>
@@ -366,63 +374,71 @@
 					</h2>
 
 					<div class="space-y-4">
-						<div class="flex justify-between items-center">
-							<span class="text-white/60">Montant HT</span>
-							<span class="text-white font-semibold">{{ invoice.montantHTFormate }}</span>
-						</div>
+						{% if companySettings and companySettings.isTvaEnabled() %}
+							<div class="flex justify-between items-center">
+								<span class="text-white/60">Montant HT</span>
+								<span class="text-white font-semibold">{{ invoice.montantHTFormate }}</span>
+							</div>
 
-						{% if invoice.quote and invoice.quote.usePerLineTva %}
-							{# TVA par ligne : afficher le détail des taux #}
-							{# Note: line.totalHt est maintenant en euros (DECIMAL) #}
-							{% set totalTvaByRate = {} %}
-								{% for line in invoice.lines %}
-								{% set rate = line.tvaRate ? line.tvaRate : invoice.quote.tauxTVA %}
-								{# line.totalHt est maintenant en euros (DECIMAL) #}
-								{% set totalHtEuros = line.totalHt|number_format(2, '.', '') %}
-								{% set tvaAmountEuros = (totalHtEuros * (rate|number_format(2, '.', '') / 100))|round(2) %}
-									{% if totalTvaByRate[rate] is not defined %}
-									{% set totalTvaByRate = totalTvaByRate|merge({(rate): {'rate': rate, 'tva': tvaAmountEuros}}) %}
-								{% else %}
-									{% set totalTvaByRate = totalTvaByRate|merge({(rate): {'rate': rate, 'tva': totalTvaByRate[rate].tva + tvaAmountEuros}}) %}
-								{% endif %}
-							{% endfor %}
-							{% if totalTvaByRate|length > 0 %}
-								<div class="space-y-2">
-									{% for rate, detail in totalTvaByRate %}
-										<div class="flex justify-between items-center">
-											<span class="text-white/60">TVA
-												{{ detail.rate }}%</span>
-											<span class="text-white font-semibold">{{ detail.tva|number_format(2, ',', ' ') }}
-												€</span>
+							{% if invoice.quote and invoice.quote.usePerLineTva %}
+								{# TVA par ligne : afficher le détail des taux #}
+								{# Note: line.totalHt est maintenant en euros (DECIMAL) #}
+								{% set totalTvaByRate = {} %}
+									{% for line in invoice.lines %}
+									{% set rate = line.tvaRate ? line.tvaRate : invoice.quote.tauxTVA %}
+									{# line.totalHt est maintenant en euros (DECIMAL) #}
+									{% set totalHtEuros = line.totalHt|number_format(2, '.', '') %}
+									{% set tvaAmountEuros = (totalHtEuros * (rate|number_format(2, '.', '') / 100))|round(2) %}
+										{% if totalTvaByRate[rate] is not defined %}
+										{% set totalTvaByRate = totalTvaByRate|merge({(rate): {'rate': rate, 'tva': tvaAmountEuros}}) %}
+									{% else %}
+										{% set totalTvaByRate = totalTvaByRate|merge({(rate): {'rate': rate, 'tva': totalTvaByRate[rate].tva + tvaAmountEuros}}) %}
+									{% endif %}
+								{% endfor %}
+								{% if totalTvaByRate|length > 0 %}
+									<div class="space-y-2">
+										{% for rate, detail in totalTvaByRate %}
+											<div class="flex justify-between items-center">
+												<span class="text-white/60">TVA
+													{{ detail.rate }}%</span>
+												<span class="text-white font-semibold">{{ detail.tva|number_format(2, ',', ' ') }}
+													€</span>
+											</div>
+										{% endfor %}
+										<div class="pt-2 border-t border-white/10 flex justify-between items-center">
+											<span class="text-white/60 font-medium">Total TVA</span>
+											<span class="text-white font-semibold">{{ invoice.montantTVAFormate }}</span>
 										</div>
-									{% endfor %}
-									<div class="pt-2 border-t border-white/10 flex justify-between items-center">
-										<span class="text-white/60 font-medium">Total TVA</span>
+									</div>
+								{% else %}
+									<div class="flex justify-between items-center">
+										<span class="text-white/60">TVA</span>
 										<span class="text-white font-semibold">{{ invoice.montantTVAFormate }}</span>
 									</div>
-								</div>
+								{% endif %}
 							{% else %}
+								{# TVA globale #}
 								<div class="flex justify-between items-center">
-									<span class="text-white/60">TVA</span>
+									<span class="text-white/60">TVA
+										{% if invoice.quote %}
+											({{ invoice.quote.tauxTVA }}%)
+										{% endif %}
+									</span>
 									<span class="text-white font-semibold">{{ invoice.montantTVAFormate }}</span>
 								</div>
 							{% endif %}
+
+							<div class="pt-2 border-t border-white/10 flex justify-between items-center">
+								<span class="text-white/60">Total TTC initial</span>
+								<span class="text-white font-semibold">{{ invoice.montantTTCFormate }}</span>
+							</div>
 						{% else %}
-							{# TVA globale #}
+							{# TVA désactivée : afficher TTC au lieu de HT #}
 							<div class="flex justify-between items-center">
-								<span class="text-white/60">TVA
-									{% if invoice.quote %}
-										({{ invoice.quote.tauxTVA }}%)
-									{% endif %}
-								</span>
-								<span class="text-white font-semibold">{{ invoice.montantTVAFormate }}</span>
+								<span class="text-white/60">Total TTC initial</span>
+								<span class="text-white font-semibold">{{ invoice.montantTTCFormate }}</span>
 							</div>
 						{% endif %}
-
-						<div class="pt-2 border-t border-white/10 flex justify-between items-center">
-							<span class="text-white/60">Total TTC initial</span>
-							<span class="text-white font-semibold">{{ invoice.montantTTCFormate }}</span>
-						</div>
 
 						{# Afficher les avoirs émis s'il y en a #}
 						{% if avoirsEmis|length > 0 %}
@@ -492,7 +508,7 @@
 
 						{# Bouton Émettre : visible si DRAFT #}
 						{% if invoice.statutEnum.value == 'draft' %}
-							<form action="{{ path('admin_invoice_issue', {id: invoice.id}) }}" method="POST" class="w-full" data-controller="confirm-modal" data-confirm-modal-message="⚠️ ATTENTION : Émettre cette facture la rend immuable. Continuer ?">
+							<form action="{{ path('admin_invoice_issue', {id: invoice.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cette facture la rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
 								<input type="hidden" name="_token" value="{{ csrf_token('invoice_issue_' ~ invoice.id) }}">
 								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
 									{{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
@@ -501,9 +517,9 @@
 							</form>
 						{% endif %}
 
-						{# Bouton Envoyer : visible si ISSUED ou PAID (pas si déjà SENT) #}
-						{% if invoice.statutEnum.value in ['issued', 'paid'] %}
-							<form action="{{ path('admin_invoice_send', {id: invoice.id}) }}" method="POST" class="w-full" data-controller="confirm-modal" data-confirm-modal-message="Envoyer cette facture au client ?">
+						{# Bouton Envoyer : visible sauf si DRAFT #}
+						{% if invoice.statutEnum.value != 'draft' %}
+							<form action="{{ path('admin_invoice_send', {id: invoice.id}) }}" method="POST" class="w-full">
 								<input type="hidden" name="_token" value="{{ csrf_token('invoice_send_' ~ invoice.id) }}">
 								<input type="hidden" name="channel" value="email">
 								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
@@ -515,7 +531,7 @@
 
 						{# Bouton Marquer comme payée : visible si ISSUED ou SENT #}
 						{% if invoice.statutEnum.value in ['issued', 'sent'] %}
-							<form action="{{ path('admin_invoice_mark_paid', {id: invoice.id}) }}" method="POST" class="w-full" data-controller="confirm-modal" data-confirm-modal-message="Marquer cette facture comme payée ?">
+							<form action="{{ path('admin_invoice_mark_paid', {id: invoice.id}) }}" method="POST" class="w-full">
 								<input type="hidden" name="_token" value="{{ csrf_token('invoice_mark_paid_' ~ invoice.id) }}">
 								<button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
 									{{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
@@ -534,20 +550,25 @@
 
 						{# Bouton Annuler : visible si DRAFT uniquement #}
 						{% if invoice.statutEnum.value == 'draft' %}
-							<form action="{{ path('admin_invoice_cancel', {id: invoice.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Annuler cette facture la marquera comme annulée. Continuer ?">
+							<form action="{{ path('admin_invoice_cancel', {id: invoice.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Annuler cette facture la marquera comme annulée. Continuer ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
 								<input type="hidden" name="_token" value="{{ csrf_token('invoice_cancel_' ~ invoice.id) }}">
 								<button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
 									{{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
-									Annuler
+									Annuler la facture
 								</button>
 							</form>
 						{% endif %}
 
 						{# Bouton Télécharger PDF : toujours visible #}
-						<a href="#" class="w-full btn-secondary flex items-center justify-center gap-2">
+						<a href="{{ path('admin_invoice_download_pdf', {id: invoice.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2" target="_blank">
 							{{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
 							Télécharger le PDF
 						</a>
+						{% if invoice.pdfHash %}
+							<div class="text-xs text-white/40 break-all mt-2 text-center">
+								<span title="Empreinte numérique SHA256 pour conformité légale">SHA256: {{ invoice.pdfHash|slice(0, 16) }}...</span>
+							</div>
+						{% endif %}
 					</div>
 				</div>
 			</div>

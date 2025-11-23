@@ -35,14 +35,14 @@
 			</div>
 		</div>
 
-		{# Alerte immutabilité si devis signé #}
-		{% if quote.statut.value == 'signed' %}
+		{# Alerte immutabilité si devis émis ou signé #}
+		{% if quote.statut.value in ['issued', 'sent', 'signed', 'refused', 'expired', 'cancelled'] %}
 			<div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 scroll-animate">
 				<div class="flex items-start gap-3">
 					{{ ux_icon('lucide:lock', {class: 'w-5 h-5 text-blue-400 mt-0.5'}) }}
 					<div class="flex-1">
-						<p class="text-blue-300 font-medium mb-1">Devis signé - Document immuable</p>
-						<p class="text-blue-200/80 text-sm">Ce devis est signé et ne peut plus être modifié. Pour apporter des modifications, créez un avenant.</p>
+						<p class="text-blue-300 font-medium mb-1">Document immuable</p>
+						<p class="text-blue-200/80 text-sm">Ce devis est {% if quote.statut.value == 'signed' %}signé{% else %}émis{% endif %} et ne peut plus être modifié.{% if quote.statut.value == 'signed' %} Pour apporter des modifications, créez un avenant.{% endif %}</p>
 					</div>
 				</div>
 			</div>
@@ -98,6 +98,33 @@
 							</div>
 						{% endif %}
 
+						{% if quote.dateAcceptation %}
+							<div>
+								<p class="text-sm text-white/60 mb-1">Date d'acceptation</p>
+								<p class="text-white">{{ quote.dateAcceptation|date('d/m/Y à H:i') }}</p>
+							</div>
+						{% endif %}
+
+						{% if quote.statut.value != 'draft' %}
+							<div>
+								{% if quote.dateEnvoi %}
+									<p class="text-sm text-white/60 mb-1">Date d'envoi</p>
+									<p class="text-white">{{ quote.dateEnvoi|date('d/m/Y à H:i') }}</p>
+								{% endif %}
+								{% if quote.sentCount > 0 %}
+									<p class="text-xs text-white/60">Envoyé
+										{{ quote.sentCount }}
+										fois</p>
+								{% elseif quote.statut.value == 'sent' %}
+									<p class="text-xs text-white/60">Statut : Envoyé</p>
+								{% endif %}
+								{% if quote.deliveryChannel %}
+									<p class="text-xs text-white/60">Canal :
+										{{ quote.deliveryChannel }}</p>
+								{% endif %}
+							</div>
+						{% endif %}
+
 						{% if quote.dateSignature %}
 							<div>
 								<p class="text-sm text-white/60 mb-1">Date de signature</p>
@@ -123,8 +150,10 @@
 										<th class="px-4 py-3 text-left text-xs font-semibold text-white/80 uppercase">Description</th>
 										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Qté</th>
 										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Prix unitaire</th>
-										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">TVA</th>
-										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total HT</th>
+										{% if companySettings and companySettings.isTvaEnabled() %}
+											<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">TVA</th>
+											<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total HT</th>
+										{% endif %}
 										<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total TTC</th>
 									</tr>
 								</thead>
@@ -134,16 +163,18 @@
 											<td class="px-4 py-3 text-white">{{ line.description }}</td>
 											<td class="px-4 py-3 text-right text-white">{{ line.quantity }}</td>
 											<td class="px-4 py-3 text-right text-white">{{ line.unitPrice|number_format(2, ',', ' ') }} €</td>
-											<td class="px-4 py-3 text-right text-white">
-												{% if quote.usePerLineTva and line.tvaRate %}
-													{{ line.tvaRate }}%
-												{% elseif quote.usePerLineTva %}
-													{{ quote.tauxTVA }}%
-												{% else %}
-													{{ quote.tauxTVA }}%
-												{% endif %}
-											</td>
-											<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }} €</td>
+											{% if companySettings and companySettings.isTvaEnabled() %}
+												<td class="px-4 py-3 text-right text-white">
+													{% if quote.usePerLineTva and line.tvaRate %}
+														{{ line.tvaRate }}%
+													{% elseif quote.usePerLineTva %}
+														{{ quote.tauxTVA }}%
+													{% else %}
+														{{ quote.tauxTVA }}%
+													{% endif %}
+												</td>
+												<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }} €</td>
+											{% endif %}
 											<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalTtcFormatted }}</td>
 										</tr>
 									{% endfor %}
@@ -167,23 +198,25 @@
 											<span class="text-white/60">Prix unitaire</span>
 											<span class="text-white">{{ line.unitPrice|number_format(2, ',', ' ') }} €</span>
 										</div>
-										<div class="flex justify-between">
-											<span class="text-white/60">TVA</span>
-											<span class="text-white">
-												{% if quote.usePerLineTva and line.tvaRate %}
-													{{ line.tvaRate }}%
-												{% elseif quote.usePerLineTva %}
-													{{ quote.tauxTVA }}%
-												{% else %}
-													{{ quote.tauxTVA }}%
-												{% endif %}
-											</span>
-										</div>
-										<div class="flex justify-between pt-2 border-t border-white/10">
-											<span class="text-white/60">Total HT</span>
-											<span class="text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }} €</span>
-										</div>
-										<div class="flex justify-between">
+										{% if companySettings and companySettings.isTvaEnabled() %}
+											<div class="flex justify-between">
+												<span class="text-white/60">TVA</span>
+												<span class="text-white">
+													{% if quote.usePerLineTva and line.tvaRate %}
+														{{ line.tvaRate }}%
+													{% elseif quote.usePerLineTva %}
+														{{ quote.tauxTVA }}%
+													{% else %}
+														{{ quote.tauxTVA }}%
+													{% endif %}
+												</span>
+											</div>
+											<div class="flex justify-between pt-2 border-t border-white/10">
+												<span class="text-white/60">Total HT</span>
+												<span class="text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }} €</span>
+											</div>
+										{% endif %}
+										<div class="flex justify-between {% if companySettings and companySettings.isTvaEnabled() %}{% else %}pt-2 border-t border-white/10{% endif %}">
 											<span class="text-white font-medium">Total TTC</span>
 											<span class="text-white font-bold">{{ line.totalTtcFormatted }}</span>
 										</div>
@@ -215,7 +248,7 @@
 												</a>
 												{% set status = amendment.statutEnum %}
 												<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-													{% if status.value == 'draft' %}bg-yellow-500/20 text-yellow-300
+													{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
 													{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
 													{% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
 													{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
@@ -285,47 +318,55 @@
 					</h2>
 
 					<div class="space-y-4">
-						<div class="flex justify-between items-center">
-							<span class="text-white/60">Montant HT initial</span>
-							<span class="text-white font-semibold">{{ quote.montantHTFormate }}</span>
-						</div>
+						{% if companySettings and companySettings.isTvaEnabled() %}
+							<div class="flex justify-between items-center">
+								<span class="text-white/60">Montant HT initial</span>
+								<span class="text-white font-semibold">{{ quote.montantHTFormate }}</span>
+							</div>
 
-						{% if quote.usePerLineTva %}
-							{# TVA par ligne : afficher le détail des taux #}
-							{% set tvaDetail = quote.tvaRatesDetail %}
-							{% if tvaDetail|length > 0 %}
-								<div class="space-y-2">
-									{% for tauxKey, detail in tvaDetail %}
-										<div class="flex justify-between items-center">
-											<span class="text-white/60">TVA
-												{{ detail.rate }}%</span>
-											<span class="text-white font-semibold">{{ (detail.tva / 100)|number_format(2, ',', ' ') }}
-												€</span>
+							{% if quote.usePerLineTva %}
+								{# TVA par ligne : afficher le détail des taux #}
+								{% set tvaDetail = quote.tvaRatesDetail %}
+								{% if tvaDetail|length > 0 %}
+									<div class="space-y-2">
+										{% for tauxKey, detail in tvaDetail %}
+											<div class="flex justify-between items-center">
+												<span class="text-white/60">TVA
+													{{ detail.rate }}%</span>
+												<span class="text-white font-semibold">{{ detail.tva|number_format(2, ',', ' ') }}
+													€</span>
+											</div>
+										{% endfor %}
+										<div class="pt-2 border-t border-white/10 flex justify-between items-center">
+											<span class="text-white/60 font-medium">Total TVA</span>
+											<span class="text-white font-semibold">{{ quote.montantTVAFormate }}</span>
 										</div>
-									{% endfor %}
-									<div class="pt-2 border-t border-white/10 flex justify-between items-center">
-										<span class="text-white/60 font-medium">Total TVA</span>
+									</div>
+								{% else %}
+									<div class="flex justify-between items-center">
+										<span class="text-white/60">TVA</span>
 										<span class="text-white font-semibold">{{ quote.montantTVAFormate }}</span>
 									</div>
-								</div>
+								{% endif %}
 							{% else %}
+								{# TVA globale #}
 								<div class="flex justify-between items-center">
-									<span class="text-white/60">TVA</span>
+									<span class="text-white/60">TVA ({{ quote.tauxTVA }}%)</span>
 									<span class="text-white font-semibold">{{ quote.montantTVAFormate }}</span>
 								</div>
 							{% endif %}
+
+							<div class="pt-2 border-t border-white/10 flex justify-between items-center">
+								<span class="text-white/60">Total TTC initial</span>
+								<span class="text-white font-semibold">{{ quote.montantTTCFormate }}</span>
+							</div>
 						{% else %}
-							{# TVA globale #}
+							{# TVA désactivée : afficher TTC au lieu de HT #}
 							<div class="flex justify-between items-center">
-								<span class="text-white/60">TVA ({{ quote.tauxTVA }}%)</span>
-								<span class="text-white font-semibold">{{ quote.montantTVAFormate }}</span>
+								<span class="text-white/60">Total TTC initial</span>
+								<span class="text-white font-semibold">{{ quote.montantTTCFormate }}</span>
 							</div>
 						{% endif %}
-
-						<div class="pt-2 border-t border-white/10 flex justify-between items-center">
-							<span class="text-white/60">Total TTC initial</span>
-							<span class="text-white font-semibold">{{ quote.montantTTCFormate }}</span>
-						</div>
 
 						{# Afficher les avenants signés s'il y en a #}
 						{% set avenantsSignes = amendments|filter(a => a.statutEnum.value == 'signed') %}
@@ -394,17 +435,28 @@
 					</h2>
 
 					<div class="space-y-3">
-						{# Bouton Modifier : visible si DRAFT, SENT, ACCEPTED #}
-						{% if quote.statut.value in ['draft', 'sent', 'accepted'] %}
+						{# Bouton Modifier : visible si DRAFT uniquement #}
+						{% if quote.statut.value == 'draft' %}
 							<a href="{{ path('admin_quote_edit', {id: quote.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2">
 								{{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
 								Modifier
 							</a>
 						{% endif %}
 
-						{# Bouton Envoyer : visible si DRAFT #}
+						{# Bouton Émettre : visible si DRAFT #}
 						{% if quote.statut.value == 'draft' %}
-							<form action="{{ path('admin_quote_send', {id: quote.id}) }}" method="POST" class="w-full" data-controller="confirm-modal" data-confirm-modal-message="Êtes-vous sûr de vouloir envoyer ce devis au client ?">
+							<form action="{{ path('admin_quote_issue', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre ce devis le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
+								<input type="hidden" name="_token" value="{{ csrf_token('quote_issue_' ~ quote.id) }}">
+								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
+									{{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
+									Émettre
+								</button>
+							</form>
+						{% endif %}
+
+						{# Bouton Envoyer : visible si ISSUED, SENT, SIGNED, ACCEPTED (pas DRAFT, REFUSED, EXPIRED, CANCELLED) #}
+						{% if quote.statut.value in ['issued', 'sent', 'signed', 'accepted'] %}
+							<form action="{{ path('admin_quote_send', {id: quote.id}) }}" method="POST" class="w-full">
 								<input type="hidden" name="_token" value="{{ csrf_token('quote_send_' ~ quote.id) }}">
 								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
 									{{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
@@ -413,46 +465,46 @@
 							</form>
 						{% endif %}
 
-						{# Bouton Accepter : visible si SENT #}
-						{% if quote.statut.value == 'sent' %}
-							<form action="{{ path('admin_quote_accept', {id: quote.id}) }}" method="POST" class="w-full" data-controller="confirm-modal" data-confirm-modal-message="Marquer ce devis comme accepté ?">
-								<input type="hidden" name="_token" value="{{ csrf_token('quote_accept_' ~ quote.id) }}">
-								<button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
-									{{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
-									Accepter
-								</button>
-							</form>
-						{% endif %}
+						{# Bouton Accepter : visible si ISSUED ou SENT #}
+			{% if quote.statut.value in ['issued', 'sent'] %}
+				<form action="{{ path('admin_quote_accept', {id: quote.id}) }}" method="POST" class="w-full">
+					<input type="hidden" name="_token" value="{{ csrf_token('quote_accept_' ~ quote.id) }}">
+					<button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
+						{{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
+						Accepter
+					</button>
+				</form>
+			{% endif %}
 
-						{# Bouton Signer : visible si SENT ou ACCEPTED #}
-						{% if quote.statut.value in ['sent', 'accepted'] %}
-							<form action="{{ path('admin_quote_sign', {id: quote.id}) }}" method="POST" class="w-full" data-controller="confirm-modal" data-confirm-modal-message="⚠️ ATTENTION : Signer ce devis le transforme en CONTRAT et le rend immuable. Continuer ?">
-								<input type="hidden" name="_token" value="{{ csrf_token('quote_sign_' ~ quote.id) }}">
-								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
-									{{ ux_icon('lucide:pen-tool', {class: 'w-4 h-4'}) }}
-									Signer
-								</button>
-							</form>
-						{% endif %}
+			{# Bouton Signer : visible si ISSUED, SENT ou ACCEPTED #}
+			{% if quote.statut.value in ['issued', 'sent', 'accepted'] %}
+				<form action="{{ path('admin_quote_sign', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer ce devis le transforme en CONTRAT et le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
+					<input type="hidden" name="_token" value="{{ csrf_token('quote_sign_' ~ quote.id) }}">
+					<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
+						{{ ux_icon('lucide:pen-tool', {class: 'w-4 h-4'}) }}
+						Signer
+					</button>
+				</form>
+			{% endif %}
 
-						{# Bouton Refuser : visible si SENT ou ACCEPTED #}
-						{% if quote.statut.value in ['sent', 'accepted'] %}
-							<form action="{{ path('admin_quote_refuse', {id: quote.id}) }}" method="POST" class="w-full" data-controller="confirm-modal" data-confirm-modal-message="Marquer ce devis comme refusé ?">
-								<input type="hidden" name="_token" value="{{ csrf_token('quote_refuse_' ~ quote.id) }}">
-								<button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
-									{{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
-									Refuser
-								</button>
-							</form>
-						{% endif %}
+			{# Bouton Refuser : visible si ISSUED, SENT ou ACCEPTED #}
+			{% if quote.statut.value in ['issued', 'sent', 'accepted'] %}
+				<form action="{{ path('admin_quote_refuse', {id: quote.id}) }}" method="POST" class="w-full">
+					<input type="hidden" name="_token" value="{{ csrf_token('quote_refuse_' ~ quote.id) }}">
+					<button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
+						{{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
+						Refuser
+					</button>
+				</form>
+			{% endif %}
 
-						{# Bouton Annuler : visible si DRAFT, SENT, ACCEPTED #}
-						{% if quote.statut.value in ['draft', 'sent', 'accepted'] %}
-							<form action="{{ path('admin_quote_cancel', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler ce devis ?">
+						{# Bouton Annuler : visible si DRAFT uniquement #}
+						{% if quote.statut.value == 'draft' %}
+							<form action="{{ path('admin_quote_cancel', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler ce devis ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
 								<input type="hidden" name="_token" value="{{ csrf_token('quote_cancel_' ~ quote.id) }}">
 								<button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
 									{{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
-									Annuler
+									Annuler le devis
 								</button>
 							</form>
 						{% endif %}
@@ -467,20 +519,25 @@
 
 						{# Bouton Générer facture : visible si SIGNED et pas de facture existante #}
 						{% if quote.statut.value == 'signed' and not quote.invoice %}
-							<form action="{{ path('admin_quote_generate_invoice', {id: quote.id}) }}" method="POST" class="w-full" data-controller="confirm-modal" data-confirm-modal-message="Générer une facture depuis ce devis signé ?">
+							<form action="{{ path('admin_quote_generate_invoice', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Générer une facture depuis ce devis signé ?" data-confirm-modal-title="Confirmer la génération" data-confirm-modal-button="Générer">
 								<input type="hidden" name="_token" value="{{ csrf_token('quote_generate_invoice_' ~ quote.id) }}">
 								<button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
 									{{ ux_icon('lucide:receipt', {class: 'w-4 h-4'}) }}
-									Générer facture
+									Générer une facture
 								</button>
 							</form>
 						{% endif %}
 
 						{# Bouton Télécharger PDF #}
-						<a href="#" class="w-full btn-secondary flex items-center justify-center gap-2">
+						<a href="{{ path('admin_quote_download_pdf', {id: quote.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2" target="_blank">
 							{{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
 							Télécharger le PDF
 						</a>
+						{% if quote.pdfHash %}
+							<div class="text-xs text-white/40 break-all mt-2 text-center">
+								<span title="Empreinte numérique SHA256 pour conformité légale">SHA256: {{ quote.pdfHash|slice(0, 16) }}...</span>
+							</div>
+						{% endif %}
 					</div>
 				</div>
 			</div>

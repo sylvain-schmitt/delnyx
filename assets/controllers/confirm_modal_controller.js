@@ -5,12 +5,14 @@ import { Controller } from "@hotwired/stimulus"
  * Utilisable partout dans l'admin pour confirmer des actions destructives
  */
 export default class extends Controller {
-    static targets = ["modal", "overlay", "title", "message", "confirmButton", "cancelButton"]
+    static targets = ["modal", "overlay", "title", "message", "confirmButton", "cancelButton", "buttonText"]
     static values = {
         actionUrl: String,
         actionMethod: { type: String, default: "POST" },
         csrfToken: String,
-        itemName: String
+        itemName: String,
+        modalTitle: String,
+        buttonText: String
     }
 
     connect() {
@@ -19,7 +21,7 @@ export default class extends Controller {
             console.warn('⚠️ Confirm modal: targets manquants. Vérifiez que la modale est bien incluse dans le template.')
             return
         }
-        
+
         // Initialiser la modale comme fermée
         this.close()
         // Lier la gestion de la touche Escape
@@ -35,15 +37,30 @@ export default class extends Controller {
      * Gère l'ouverture via événement personnalisé
      */
     openModal(event) {
-        const { url, method, csrfToken, itemName, message } = event.detail
+        const { url, method, csrfToken, itemName, message, title, buttonText } = event.detail
 
         this.actionUrlValue = url
         this.actionMethodValue = method || 'POST'
         this.csrfTokenValue = csrfToken || ''
         this.itemNameValue = itemName || 'cet élément'
 
+        // Mettre à jour le titre de la modale
+        if (this.hasTitleTarget) {
+            this.titleTarget.textContent = title || 'Confirmer l\'action'
+        }
+
+        // Mettre à jour le message de la modale
         if (this.hasMessageTarget) {
-            this.messageTarget.textContent = message || `Êtes-vous sûr de vouloir supprimer ${this.itemNameValue} ? Cette action est irréversible.`
+            if (message) {
+                this.messageTarget.textContent = message
+            } else {
+                this.messageTarget.textContent = `Êtes-vous sûr de vouloir effectuer cette action ?`
+            }
+        }
+
+        // Mettre à jour le texte du bouton de confirmation
+        if (this.hasButtonTextTarget) {
+            this.buttonTextTarget.textContent = buttonText || 'Confirmer'
         }
 
         this.modalTarget.classList.remove('hidden')
@@ -63,12 +80,15 @@ export default class extends Controller {
         const method = trigger.dataset.method || trigger.closest('form')?.method?.toUpperCase() || 'POST'
         const token = trigger.dataset.csrfToken || trigger.closest('form')?.querySelector('[name="_token"]')?.value || ''
         const name = trigger.dataset.itemName || 'cet élément'
-        // Support pour data-message et data-confirm-modal-message
-        const message = trigger.dataset.message || trigger.dataset.confirmModalMessage || `Êtes-vous sûr de vouloir supprimer ${name} ? Cette action est irréversible.`
+
+        // Récupérer le message, titre et texte du bouton personnalisés
+        const message = trigger.dataset.message || trigger.dataset.confirmModalMessage || null
+        const title = trigger.dataset.confirmModalTitle || null
+        const buttonText = trigger.dataset.confirmModalButton || null
 
         // Déclencher l'événement personnalisé
         const customEvent = new CustomEvent('open-confirm-modal', {
-            detail: { url, method, csrfToken: token, itemName: name, message }
+            detail: { url, method, csrfToken: token, itemName: name, message, title, buttonText }
         })
         document.dispatchEvent(customEvent)
     }
@@ -91,7 +111,7 @@ export default class extends Controller {
 
         // Créer un FormData pour la soumission
         const formData = new FormData()
-        
+
         // Ajouter le token CSRF si disponible
         if (this.csrfTokenValue) {
             formData.append('_token', this.csrfTokenValue)
@@ -106,23 +126,23 @@ export default class extends Controller {
             },
             credentials: 'same-origin'
         })
-        .then(response => {
-            // Si redirection, suivre la redirection
-            if (response.redirected) {
-                window.location.href = response.url
-            } else if (response.ok) {
-                // Si pas de redirection mais succès, recharger la page
+            .then(response => {
+                // Si redirection, suivre la redirection
+                if (response.redirected) {
+                    window.location.href = response.url
+                } else if (response.ok) {
+                    // Si pas de redirection mais succès, recharger la page
+                    window.location.reload()
+                } else {
+                    // En cas d'erreur, recharger quand même pour voir les messages flash
+                    window.location.reload()
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors de la soumission:', error)
+                // En cas d'erreur, recharger la page
                 window.location.reload()
-            } else {
-                // En cas d'erreur, recharger quand même pour voir les messages flash
-                window.location.reload()
-            }
-        })
-        .catch(error => {
-            console.error('Erreur lors de la soumission:', error)
-            // En cas d'erreur, recharger la page
-            window.location.reload()
-        })
+            })
     }
 
     /**

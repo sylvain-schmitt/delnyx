@@ -18,13 +18,8 @@ export default class extends Controller {
             }
         }
 
-        // Écouter les changements sur usePerLineTva pour afficher/masquer les champs tvaRate
-        const usePerLineTvaCheckbox = this.element.querySelector('input[name*="[usePerLineTva]"]')
-        if (usePerLineTvaCheckbox) {
-            usePerLineTvaCheckbox.addEventListener('change', () => this.toggleTvaRateFields())
-            // Appliquer l'état initial
-            this.toggleTvaRateFields()
-        }
+        // Note: La gestion de l'affichage/masquage des champs tvaRate est maintenant gérée par le contrôleur tva-per-line
+        // On garde cette méthode pour compatibilité mais elle ne sera plus utilisée si tva-per-line est présent
     }
 
     /**
@@ -129,8 +124,8 @@ export default class extends Controller {
         // Connecter les nouveaux champs au contrôleur de validation
         this.connectValidationToNewFields(newLineElement)
 
-        // Appliquer l'état de usePerLineTva aux nouveaux champs tvaRate
-        this.toggleTvaRateFields()
+        // Note: L'état de usePerLineTva est maintenant géré par le contrôleur tva-per-line
+        // qui observe les changements dans le DOM et met à jour automatiquement les nouvelles lignes
     }
 
     /**

@@ -18,6 +18,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
@@ -33,7 +34,8 @@ class QuoteController extends AbstractController
         private AmendmentRepository $amendmentRepository,
         private EntityManagerInterface $entityManager,
         private QuoteService $quoteService,
-        private InvoiceService $invoiceService
+        private InvoiceService $invoiceService,
+        private \App\Service\PdfGeneratorService $pdfGeneratorService
     ) {}
 
     #[Route('/', name: 'index')]
@@ -84,6 +86,16 @@ class QuoteController extends AbstractController
     #[Route('/{id}', name: 'show', requirements: ['id' => '\d+'])]
     public function show(Quote $quote): Response
     {
+        // Charger explicitement la relation invoice pour éviter les requêtes N+1
+        // Recharger le quote avec ses relations
+        $quote = $this->quoteRepository->createQueryBuilder('q')
+            ->leftJoin('q.invoice', 'i')
+            ->addSelect('i')
+            ->where('q.id = :id')
+            ->setParameter('id', $quote->getId())
+            ->getQuery()
+            ->getOneOrNullResult() ?? $quote;
+
         // Récupérer les avenants liés à ce devis
         $amendments = $this->amendmentRepository->createQueryBuilder('a')
             ->where('a.quote = :quote')
@@ -92,9 +104,16 @@ class QuoteController extends AbstractController
             ->getQuery()
             ->getResult();
 
+        // Récupérer CompanySettings pour l'affichage
+        $companySettings = null;
+        if ($quote->getCompanyId()) {
+            $companySettings = $this->companySettingsRepository->findByCompanyId($quote->getCompanyId());
+        }
+
         return $this->render('admin/quote/show.html.twig', [
             'quote' => $quote,
             'amendments' => $amendments,
+            'companySettings' => $companySettings,
         ]);
     }
 
@@ -466,6 +485,25 @@ class QuoteController extends AbstractController
     /**
      * Envoie un devis (DRAFT → SENT)
      */
+    #[Route('/{id}/issue', name: 'issue', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('QUOTE_ISSUE', subject: 'quote')]
+    public function issue(Quote $quote, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('quote_issue_' . $quote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        try {
+            $this->quoteService->issue($quote);
+            $this->addFlash('success', 'Devis émis avec succès.');
+        } catch (\Exception $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+    }
+
     #[Route('/{id}/send', name: 'send', requirements: ['id' => '\d+'], methods: ['POST'])]
     #[IsGranted('QUOTE_SEND', subject: 'quote')]
     public function send(Quote $quote, Request $request): Response
@@ -551,6 +589,61 @@ class QuoteController extends AbstractController
         }
 
         return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+    }
+
+    /**
+     * Génère et affiche le PDF du devis dans le navigateur
+     */
+    #[Route('/{id}/pdf', name: 'pdf', requirements: ['id' => '\\d+'], methods: ['GET'])]
+    public function pdf(Quote $quote): Response
+    {
+        try {
+            return $this->pdfGeneratorService->generateDevisPdf($quote, false);
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de la génération du PDF : ' . $e->getMessage());
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+    }
+
+    /**
+     * Télécharge le PDF du devis (génère et sauvegarde si nécessaire)
+     */
+    #[Route('/{id}/download-pdf', name: 'download_pdf', requirements: ['id' => '\\d+'], methods: ['GET'])]
+    public function downloadPdf(Quote $quote): Response
+    {
+        try {
+            // Si le PDF n'a pas encore été généré, le générer et sauvegarder
+            if (!$quote->getPdfFilename()) {
+                $result = $this->pdfGeneratorService->generateDevisPdf($quote, true);
+                
+                // Sauvegarder le nom de fichier et le hash dans l'entité
+                $quote->setPdfFilename($result['filename']);
+                $quote->setPdfHash($result['hash']);
+                $this->entityManager->flush();
+                
+                // Retourner la réponse PDF
+                return $result['response'];
+            }
+
+            // Si le PDF existe déjà, le retourner depuis le fichier sauvegardé
+            $filePath = $this->getParameter('kernel.project_dir') . '/var/generated_pdfs/' . $quote->getPdfFilename();
+            
+            if (!file_exists($filePath)) {
+                // Le fichier n'existe plus, régénérer
+                $result = $this->pdfGeneratorService->generateDevisPdf($quote, true);
+                $quote->setPdfFilename($result['filename']);
+                $quote->setPdfHash($result['hash']);
+                $this->entityManager->flush();
+                
+                return $result['response'];
+            }
+
+            // Retourner le fichier existant
+            return $this->file($filePath, 'devis-' . $quote->getNumero() . '.pdf', ResponseHeaderBag::DISPOSITION_INLINE);
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors du téléchargement du PDF : ' . $e->getMessage());
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
     }
 
     /**

@@ -17,14 +17,14 @@
                 {{ ux_icon('lucide:alert-triangle', {class: 'w-6 h-6 text-red-400'}) }}
             </div>
             
-            {# Titre #}
-            <h3 class="text-xl font-semibold text-white text-center mb-3">
-                Confirmer la suppression
+            {# Titre (dynamique) #}
+            <h3 data-confirm-modal-target="title" class="text-xl font-semibold text-white text-center mb-3">
+                Confirmer l'action
             </h3>
             
-            {# Message #}
+            {# Message (dynamique) #}
             <p data-confirm-modal-target="message" class="text-white/80 text-center mb-6">
-                Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible.
+                Êtes-vous sûr de vouloir effectuer cette action ?
             </p>
             
             {# Actions #}
@@ -40,8 +40,8 @@
                         data-confirm-modal-target="confirmButton"
                         data-action="click->confirm-modal#confirm"
                         class="flex-1 btn-danger flex items-center justify-center gap-2">
-                    {{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
-                    Supprimer
+                    {{ ux_icon('lucide:check', {class: 'w-4 h-4'}) }}
+                    <span data-confirm-modal-target="buttonText">Confirmer</span>
                 </button>
             </div>
         </div>

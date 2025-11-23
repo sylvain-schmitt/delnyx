@@ -34,6 +34,7 @@ class AmendmentService
         private readonly Security $security,
         private readonly LoggerInterface $logger,
         private readonly AmendmentNumberGenerator $numberGenerator,
+        private readonly PdfGeneratorService $pdfGeneratorService,
     ) {}
 
     /**
@@ -92,7 +93,61 @@ class AmendmentService
     }
 
     /**
-     * Envoie un avenant (DRAFT/SENT → SENT)
+     * Émet un avenant (DRAFT → ISSUED)
+     * 
+     * @throws AccessDeniedException si l'utilisateur n'a pas la permission
+     * @throws \RuntimeException si la transition n'est pas possible
+     */
+    public function issue(Amendment $amendment): void
+    {
+        // Vérifier les permissions
+        if (!$this->authorizationChecker->isGranted('AMENDMENT_ISSUE', $amendment)) {
+            throw new AccessDeniedException('Vous n\'avez pas la permission d\'émettre cet avenant.');
+        }
+
+        $status = $amendment->getStatut();
+        if (!$status || !$status->canBeIssued()) {
+            throw new \RuntimeException(
+                sprintf(
+                    'L\'avenant ne peut pas être émis depuis l\'état "%s".',
+                    $status?->getLabel() ?? 'inconnu'
+                )
+            );
+        }
+
+        // Générer et sauvegarder le PDF AVANT de changer le statut
+        try {
+            $pdfResult = $this->pdfGeneratorService->generateAvenantPdf($amendment, true);
+            $amendment->setPdfFilename($pdfResult['filename']);
+            $amendment->setPdfHash($pdfResult['hash']);
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur lors de la génération du PDF pour l\'avenant', [
+                'amendment_id' => $amendment->getId(),
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        // Effectuer la transition
+        $oldStatus = $status;
+        $amendment->setStatut(AmendmentStatus::ISSUED);
+
+        // Enregistrer l'audit
+        $this->logStatusChange($amendment, $oldStatus, AmendmentStatus::ISSUED, 'issue');
+
+        // Persister tout en une seule fois
+        $this->entityManager->flush();
+
+        $this->logger->info('Avenant émis', [
+            'amendment_id' => $amendment->getId(),
+            'amendment_number' => $amendment->getNumero(),
+            'old_status' => $oldStatus?->value,
+            'new_status' => AmendmentStatus::ISSUED->value,
+            'pdf_generated' => $amendment->getPdfFilename() !== null,
+        ]);
+    }
+
+    /**
+     * Envoie un avenant (ISSUED → SENT, ou renvoie si déjà SENT)
      * 
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
@@ -105,7 +160,7 @@ class AmendmentService
         }
 
         $status = $amendment->getStatut();
-        if (!in_array($status, [AmendmentStatus::DRAFT, AmendmentStatus::SENT])) {
+        if (!$status || !$status->canBeSent()) {
             throw new \RuntimeException(
                 sprintf(
                     'L\'avenant ne peut pas être envoyé depuis l\'état "%s".',
@@ -114,14 +169,24 @@ class AmendmentService
             );
         }
 
-        // Effectuer la transition
+        // Effectuer la transition seulement si l'avenant est en ISSUED (ISSUED → SENT)
         $oldStatus = $status;
-        $amendment->setStatut(AmendmentStatus::SENT);
+        if ($status === AmendmentStatus::ISSUED) {
+            $amendment->setStatut(AmendmentStatus::SENT);
+            // Enregistrer l'audit pour le changement de statut
+            $this->logStatusChange($amendment, $oldStatus, AmendmentStatus::SENT, 'send');
+        } else {
+            // Si l'avenant est déjà envoyé, on ne change pas le statut mais on enregistre juste l'envoi
+            $this->logStatusChange($amendment, $oldStatus, $oldStatus, 'resend');
+        }
+        
+        // Toujours enregistrer la date d'envoi et incrémenter le compteur
         $amendment->setSentAt(new \DateTime());
         $amendment->incrementSentCount();
-
-        // Enregistrer l'audit
-        $this->logStatusChange($amendment, $oldStatus, AmendmentStatus::SENT, 'send');
+        // Par défaut, le canal est 'email' (peut être modifié plus tard)
+        if (!$amendment->getDeliveryChannel()) {
+            $amendment->setDeliveryChannel('email');
+        }
 
         // Persister
         $this->entityManager->flush();

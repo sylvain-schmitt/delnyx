@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 use ApiPlatform\Metadata\ApiResource;
@@ -159,6 +160,20 @@ class Invoice
     #[Groups(['invoice:read', 'invoice:write'])]
     private ?string $companyId = null;
 
+    /**
+     * Nom du fichier PDF généré
+     */
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['invoice:read'])]
+    private ?string $pdfFilename = null;
+
+    /**
+     * Hash SHA256 du PDF pour archivage légal (10 ans)
+     */
+    #[ORM\Column(type: Types::STRING, length: 64, nullable: true)]
+    #[Groups(['invoice:read'])]
+    private ?string $pdfHash = null;
+
     // ===== CHAMPS PDP (Plateforme de Dématérialisation Partenaire) =====
 
     #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
@@ -210,6 +225,36 @@ class Invoice
         $this->statut = InvoiceStatus::DRAFT->value;
         $this->lines = new ArrayCollection();
         $this->creditNotes = new ArrayCollection();
+    }
+    #[ORM\PreUpdate]
+    public function checkImmutability(PreUpdateEventArgs $args): void
+    {
+        // Une fois émise, une facture ne peut plus être modifiée (sauf certains champs techniques)
+        if (!$this->canBeModified()) {
+            $changedFields = array_keys($args->getEntityChangeSet());
+            
+            // Liste des champs autorisés même sur facture émise (champs techniques/métadonnées)
+            $allowedFields = [
+                'datePaiement', 
+                'sentAt', 
+                'sentCount', 
+                'dateModification',
+                'pdfFilename',  // Métadonnée PDF
+                'pdfHash'       // Métadonnée PDF
+            ];
+            
+            $unauthorizedChanges = array_diff($changedFields, $allowedFields);
+            
+            if (!empty($unauthorizedChanges)) {
+                throw new \RuntimeException(
+                    sprintf(
+                        'La facture #%s est émise et ne peut plus être modifiée. Le champ "%s" ne peut pas être modifié.',
+                        $this->numero,
+                        implode('", "', $unauthorizedChanges)
+                    )
+                );
+            }
+        }
     }
 
     public function getId(): ?int
@@ -444,6 +489,28 @@ class Invoice
     public function setCompanyId(string $companyId): self
     {
         $this->companyId = $companyId;
+        return $this;
+    }
+
+    public function getPdfFilename(): ?string
+    {
+        return $this->pdfFilename;
+    }
+
+    public function setPdfFilename(?string $pdfFilename): static
+    {
+        $this->pdfFilename = $pdfFilename;
+        return $this;
+    }
+
+    public function getPdfHash(): ?string
+    {
+        return $this->pdfHash;
+    }
+
+    public function setPdfHash(?string $pdfHash): static
+    {
+        $this->pdfHash = $pdfHash;
         return $this;
     }
 
@@ -833,8 +900,23 @@ class Invoice
         $totalTvaEuros = 0.0;
 
         $quote = $this->getQuote();
-        // Si pas de devis associé, on utilise la TVA par ligne si définie, sinon 0%
-        $usePerLineTva = $quote ? $quote->isUsePerLineTva() : false;
+        
+        // Déterminer si on utilise la TVA par ligne :
+        // - Si un devis est associé, utiliser usePerLineTva du devis
+        // - Sinon, détecter automatiquement si au moins une ligne a un taux de TVA défini
+        $usePerLineTva = false;
+        if ($quote) {
+            $usePerLineTva = $quote->isUsePerLineTva();
+        } else {
+            // Détecter automatiquement : si au moins une ligne a un taux de TVA, on utilise la TVA par ligne
+            foreach ($this->lines as $line) {
+                if ($line->getTvaRate() && (float) $line->getTvaRate() > 0) {
+                    $usePerLineTva = true;
+                    break;
+                }
+            }
+        }
+        
         $tauxTVA = $quote ? (float) $quote->getTauxTVA() : 0.0;
 
         foreach ($this->lines as $line) {
@@ -858,7 +940,7 @@ class Invoice
             $this->montantTVA = number_format($totalTvaEuros, 2, '.', '');
             $this->montantTTC = number_format($totalHtEuros + $totalTvaEuros, 2, '.', '');
         } else {
-            // TVA globale : appliquer le taux du devis sur le total HT
+            // TVA globale : appliquer le taux du devis sur le total HT (ou 0% si pas de devis)
             if ($tauxTVA > 0) {
                 $tvaAmountEuros = $totalHtEuros * ($tauxTVA / 100);
                 $this->montantTVA = number_format($tvaAmountEuros, 2, '.', '');

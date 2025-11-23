@@ -20,6 +20,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
@@ -35,7 +36,8 @@ class InvoiceController extends AbstractController
         private CompanySettingsRepository $companySettingsRepository,
         private AmendmentRepository $amendmentRepository,
         private EntityManagerInterface $entityManager,
-        private InvoiceService $invoiceService
+        private InvoiceService $invoiceService,
+        private \App\Service\PdfGeneratorService $pdfGeneratorService
     ) {}
 
     #[Route('/', name: 'index')]
@@ -165,6 +167,8 @@ class InvoiceController extends AbstractController
             'delaiPaiement' => $delaiPaiement,
             'montantAcompte' => $quote->getMontantAcompte(),
             'lines' => $lines,
+            'quoteLines' => $lines, // Pour l'affichage en lecture seule
+            'quoteTotalTTC' => $quote->getMontantTTCFormate(),
         ]);
     }
 
@@ -182,9 +186,16 @@ class InvoiceController extends AbstractController
                 ->getResult();
         }
 
+        // Récupérer CompanySettings pour l'affichage
+        $companySettings = null;
+        if ($invoice->getCompanyId()) {
+            $companySettings = $this->companySettingsRepository->findByCompanyId($invoice->getCompanyId());
+        }
+
         return $this->render('admin/invoice/show.html.twig', [
             'invoice' => $invoice,
             'quoteAmendments' => $quoteAmendments,
+            'companySettings' => $companySettings,
         ]);
     }
 
@@ -284,6 +295,20 @@ class InvoiceController extends AbstractController
         \error_log(sprintf('[InvoiceController] Après création formulaire: %d lignes dans form.lines', $form->get('lines')->count()));
         $form->handleRequest($request);
 
+        // Debug: vérifier l'état du formulaire après soumission
+        if ($form->isSubmitted()) {
+            \error_log(sprintf('[InvoiceController] Formulaire soumis. Valide: %s', $form->isValid() ? 'OUI' : 'NON'));
+            \error_log(sprintf('[InvoiceController] Nombre de lignes après soumission: %d', $invoice->getLines()->count()));
+            
+            if (!$form->isValid()) {
+                foreach ($form->getErrors(true) as $error) {
+                    \error_log(sprintf('[InvoiceController] Erreur: %s', $error->getMessage()));
+                }
+            }
+        } else {
+            \error_log('[InvoiceController] Formulaire NON soumis');
+        }
+
         if ($form->isSubmitted()) {
             if ($form->isValid()) {
                 // Vérifier qu'au moins une ligne est présente
@@ -296,7 +321,8 @@ class InvoiceController extends AbstractController
                     
                     // Si le champ est désactivé, Symfony ne le traite pas, récupérer depuis la requête
                     if (!$quoteData) {
-                        $quoteIdFromRequest = $request->request->get('invoice')['quote'] ?? null;
+                        $invoiceData = $request->request->all('invoice');
+                        $quoteIdFromRequest = $invoiceData['quote'] ?? null;
                         if ($quoteIdFromRequest) {
                             $quote = $this->quoteRepository->find($quoteIdFromRequest);
                             if ($quote) {
@@ -476,7 +502,8 @@ class InvoiceController extends AbstractController
                     
                     // Si le champ est désactivé, Symfony ne le traite pas, récupérer depuis la requête
                     if (!$quoteData) {
-                        $quoteIdFromRequest = $request->request->get('invoice')['quote'] ?? null;
+                        $invoiceData = $request->request->all('invoice');
+                        $quoteIdFromRequest = $invoiceData['quote'] ?? null;
                         if ($quoteIdFromRequest) {
                             $quote = $this->quoteRepository->find($quoteIdFromRequest);
                             if ($quote) {
@@ -722,6 +749,61 @@ class InvoiceController extends AbstractController
         }
 
         return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+    }
+
+    /**
+     * Génère et affiche le PDF de la facture dans le navigateur
+     */
+    #[Route('/{id}/pdf', name: 'pdf', requirements: ['id' => '\\d+'], methods: ['GET'])]
+    public function pdf(Invoice $invoice): Response
+    {
+        try {
+            return $this->pdfGeneratorService->generateFacturePdf($invoice, false);
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de la génération du PDF : ' . $e->getMessage());
+            return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+        }
+    }
+
+    /**
+     * Télécharge le PDF de la facture (génère et sauvegarde si nécessaire)
+     */
+    #[Route('/{id}/download-pdf', name: 'download_pdf', requirements: ['id' => '\\d+'], methods: ['GET'])]
+    public function downloadPdf(Invoice $invoice): Response
+    {
+        try {
+            // Si le PDF n'a pas encore été généré, le générer et sauvegarder
+            if (!$invoice->getPdfFilename()) {
+                $result = $this->pdfGeneratorService->generateFacturePdf($invoice, true);
+                
+                // Sauvegarder le nom de fichier et le hash dans l'entité
+                $invoice->setPdfFilename($result['filename']);
+                $invoice->setPdfHash($result['hash']);
+                $this->entityManager->flush();
+                
+                // Retourner la réponse PDF
+                return $result['response'];
+            }
+
+            // Si le PDF existe déjà, le retourner depuis le fichier sauvegardé
+            $filePath = $this->getParameter('kernel.project_dir') . '/var/generated_pdfs/' . $invoice->getPdfFilename();
+            
+            if (!file_exists($filePath)) {
+                // Le fichier n'existe plus, régénérer
+                $result = $this->pdfGeneratorService->generateFacturePdf($invoice, true);
+                $invoice->setPdfFilename($result['filename']);
+                $invoice->setPdfHash($result['hash']);
+                $this->entityManager->flush();
+                
+                return $result['response'];
+            }
+
+            // Retourner le fichier existant
+            return $this->file($filePath, 'facture-' . $invoice->getNumero() . '.pdf', ResponseHeaderBag::DISPOSITION_INLINE);
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors du téléchargement du PDF : ' . $e->getMessage());
+            return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+        }
     }
 
     /**

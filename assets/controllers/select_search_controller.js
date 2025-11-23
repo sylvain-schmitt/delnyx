@@ -74,8 +74,8 @@ export default class extends Controller {
 
         searchInput.placeholder = placeholder
         searchInput.autocomplete = 'off'
-        // Ajouter l'attribut data-admin-form-target pour la validation
-        searchInput.setAttribute('data-admin-form-target', 'field')
+        // Ne pas ajouter data-admin-form-target pour éviter que le contrôleur de formulaire ne valide ce champ
+        // searchInput.setAttribute('data-admin-form-target', 'field')
         // Synchroniser la valeur de l'input avec le select pour la validation
         searchInput.setAttribute('data-sync-with', select.name || select.id)
 

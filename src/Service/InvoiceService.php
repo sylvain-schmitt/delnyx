@@ -39,6 +39,7 @@ class InvoiceService
         private readonly LoggerInterface $logger,
         private readonly InvoiceNumberGenerator $numberGenerator,
         private readonly MailerInterface $mailer,
+        private readonly PdfGeneratorService $pdfGeneratorService,
     ) {
     }
 
@@ -85,6 +86,20 @@ class InvoiceService
             $invoice->setNumero($numero);
         }
 
+        // Générer et sauvegarder le PDF AVANT de changer le statut
+        // Ceci est crucial pour éviter les problèmes d'immuabilité
+        try {
+            $pdfResult = $this->pdfGeneratorService->generateFacturePdf($invoice, true);
+            $invoice->setPdfFilename($pdfResult['filename']);
+            $invoice->setPdfHash($pdfResult['hash']);
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur lors de la génération du PDF pour la facture', [
+                'invoice_id' => $invoice->getId(),
+                'error' => $e->getMessage()
+            ]);
+            // On continue quand même l'émission, le PDF pourra être régénéré plus tard
+        }
+
         // Effectuer la transition
         $oldStatus = $statutEnum;
         $invoice->setStatutEnum(InvoiceStatus::ISSUED);
@@ -93,7 +108,7 @@ class InvoiceService
         // Enregistrer l'audit
         $this->logStatusChange($invoice, $oldStatus, InvoiceStatus::ISSUED, 'issue');
 
-        // Persister
+        // Persister tout en une seule fois
         $this->entityManager->flush();
 
         $this->logger->info('Facture émise', [
@@ -101,9 +116,8 @@ class InvoiceService
             'invoice_number' => $invoice->getNumero(),
             'old_status' => $oldStatus?->value,
             'new_status' => InvoiceStatus::ISSUED->value,
+            'pdf_generated' => $invoice->getPdfFilename() !== null,
         ]);
-
-        // TODO: Planifier génération PDF + hash SHA256
     }
 
     /**
@@ -123,12 +137,12 @@ class InvoiceService
             throw new AccessDeniedException('Vous n\'avez pas la permission d\'envoyer cette facture.');
         }
 
-        // Vérifier que la facture peut être envoyée (doit être émise)
+        // Vérifier que la facture peut être envoyée (sauf si DRAFT)
         $statutEnum = $invoice->getStatutEnum();
         if (!$statutEnum || !$statutEnum->canBeSent()) {
             throw new \RuntimeException(
                 sprintf(
-                    'La facture ne peut pas être envoyée depuis l\'état "%s". Seules les factures émises peuvent être envoyées.',
+                    'La facture ne peut pas être envoyée depuis l\'état "%s".',
                     $statutEnum?->getLabel() ?? 'inconnu'
                 )
             );
@@ -181,18 +195,25 @@ class InvoiceService
             $invoice->setDeliveryChannel($deliveryChannel);
         }
 
-        // Changer le statut si la facture est ISSUED (ISSUED → SENT)
+        // Changer le statut seulement si la facture est ISSUED (ISSUED → SENT)
         $oldStatus = $invoice->getStatutEnum();
         if ($invoice->getStatutEnum() === InvoiceStatus::ISSUED) {
             $invoice->setStatutEnum(InvoiceStatus::SENT);
+            // Enregistrer l'audit pour le changement de statut
+            $this->logStatusChange($invoice, $oldStatus, InvoiceStatus::SENT, 'send', [
+                'channel' => $deliveryChannel,
+                'recipient' => $invoice->getClient()->getEmail(),
+                'sent_count' => $invoice->getSentCount(),
+            ]);
+        } else {
+            // Si la facture est déjà envoyée, on ne change pas le statut mais on enregistre juste l'envoi
+            $this->logStatusChange($invoice, $oldStatus, $oldStatus, 'resend', [
+                'channel' => $deliveryChannel,
+                'recipient' => $invoice->getClient()->getEmail(),
+                'sent_count' => $invoice->getSentCount(),
+            ]);
         }
 
-        // Enregistrer l'audit
-        $this->logStatusChange($invoice, $oldStatus, $invoice->getStatutEnum(), 'send', [
-            'channel' => $deliveryChannel,
-            'recipient' => $invoice->getClient()->getEmail(),
-            'sent_count' => $invoice->getSentCount(),
-        ]);
 
         // Persister
         $this->entityManager->flush();

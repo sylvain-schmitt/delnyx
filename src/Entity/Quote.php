@@ -200,6 +200,18 @@ class Quote
     #[Groups(['quote:read', 'quote:write'])]
     private ?\DateTimeInterface $dateSignature = null;
 
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['quote:read', 'quote:write'])]
+    private ?\DateTimeInterface $dateEnvoi = null;
+
+    #[ORM\Column(type: Types::INTEGER, options: ['default' => 0])]
+    #[Groups(['quote:read'])]
+    private int $sentCount = 0;
+
+    #[ORM\Column(type: Types::STRING, length: 20, nullable: true)]
+    #[Groups(['quote:read'])]
+    private ?string $deliveryChannel = null; // 'email', 'pdp', 'both'
+
     // ===== NOUVELLES MENTIONS OBLIGATOIRES (2026-2027) =====
 
     #[ORM\Column(type: Types::STRING, length: 9, nullable: true)]
@@ -230,6 +242,20 @@ class Quote
     #[Assert\NotBlank(message: 'Le company_id est obligatoire')]
     #[Groups(['quote:read', 'quote:write'])]
     private ?string $companyId = null;
+
+    /**
+     * Nom du fichier PDF généré
+     */
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['quote:read'])]
+    private ?string $pdfFilename = null;
+
+    /**
+     * Hash SHA256 du PDF pour archivage légal (10 ans)
+     */
+    #[ORM\Column(type: Types::STRING, length: 64, nullable: true)]
+    #[Groups(['quote:read'])]
+    private ?string $pdfHash = null;
 
     /**
      * Invoice générée à partir de ce quote
@@ -342,7 +368,7 @@ class Quote
                 $this->validateCanBeSigned();
             }
         }
-        
+
         $this->statut = $statut;
         return $this;
     }
@@ -485,6 +511,45 @@ class Quote
         return $this;
     }
 
+    public function getDateEnvoi(): ?\DateTimeInterface
+    {
+        return $this->dateEnvoi;
+    }
+
+    public function setDateEnvoi(?\DateTimeInterface $dateEnvoi): self
+    {
+        $this->dateEnvoi = $dateEnvoi;
+        return $this;
+    }
+
+    public function getSentCount(): int
+    {
+        return $this->sentCount;
+    }
+
+    public function setSentCount(int $sentCount): self
+    {
+        $this->sentCount = $sentCount;
+        return $this;
+    }
+
+    public function incrementSentCount(): self
+    {
+        $this->sentCount++;
+        return $this;
+    }
+
+    public function getDeliveryChannel(): ?string
+    {
+        return $this->deliveryChannel;
+    }
+
+    public function setDeliveryChannel(?string $deliveryChannel): self
+    {
+        $this->deliveryChannel = $deliveryChannel;
+        return $this;
+    }
+
     // ===== NOUVELLES MENTIONS OBLIGATOIRES =====
 
     public function getSirenClient(): ?string
@@ -550,6 +615,28 @@ class Quote
     public function setCompanyId(string $companyId): self
     {
         $this->companyId = $companyId;
+        return $this;
+    }
+
+    public function getPdfFilename(): ?string
+    {
+        return $this->pdfFilename;
+    }
+
+    public function setPdfFilename(?string $pdfFilename): static
+    {
+        $this->pdfFilename = $pdfFilename;
+        return $this;
+    }
+
+    public function getPdfHash(): ?string
+    {
+        return $this->pdfHash;
+    }
+
+    public function setPdfHash(?string $pdfHash): static
+    {
+        $this->pdfHash = $pdfHash;
         return $this;
     }
 
@@ -766,22 +853,26 @@ class Quote
     public function getTotalCorrected(): string
     {
         $totalOriginal = (float) $this->montantTTC;
-        $totalDeltas = 0.0;
+        $totalDeltasTtc = 0.0;
 
-        // Somme des deltas de tous les avenants modifiables (DRAFT, SENT) ou signés (SIGNED)
+        // Somme des deltas TTC de tous les avenants modifiables (DRAFT, SENT) ou signés (SIGNED)
         // Les avenants annulés (CANCELLED) ne sont pas pris en compte
+        // IMPORTANT : Utiliser getDeltaTtc() car le delta est en HT mais on doit l'additionner au montant TTC
         foreach ($this->amendments as $amendment) {
             $status = $amendment->getStatutEnum();
             // Inclure tous les avenants sauf ceux annulés (CANCELLED)
             // Cela inclut DRAFT, SENT, et SIGNED
             if ($status && $status !== \App\Entity\AmendmentStatus::CANCELLED) {
                 foreach ($amendment->getLines() as $line) {
-                    $totalDeltas += (float) $line->getDelta();
+                    $deltaTtc = (float) $line->getDeltaTtc();
+                    $totalDeltasTtc += $deltaTtc;
                 }
             }
         }
 
-        $totalCorrected = $totalOriginal + $totalDeltas;
+        $totalCorrected = $totalOriginal + $totalDeltasTtc;
+        // S'assurer que le résultat est arrondi correctement
+        $totalCorrected = round($totalCorrected, 2);
         return number_format($totalCorrected, 2, '.', '');
     }
 
@@ -815,15 +906,33 @@ class Quote
 
     /**
      * Calcule le montant de l'acompte à partir du total corrigé (incluant les avenants signés)
+     * Utilise le total corrigé brut (sans arrondi intermédiaire) pour éviter les erreurs d'arrondi
      */
     public function getMontantAcompteCorrige(): string
     {
-        $totalCorrige = (float) $this->getTotalCorrected();
+        // Calculer le total corrigé sans arrondi intermédiaire (même logique que getTotalCorrected)
+        $totalOriginal = (float) $this->montantTTC;
+        $totalDeltasTtc = 0.0;
+
+        foreach ($this->amendments as $amendment) {
+            $status = $amendment->getStatutEnum();
+            if ($status && $status !== \App\Entity\AmendmentStatus::CANCELLED) {
+                foreach ($amendment->getLines() as $line) {
+                    // Utiliser getDeltaTtc() car le delta est en HT mais on doit l'additionner au montant TTC
+                    $totalDeltasTtc += (float) $line->getDeltaTtc();
+                }
+            }
+        }
+
+        $totalCorrige = $totalOriginal + $totalDeltasTtc;
+        // S'assurer que le total corrigé est arrondi correctement
+        $totalCorrige = round($totalCorrige, 2);
         $acomptePourcentage = (float) $this->acomptePourcentage;
 
-        $montantAcompte = $totalCorrige * ($acomptePourcentage / 100);
+        // Calculer l'acompte avec arrondi à 2 décimales
+        $montantAcompte = round($totalCorrige * ($acomptePourcentage / 100), 2);
 
-        return number_format(round($montantAcompte, 2), 2, '.', '');
+        return number_format($montantAcompte, 2, '.', '');
     }
 
     /**
@@ -832,6 +941,49 @@ class Quote
     public function getMontantAcompteCorrigeFormate(): string
     {
         $montant = (float) $this->getMontantAcompteCorrige();
+        return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Calcule le solde restant après acompte corrigé (incluant les avenants)
+     * Utilise les mêmes calculs que getMontantAcompteCorrige pour garantir la cohérence
+     */
+    public function getSoldeRestantCorrige(): string
+    {
+        // Calculer le total corrigé sans arrondi intermédiaire (même logique que getMontantAcompteCorrige)
+        $totalOriginal = (float) $this->montantTTC;
+        $totalDeltasTtc = 0.0;
+
+        foreach ($this->amendments as $amendment) {
+            $status = $amendment->getStatutEnum();
+            if ($status && $status !== \App\Entity\AmendmentStatus::CANCELLED) {
+                foreach ($amendment->getLines() as $line) {
+                    // Utiliser getDeltaTtc() car le delta est en HT mais on doit l'additionner au montant TTC
+                    $totalDeltasTtc += (float) $line->getDeltaTtc();
+                }
+            }
+        }
+
+        $totalCorrige = $totalOriginal + $totalDeltasTtc;
+        // S'assurer que le total corrigé est arrondi correctement
+        $totalCorrige = round($totalCorrige, 2);
+        $acomptePourcentage = (float) $this->acomptePourcentage;
+
+        // Calculer l'acompte avec arrondi
+        $montantAcompteCorrige = round($totalCorrige * ($acomptePourcentage / 100), 2);
+
+        // Calculer le solde restant avec arrondi
+        $soldeRestant = round($totalCorrige - $montantAcompteCorrige, 2);
+
+        return number_format($soldeRestant, 2, '.', '');
+    }
+
+    /**
+     * Retourne le solde restant corrigé formaté pour l'affichage
+     */
+    public function getSoldeRestantCorrigeFormate(): string
+    {
+        $montant = (float) $this->getSoldeRestantCorrige();
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 
@@ -860,6 +1012,7 @@ class Quote
     /**
      * Retourne le détail des taux de TVA utilisés dans les lignes (si usePerLineTva = true)
      * Retourne un tableau associatif [taux => montant_HT_à_ce_taux]
+     * Les montants sont stockés en euros (float)
      */
     public function getTvaRatesDetail(): array
     {
@@ -871,21 +1024,22 @@ class Quote
         foreach ($this->lines as $line) {
             $taux = $line->getTvaRate() ?? $this->tauxTVA;
             $tauxKey = (string) $taux;
-            
+
             if (!isset($detail[$tauxKey])) {
                 $detail[$tauxKey] = [
                     'rate' => $taux,
-                    'ht' => 0,
-                    'tva' => 0,
+                    'ht' => 0.0,
+                    'tva' => 0.0,
                 ];
             }
-            
-            $lineHt = (int) ($line->getTotalHt() ?? 0);
+
+            // getTotalHt() retourne déjà en euros (string comme "20.00")
+            $lineHt = (float) ($line->getTotalHt() ?? 0);
             $detail[$tauxKey]['ht'] += $lineHt;
-            
-            // Calculer la TVA de cette ligne
+
+            // Calculer la TVA de cette ligne en euros
             if ($taux && (float) $taux > 0) {
-                $tvaAmount = (int) round($lineHt * ((float) $taux / 100));
+                $tvaAmount = $lineHt * ((float) $taux / 100);
                 $detail[$tauxKey]['tva'] += $tvaAmount;
             }
         }

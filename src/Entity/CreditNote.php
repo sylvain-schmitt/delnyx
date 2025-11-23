@@ -90,6 +90,10 @@ class CreditNote
     #[Groups(['credit_note:read'])]
     private int $sentCount = 0;
 
+    #[ORM\Column(type: Types::STRING, length: 20, nullable: true)]
+    #[Groups(['credit_note:read'])]
+    private ?string $deliveryChannel = null; // 'email', 'pdp', 'both'
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Groups(['credit_note:read'])]
     private ?\DateTimeInterface $dateModification = null;
@@ -121,6 +125,14 @@ class CreditNote
     #[Assert\NotBlank(message: 'Le company_id est obligatoire')]
     #[Groups(['credit_note:read', 'credit_note:write'])]
     private ?string $companyId = null;
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['credit_note:read'])]
+    private ?string $pdfFilename = null;
+
+    #[ORM\Column(type: Types::STRING, length: 64, nullable: true)]
+    #[Groups(['credit_note:read'])]
+    private ?string $pdfHash = null;
 
     #[ORM\ManyToOne(inversedBy: 'creditNotes')]
     #[ORM\JoinColumn(nullable: false)]
@@ -270,6 +282,17 @@ class CreditNote
         return $this;
     }
 
+    public function getDeliveryChannel(): ?string
+    {
+        return $this->deliveryChannel;
+    }
+
+    public function setDeliveryChannel(?string $deliveryChannel): static
+    {
+        $this->deliveryChannel = $deliveryChannel;
+        return $this;
+    }
+
     public function getDateModification(): ?\DateTimeInterface
     {
         return $this->dateModification;
@@ -335,6 +358,28 @@ class CreditNote
     public function setCompanyId(string $companyId): static
     {
         $this->companyId = $companyId;
+        return $this;
+    }
+
+    public function getPdfFilename(): ?string
+    {
+        return $this->pdfFilename;
+    }
+
+    public function setPdfFilename(?string $pdfFilename): static
+    {
+        $this->pdfFilename = $pdfFilename;
+        return $this;
+    }
+
+    public function getPdfHash(): ?string
+    {
+        return $this->pdfHash;
+    }
+
+    public function setPdfHash(?string $pdfHash): static
+    {
+        $this->pdfHash = $pdfHash;
         return $this;
     }
 

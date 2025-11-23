@@ -14,14 +14,45 @@ export default class extends Controller {
         this.isSubmitting = false
         this.setupFormValidation()
         this.setupFieldAnimations()
+        this.setupFormValidation()
+        this.setupFieldAnimations()
         this.setupTurboListeners()
+        this.setupMutationObserver()
     }
 
+    setupMutationObserver() {
+        // Observer les changements dans le formulaire pour attacher les écouteurs aux nouveaux champs
+        this.observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) { // ELEMENT_NODE
+                        // Si le nœud ajouté est un champ
+                        if (node.hasAttribute('data-admin-form-target') && node.getAttribute('data-admin-form-target') === 'field') {
+                            this.attachFieldListeners(node)
+                            this.attachAnimationListeners(node)
+                        }
+                        // Si le nœud contient des champs
+                        else {
+                            const fields = node.querySelectorAll('[data-admin-form-target="field"]')
+                            fields.forEach(field => {
+                                this.attachFieldListeners(field)
+                                this.attachAnimationListeners(field)
+                            })
+                        }
+                    }
+                })
+            })
+        })
+
+        this.observer.observe(this.element, { childList: true, subtree: true })
+    }
     disconnect() {
         this.isSubmitting = false
         this.removeTurboListeners()
+        if (this.observer) {
+            this.observer.disconnect()
+        }
     }
-
     setupTurboListeners() {
         // Écouter les événements Turbo pour restaurer l'état du bouton en cas d'erreur
         this.turboSubmitEndHandler = (event) => {
@@ -33,10 +64,10 @@ export default class extends Controller {
                 // Vérifier si la réponse est une redirection
                 const response = event.detail.fetchResponse
                 // Si c'est une redirection (status 302, 303, 307, 308) ou si redirected est true, c'est un succès
-                const isRedirect = response.redirected || 
-                                   (response.status >= 300 && response.status < 400) ||
-                                   (response.headers && response.headers.get('Location'))
-                
+                const isRedirect = response.redirected ||
+                    (response.status >= 300 && response.status < 400) ||
+                    (response.headers && response.headers.get('Location'))
+
                 if (!isRedirect && response.status === 200) {
                     // Pas de redirection = erreur de validation, restaurer le bouton
                     setTimeout(() => this.resetSubmitButton(), 100)
@@ -53,11 +84,15 @@ export default class extends Controller {
             const response = event.detail.fetchResponse
             if (response && response.status >= 400) {
                 this.resetSubmitButton()
+                // Si erreur de validation (422), déclencher l'animation shake
+                if (response.status === 422) {
+                    this.animateError()
+                }
             } else if (response && response.status === 200) {
                 // Vérifier si c'est une redirection en regardant les headers
                 const location = response.headers && response.headers.get('Location')
                 const isRedirect = response.redirected || location || (response.status >= 300 && response.status < 400)
-                
+
                 if (!isRedirect) {
                     // Pas de redirection = erreur de validation, restaurer le bouton après un court délai
                     setTimeout(() => this.resetSubmitButton(), 100)
@@ -88,17 +123,17 @@ export default class extends Controller {
             formElement.addEventListener('turbo:submit-end', this.turboSubmitEndHandler)
             formElement.addEventListener('turbo:before-fetch-response', this.turboBeforeFetchResponseHandler)
         }
-        
+
         // Écouter sur le document pour les redirections
         document.addEventListener('turbo:before-visit', this.turboBeforeVisitHandler)
         document.addEventListener('turbo:frame-load', this.turboFrameLoadHandler)
-        
+
         // Écouter aussi les erreurs globales Turbo pour restaurer le bouton même en cas d'erreur
         this.turboErrorHandler = () => {
             // En cas d'erreur Turbo, restaurer le bouton après un court délai
             setTimeout(() => this.resetSubmitButton(), 200)
         }
-        
+
         // Écouter les erreurs de soumission de formulaire
         document.addEventListener('turbo:submit-end', (event) => {
             // Si la soumission échoue avec une erreur, restaurer le bouton
@@ -118,7 +153,7 @@ export default class extends Controller {
                 formElement.removeEventListener('turbo:before-fetch-response', this.turboBeforeFetchResponseHandler)
             }
         }
-        
+
         // Retirer aussi l'écouteur sur le document
         if (this.turboBeforeVisitHandler) {
             document.removeEventListener('turbo:before-visit', this.turboBeforeVisitHandler)
@@ -134,13 +169,13 @@ export default class extends Controller {
 
     resetSubmitButton() {
         this.isSubmitting = false
-        
+
         // Annuler le timeout de sécurité si le bouton est restauré normalement
         if (this.safetyTimeout) {
             clearTimeout(this.safetyTimeout)
             this.safetyTimeout = null
         }
-        
+
         if (this.submitTarget) {
             this.submitTarget.classList.remove('btn-loading')
             this.submitTarget.disabled = false
@@ -153,38 +188,58 @@ export default class extends Controller {
     setupFormValidation() {
         // Validation en temps réel des champs
         this.fieldTargets.forEach(field => {
-            // Validation au blur (quand l'utilisateur quitte le champ)
-            field.addEventListener('blur', () => this.validateField(field))
-
-            // Nettoyage des erreurs pendant la saisie (sauf pour les mots de passe)
-            if (!field.name || !field.name.includes('plainPassword')) {
-                field.addEventListener('input', () => {
-                    // Si le champ était invalide, on le revalide en temps réel
-                    if (field.classList.contains('is-invalid')) {
-                        this.validateField(field)
-                    } else {
-                        this.clearFieldError(field)
-                    }
-                })
-            } else {
-                // Pour les mots de passe, valider en temps réel pour vérifier la correspondance
-                field.addEventListener('input', () => {
-                    this.validateField(field)
-                })
-            }
+            this.attachFieldListeners(field)
         })
+    }
+
+    attachFieldListeners(field) {
+        // Éviter d'attacher plusieurs fois les mêmes écouteurs
+        if (field.dataset.validationAttached === 'true') {
+            return
+        }
+        field.dataset.validationAttached = 'true'
+
+        // Validation au blur (quand l'utilisateur quitte le champ)
+        field.addEventListener('blur', () => this.validateField(field))
+
+        // Nettoyage des erreurs pendant la saisie (sauf pour les mots de passe)
+        if (!field.name || !field.name.includes('plainPassword')) {
+            field.addEventListener('input', () => {
+                // Si le champ était invalide, on le revalide en temps réel
+                if (field.classList.contains('is-invalid')) {
+                    this.validateField(field)
+                } else {
+                    this.clearFieldError(field)
+                }
+            })
+        } else {
+            // Pour les mots de passe, valider en temps réel pour vérifier la correspondance
+            field.addEventListener('input', () => {
+                this.validateField(field)
+            })
+        }
     }
 
     setupFieldAnimations() {
         // Animations sur focus/blur des champs
         this.fieldTargets.forEach(field => {
-            field.addEventListener('focus', () => {
-                field.classList.add('scale-[1.02]', 'shadow-lg', 'shadow-blue-500/25')
-            })
+            this.attachAnimationListeners(field)
+        })
+    }
 
-            field.addEventListener('blur', () => {
-                field.classList.remove('scale-[1.02]', 'shadow-lg', 'shadow-blue-500/25')
-            })
+    attachAnimationListeners(field) {
+        // Éviter d'attacher plusieurs fois les mêmes écouteurs
+        if (field.dataset.animationAttached === 'true') {
+            return
+        }
+        field.dataset.animationAttached = 'true'
+
+        field.addEventListener('focus', () => {
+            field.classList.add('scale-[1.02]', 'shadow-lg', 'shadow-blue-500/25')
+        })
+
+        field.addEventListener('blur', () => {
+            field.classList.remove('scale-[1.02]', 'shadow-lg', 'shadow-blue-500/25')
         })
     }
 
@@ -229,6 +284,101 @@ export default class extends Controller {
             // Pour les autres champs (input, textarea)
             else if (!value) {
                 return this.setFieldInvalid(field, 'Ce champ est obligatoire')
+            }
+        }
+
+        // Validation spécifique par nom de champ
+        if (field.name.includes('[email]')) {
+            // Assuming validateEmail method exists or will be added
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+            if (value && !emailRegex.test(value)) {
+                return this.setFieldInvalid(field, 'Veuillez entrer une adresse email valide')
+            }
+        }
+
+        // Validation SIREN
+        if (field.name.includes('[siren]')) {
+            // Assuming validateSiren method exists or will be added
+            if (value && (value.length !== 9 || !/^[0-9]{9}$/.test(value))) {
+                return this.setFieldInvalid(field, 'Le SIREN doit contenir 9 chiffres')
+            }
+        }
+
+        // Validation Code Postal
+        if (field.name.includes('[codePostal]')) {
+            // Assuming validateCodePostal method exists or will be added
+            if (value && (value.length !== 5 || !/^[0-9]{5}$/.test(value))) {
+                return this.setFieldInvalid(field, 'Le code postal doit contenir 5 chiffres')
+            }
+        }
+
+        // ===== VALIDATION SPÉCIFIQUE PAR ENTITÉ =====
+
+        // --- QUOTE ---
+        if (field.name.includes('quote[')) {
+            // Client
+            if (field.name.includes('[client]') && !value) {
+                return this.setFieldInvalid(field, 'Le client est obligatoire')
+            }
+            // Statut
+            if (field.name.includes('[statut]') && !value) {
+                return this.setFieldInvalid(field, 'Le statut est obligatoire')
+            }
+            // Type d'opérations
+            if (field.name.includes('[typeOperations]') && !value) {
+                return this.setFieldInvalid(field, 'Le type d\'opérations est obligatoire')
+            }
+            // Montants positifs
+            if ((field.name.includes('[montantHT]') || field.name.includes('[montantTTC]')) && parseFloat(value) < 0) {
+                return this.setFieldInvalid(field, 'Le montant ne peut pas être négatif')
+            }
+            // Date de validité
+            if (field.name.includes('[dateValidite]') && !value) {
+                return this.setFieldInvalid(field, 'La date de validité est obligatoire')
+            }
+        }
+
+        // --- AMENDMENT ---
+        if (field.name.includes('amendment[')) {
+            // Motif
+            if (field.name.includes('[motif]') && !value) {
+                return this.setFieldInvalid(field, 'Le motif est obligatoire')
+            }
+            // Modifications
+            if (field.name.includes('[modifications]') && !value) {
+                return this.setFieldInvalid(field, 'La description des modifications est obligatoire')
+            }
+            // Statut
+            if (field.name.includes('[statut]') && !value) {
+                return this.setFieldInvalid(field, 'Le statut est obligatoire')
+            }
+        }
+
+        // --- INVOICE ---
+        if (field.name.includes('invoice[')) {
+            // Client
+            if (field.name.includes('[client]') && !value) {
+                return this.setFieldInvalid(field, 'Le client est obligatoire')
+            }
+            // Date d'échéance
+            if (field.name.includes('[dateEcheance]') && !value) {
+                return this.setFieldInvalid(field, 'La date d\'échéance est obligatoire')
+            }
+            // Statut
+            if (field.name.includes('[statut]') && !value) {
+                return this.setFieldInvalid(field, 'Le statut est obligatoire')
+            }
+        }
+
+        // --- CREDIT NOTE ---
+        if (field.name.includes('credit_note[')) {
+            // Motif (reason)
+            if (field.name.includes('[reason]') && !value) {
+                return this.setFieldInvalid(field, 'Le motif est obligatoire')
+            }
+            // Statut
+            if (field.name.includes('[statut]') && !value) {
+                return this.setFieldInvalid(field, 'Le statut est obligatoire')
             }
         }
 
@@ -452,6 +602,8 @@ export default class extends Controller {
                 }
                 break
 
+                break
+
             case fieldName.includes('dateValidite'):
             case fieldName.includes('date_validite'):
                 // Validation pour la date de validité
@@ -470,6 +622,46 @@ export default class extends Controller {
                 }
                 break
 
+        }
+
+        // ===== VALIDATION INTELLIGENTE DES LIGNES =====
+        // Si le champ fait partie d'une ligne (devis, facture, etc.)
+        const lineContainer = field.closest('[data-line-index]')
+        if (lineContainer) {
+            const isLineField = fieldName.includes('[description]') || fieldName.includes('[quantity]') || fieldName.includes('[unitPrice]')
+
+            if (isLineField) {
+                // Récupérer les valeurs des autres champs de la ligne
+                const descriptionInput = lineContainer.querySelector('input[name*="[description]"]')
+                const priceInput = lineContainer.querySelector('input[name*="[unitPrice]"]')
+                const quantityInput = lineContainer.querySelector('input[name*="[quantity]"]')
+
+                const descVal = descriptionInput ? descriptionInput.value.trim() : ''
+                const priceVal = priceInput ? priceInput.value.trim() : ''
+                const qtyVal = quantityInput ? quantityInput.value.trim() : ''
+
+                // La ligne est-elle "commencée" ?
+                // On considère qu'elle est commencée si la description est remplie
+                // OU si le prix est rempli (et différent de 0.00 par défaut si applicable)
+                // OU si la quantité est différente de 1 (valeur par défaut)
+
+                // Note: On vérifie si les champs existent car ils peuvent ne pas être rendus
+                const isStarted = descVal !== '' || (priceVal !== '' && priceVal !== '0.00') || (qtyVal !== '' && qtyVal !== '1')
+
+                if (isStarted) {
+                    // Si la ligne est commencée, alors Description, Prix et Quantité deviennent obligatoires
+                    if (fieldName.includes('[description]') && !value) {
+                        isValid = false
+                        errorMessage = 'La description est obligatoire'
+                    } else if (fieldName.includes('[unitPrice]') && !value) {
+                        isValid = false
+                        errorMessage = 'Le prix est obligatoire'
+                    } else if (fieldName.includes('[quantity]') && !value) {
+                        isValid = false
+                        errorMessage = 'La quantité est obligatoire'
+                    }
+                }
+            }
         }
 
         // Application du style selon la validation
@@ -501,8 +693,21 @@ export default class extends Controller {
         // Suppression des messages d'erreur existants (recherche dans toute la form-group)
         const formGroup = field.closest('.form-group')
         if (formGroup) {
-            const existingErrors = formGroup.querySelectorAll('.form-error')
-            existingErrors.forEach(error => error.remove())
+            // Ne supprimer que les erreurs liées à ce champ spécifique
+            const fieldName = field.name
+            const existingErrors = formGroup.querySelectorAll(`.form-error[data-field-name="${fieldName}"]`)
+
+            if (existingErrors.length > 0) {
+                existingErrors.forEach(error => error.remove())
+            } else {
+                // Fallback pour la compatibilité ascendante ou si le nom n'est pas défini
+                // Si le champ est le seul dans le groupe, on peut tout nettoyer
+                const inputs = formGroup.querySelectorAll('input, select, textarea')
+                if (inputs.length === 1) {
+                    const allErrors = formGroup.querySelectorAll('.form-error')
+                    allErrors.forEach(error => error.remove())
+                }
+            }
         }
     }
 
@@ -510,10 +715,26 @@ export default class extends Controller {
         const errorElement = document.createElement('div')
         errorElement.className = 'form-error'
         errorElement.textContent = message
+        // Lier l'erreur au champ pour pouvoir la supprimer spécifiquement
+        if (field.name) {
+            errorElement.setAttribute('data-field-name', field.name)
+        }
 
         const formGroup = field.closest('.form-group')
         if (formGroup) {
+            // Si le champ est caché (ex: select-search), s'assurer que l'erreur est visible
+            // select-search cache le select et ajoute un wrapper après
+            // On ajoute l'erreur à la fin du form-group pour qu'elle soit après le wrapper
             formGroup.appendChild(errorElement)
+
+            // Si le champ est caché, on peut ajouter une classe pour s'assurer que l'erreur est bien visible
+            const style = window.getComputedStyle(field)
+            if (style.display === 'none' || field.type === 'hidden') {
+                errorElement.classList.add('block', 'mt-1')
+            }
+        } else {
+            // Fallback : insérer après le champ
+            field.parentNode.insertBefore(errorElement, field.nextSibling)
         }
     }
 
@@ -538,37 +759,9 @@ export default class extends Controller {
             }
         })
 
-        // Validation spécifique pour les formulaires de devis : vérifier qu'au moins une ligne existe
-        const isQuoteForm = this.element.closest('[data-controller*="quote-form"]') !== null
-        if (isQuoteForm) {
-            const linesContainer = this.element.querySelector('[data-quote-form-target="linesContainer"]')
-            if (linesContainer) {
-                // Compter les lignes existantes (exclure le template caché)
-                const existingLines = Array.from(linesContainer.children).filter(line => {
-                    // Exclure les éléments template et les lignes vides
-                    return line.tagName !== 'TEMPLATE' && 
-                           line.querySelector('input[name*="[description]"], input[name*="[quantity]"], input[name*="[unitPrice]"]')
-                })
-                
-                if (existingLines.length === 0) {
-                    // Aucune ligne : empêcher la soumission et afficher une erreur
-                    event.preventDefault()
-                    event.stopPropagation()
-                    event.stopImmediatePropagation()
-                    
-                    // Afficher un message d'erreur
-                    this.showLinesError(linesContainer)
-                    
-                    // Animation d'erreur
-                    this.animateError()
-                    
-                    return false
-                }
-            }
-        }
+        let hasErrors = false
 
-        // Validation côté client (exclure les champs de type file)
-        let allValid = true
+        // 1. Validation des champs (côté client)
         allFields.forEach(field => {
             // Ne pas valider les champs de type file (ils sont gérés par Symfony)
             if (field.type === 'file') {
@@ -584,11 +777,51 @@ export default class extends Controller {
             }
             const isValid = this.validateField(field)
             if (!isValid) {
-                allValid = false
+                hasErrors = true
             }
         })
 
-        if (!allValid) {
+        // 2. Validation spécifique pour les formulaires de devis : vérifier qu'au moins une ligne existe
+        const isQuoteForm = this.element.closest('[data-controller*="quote-form"]') !== null
+        if (isQuoteForm) {
+            const linesContainer = this.element.querySelector('[data-quote-form-target="linesContainer"]')
+            if (linesContainer) {
+                // Compter les lignes existantes (exclure le template caché)
+                const existingLines = Array.from(linesContainer.children).filter(line => {
+                    // Exclure les éléments template et les lignes vides
+                    return line.tagName !== 'TEMPLATE' &&
+                        line.querySelector('input[name*="[description]"], input[name*="[quantity]"], input[name*="[unitPrice]"]')
+                })
+
+                if (existingLines.length === 0) {
+                    // Aucune ligne : erreur
+                    this.showLinesError(linesContainer)
+                    hasErrors = true
+                }
+            }
+        }
+
+        if (hasErrors) {
+            // Debug: afficher les champs invalides
+            const invalidFields = this.element.querySelectorAll('.is-invalid')
+            console.warn('[AdminFormController] Validation failed. Invalid fields:', invalidFields)
+            invalidFields.forEach(field => {
+                console.warn(`- Field: ${field.name || field.id}, Value: "${field.value}", Visible: ${field.offsetParent !== null}`)
+            })
+            // Log when the lines check fails
+            if (isQuoteForm) {
+                const linesContainer = this.element.querySelector('[data-quote-form-target="linesContainer"]')
+                if (linesContainer) {
+                    const existingLines = Array.from(linesContainer.children).filter(line => {
+                        return line.tagName !== 'TEMPLATE' &&
+                            line.querySelector('input[name*="[description]"], input[name*="[quantity]"], input[name*="[unitPrice]"]')
+                    })
+                    if (existingLines.length === 0) {
+                        console.warn('[AdminFormController] Validation failed: No lines found in quote form.')
+                    }
+                }
+            }
+
             // Empêcher la soumission si la validation client échoue
             event.preventDefault()
             event.stopPropagation()
@@ -668,8 +901,101 @@ export default class extends Controller {
             return false
         }
 
+        // === PRÉPARATION À LA SOUMISSION (seulement si tout est valide) ===
+
+        // Vérifier et corriger les champs quote/invoice désactivés avec champs cachés
+        // Pour éviter l'erreur "Input value contains a non-scalar value"
+        const allQuoteSelects = Array.from(this.element.querySelectorAll('select[name*="[quote]"]'))
+        const allInvoiceSelects = Array.from(this.element.querySelectorAll('select[name*="[invoice]"]'))
+
+        // Traiter les selects quote
+        allQuoteSelects.forEach(select => {
+            const hiddenInput = this.element.querySelector(`input[type="hidden"][name="${select.name}"]`)
+            const isDisabled = select.disabled
+            const hasHidden = !!hiddenInput
+            const isInvisible = select.style.opacity === '0' ||
+                select.style.position === 'absolute' ||
+                select.offsetWidth <= 1 ||
+                select.offsetHeight <= 1
+
+            // Si le select est invisible ou désactivé, on doit s'assurer qu'un champ caché existe
+            if ((isInvisible || isDisabled) && !hasHidden && select.value && select.value !== '') {
+                // Créer un champ caché si le select est invisible ou désactivé et qu'il n'y en a pas déjà un
+                const hidden = document.createElement('input')
+                hidden.type = 'hidden'
+                hidden.name = select.name
+                hidden.value = select.value || select.dataset.quoteId || ''
+                hidden.id = select.id ? select.id + '_hidden' : ''
+                select.parentElement.appendChild(hidden)
+            }
+
+            // Si un champ caché existe OU si le select est invisible, supprimer l'attribut name du select
+            if (hasHidden || isInvisible) {
+                if (select.hasAttribute('name')) {
+                    select.removeAttribute('name')
+                }
+            }
+        })
+
+        // Traiter les selects invoice
+        allInvoiceSelects.forEach(select => {
+            const hiddenInput = this.element.querySelector(`input[type="hidden"][name="${select.name}"]`)
+            const isDisabled = select.disabled
+            const hasHidden = !!hiddenInput
+            const isInvisible = select.style.opacity === '0' ||
+                select.style.position === 'absolute' ||
+                select.offsetWidth <= 1 ||
+                select.offsetHeight <= 1
+
+            // Si le select est invisible ou désactivé, on doit s'assurer qu'un champ caché existe
+            if ((isInvisible || isDisabled) && !hasHidden && select.value && select.value !== '') {
+                // Créer un champ caché si le select est invisible ou désactivé et qu'il n'y en a pas déjà un
+                const hidden = document.createElement('input')
+                hidden.type = 'hidden'
+                hidden.name = select.name
+                hidden.value = select.value || select.dataset.invoiceId || ''
+                hidden.id = select.id ? select.id + '_hidden' : ''
+                select.parentElement.appendChild(hidden)
+            }
+
+            // Si un champ caché existe OU si le select est invisible, supprimer l'attribut name du select
+            if (hasHidden || isInvisible) {
+                if (select.hasAttribute('name')) {
+                    select.removeAttribute('name')
+                }
+            }
+        })
+
+        // Vérification finale : s'assurer qu'il n'y a qu'un seul champ pour amendment[quote] et credit_note[invoice]
+        const formData = new FormData(this.element)
+        const formDataEntries = Array.from(formData.entries())
+        const allFieldNames = formDataEntries.map(([key]) => key)
+        const amendmentQuoteFields = allFieldNames.filter(name => name === 'amendment[quote]')
+        const creditNoteInvoiceFields = allFieldNames.filter(name => name === 'credit_note[invoice]')
+
+        if (amendmentQuoteFields.length > 1) {
+            // Supprimer tous les champs sauf le premier
+            const quoteSelects = Array.from(this.element.querySelectorAll('select[name="amendment[quote]"], input[type="hidden"][name="amendment[quote]"]'))
+            quoteSelects.forEach((field, index) => {
+                if (index > 0 && field.hasAttribute('name')) {
+                    field.removeAttribute('name')
+                }
+            })
+        }
+
+        if (creditNoteInvoiceFields.length > 1) {
+            // Supprimer tous les champs sauf le premier
+            const invoiceSelects = Array.from(this.element.querySelectorAll('select[name="credit_note[invoice]"], input[type="hidden"][name="credit_note[invoice]"]'))
+            invoiceSelects.forEach((field, index) => {
+                if (index > 0 && field.hasAttribute('name')) {
+                    field.removeAttribute('name')
+                }
+            })
+        }
+
         // Validation client OK : marquer comme en cours et appliquer le style de chargement
         this.isSubmitting = true
+
         if (this.submitTarget) {
             this.submitTarget.classList.add('btn-loading')
             this.submitTarget.disabled = true
@@ -690,10 +1016,9 @@ export default class extends Controller {
             console.warn('[AdminFormController] Timeout de sécurité : restauration du bouton après 10 secondes')
             this.resetSubmitButton()
         }, 10000)
+    }     // Le formulaire se soumet normalement (pas de preventDefault)
+    // Symfony fera sa validation côté serveur
 
-        // Le formulaire se soumet normalement (pas de preventDefault)
-        // Symfony fera sa validation côté serveur
-    }
 
     /**
      * Affiche une erreur pour indiquer qu'au moins une ligne est requise

@@ -34,6 +34,8 @@ class CreditNoteService
         private readonly Security $security,
         private readonly LoggerInterface $logger,
         private readonly CreditNoteNumberGenerator $numberGenerator,
+        private readonly PdfGeneratorService $pdfGeneratorService,
+        private readonly \Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface $params,
     ) {
     }
 
@@ -75,7 +77,7 @@ class CreditNoteService
         $creditNote->setInvoice($invoice);
         $creditNote->setCompanyId($invoice->getCompanyId());
         $creditNote->setStatut(CreditNoteStatus::DRAFT);
-        $creditNote->setTauxTVA($invoice->getTauxTVA());
+        $creditNote->setTauxTVA($invoice->getQuote()?->getTauxTVA() ?? '0.00');
 
         // Générer le numéro
         if (!$creditNote->getNumber()) {
@@ -128,13 +130,33 @@ class CreditNoteService
             $creditNote->setNumber($numero);
         }
 
+        // Générer le PDF
+        $response = $this->pdfGeneratorService->generateCreditNotePdf($creditNote);
+        $pdfContent = $response->getContent();
+
+        // Calculer le hash SHA256
+        $hash = hash('sha256', $pdfContent);
+        $creditNote->setPdfHash($hash);
+
+        // Sauvegarder le fichier
+        $filename = sprintf('avoir-%s-%s.pdf', $creditNote->getNumber(), uniqid());
+        $uploadDir = $this->params->get('kernel.project_dir') . '/public/uploads/credit_notes';
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        file_put_contents($uploadDir . '/' . $filename, $pdfContent);
+        $creditNote->setPdfFilename($filename);
+
         // Effectuer la transition
         $oldStatus = $status;
         $creditNote->setStatut(CreditNoteStatus::ISSUED);
         $creditNote->setDateEmission(new \DateTime());
 
         // Enregistrer l'audit
-        $this->logStatusChange($creditNote, $oldStatus, CreditNoteStatus::ISSUED, 'issue');
+        $this->logStatusChange($creditNote, $oldStatus, CreditNoteStatus::ISSUED, 'issue', [
+            'pdf_filename' => $filename,
+            'pdf_hash' => $hash
+        ]);
 
         // Persister
         $this->entityManager->flush();
@@ -144,6 +166,7 @@ class CreditNoteService
             'credit_note_number' => $creditNote->getNumber(),
             'old_status' => $oldStatus?->value,
             'new_status' => CreditNoteStatus::ISSUED->value,
+            'pdf_hash' => $hash
         ]);
     }
 
@@ -161,7 +184,7 @@ class CreditNoteService
         }
 
         $status = $creditNote->getStatut();
-        if ($status !== CreditNoteStatus::ISSUED) {
+        if (!$status || !$status->canBeSent()) {
             throw new \RuntimeException(
                 sprintf(
                     'L\'avoir ne peut pas être envoyé depuis l\'état "%s".',
@@ -170,14 +193,24 @@ class CreditNoteService
             );
         }
 
-        // Effectuer la transition
+        // Effectuer la transition seulement si l'avoir est en ISSUED (ISSUED → SENT)
         $oldStatus = $status;
-        $creditNote->setStatut(CreditNoteStatus::SENT);
+        if ($status === CreditNoteStatus::ISSUED) {
+            $creditNote->setStatut(CreditNoteStatus::SENT);
+            // Enregistrer l'audit pour le changement de statut
+            $this->logStatusChange($creditNote, $oldStatus, CreditNoteStatus::SENT, 'send');
+        } else {
+            // Si l'avoir est déjà envoyé, on ne change pas le statut mais on enregistre juste l'envoi
+            $this->logStatusChange($creditNote, $oldStatus, $oldStatus, 'resend');
+        }
+        
+        // Toujours enregistrer la date d'envoi et incrémenter le compteur
         $creditNote->setSentAt(new \DateTime());
         $creditNote->incrementSentCount();
-
-        // Enregistrer l'audit
-        $this->logStatusChange($creditNote, $oldStatus, CreditNoteStatus::SENT, 'send');
+        // Par défaut, le canal est 'email' (peut être modifié plus tard)
+        if (!$creditNote->getDeliveryChannel()) {
+            $creditNote->setDeliveryChannel('email');
+        }
 
         // Persister
         $this->entityManager->flush();
@@ -199,16 +232,17 @@ class CreditNoteService
      */
     public function cancel(CreditNote $creditNote, ?string $reason = null): void
     {
+        // ... (existing cancel logic)
         // Vérifier les permissions
         if (!$this->authorizationChecker->isGranted('CREDIT_NOTE_CANCEL', $creditNote)) {
             throw new AccessDeniedException('Vous n\'avez pas la permission d\'annuler cet avoir.');
         }
 
         $status = $creditNote->getStatut();
-        if (!in_array($status, [CreditNoteStatus::DRAFT, CreditNoteStatus::ISSUED])) {
+        if ($status !== CreditNoteStatus::DRAFT) {
             throw new \RuntimeException(
                 sprintf(
-                    'L\'avoir ne peut pas être annulé depuis l\'état "%s".',
+                    'L\'avoir ne peut pas être annulé depuis l\'état "%s". Seuls les brouillons peuvent être annulés.',
                     $status?->getLabel() ?? 'inconnu'
                 )
             );
@@ -239,6 +273,41 @@ class CreditNoteService
             'old_status' => $oldStatus?->value,
             'new_status' => CreditNoteStatus::CANCELLED->value,
             'reason' => $reason,
+        ]);
+    }
+
+    /**
+     * Applique un avoir (ISSUED/SENT → APPLIED)
+     * Signifie que l'avoir a été utilisé (remboursé ou déduit)
+     */
+    public function apply(CreditNote $creditNote): void
+    {
+        // Vérifier les permissions (utiliser CREDIT_NOTE_ISSUE par défaut ou créer une nouvelle permission)
+        if (!$this->authorizationChecker->isGranted('CREDIT_NOTE_ISSUE', $creditNote)) {
+            throw new AccessDeniedException('Vous n\'avez pas la permission d\'appliquer cet avoir.');
+        }
+
+        $status = $creditNote->getStatut();
+        if (!in_array($status, [CreditNoteStatus::ISSUED, CreditNoteStatus::SENT])) {
+            throw new \RuntimeException(
+                sprintf(
+                    'L\'avoir ne peut pas être appliqué depuis l\'état "%s".',
+                    $status?->getLabel() ?? 'inconnu'
+                )
+            );
+        }
+
+        $oldStatus = $status;
+        $creditNote->setStatut(CreditNoteStatus::APPLIED);
+
+        $this->logStatusChange($creditNote, $oldStatus, CreditNoteStatus::APPLIED, 'apply');
+        $this->entityManager->flush();
+
+        $this->logger->info('Avoir appliqué', [
+            'credit_note_id' => $creditNote->getId(),
+            'credit_note_number' => $creditNote->getNumber(),
+            'old_status' => $oldStatus?->value,
+            'new_status' => CreditNoteStatus::APPLIED->value,
         ]);
     }
 

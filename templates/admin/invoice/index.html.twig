@@ -119,7 +119,7 @@
                                         
                                         {# Bouton Émettre : visible si DRAFT #}
                                         {% if invoice.statutEnum.value == 'draft' %}
-                                            <form action="{{ path('admin_invoice_issue', {id: invoice.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="⚠️ ATTENTION : Émettre cette facture la rend immuable. Continuer ?">
+                                            <form action="{{ path('admin_invoice_issue', {id: invoice.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cette facture la rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('invoice_issue_' ~ invoice.id) }}">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Émettre">
                                                     {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
@@ -127,9 +127,9 @@
                                             </form>
                                         {% endif %}
                                         
-                                        {# Bouton Envoyer : visible si ISSUED ou PAID (pas si déjà SENT) #}
-                                        {% if invoice.statutEnum.value in ['issued', 'paid'] %}
-                                            <form action="{{ path('admin_invoice_send', {id: invoice.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Envoyer cette facture au client ?">
+                                        {# Bouton Envoyer : visible sauf si DRAFT #}
+                                        {% if invoice.statutEnum.value != 'draft' %}
+                                            <form action="{{ path('admin_invoice_send', {id: invoice.id}) }}" method="POST" class="inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('invoice_send_' ~ invoice.id) }}">
                                                 <input type="hidden" name="channel" value="email">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Envoyer">
@@ -140,7 +140,7 @@
 
                                         {# Bouton Marquer comme payée : visible si ISSUED ou SENT #}
                                         {% if invoice.statutEnum.value in ['issued', 'sent'] %}
-                                            <form action="{{ path('admin_invoice_mark_paid', {id: invoice.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Marquer cette facture comme payée ?">
+                                            <form action="{{ path('admin_invoice_mark_paid', {id: invoice.id}) }}" method="POST" class="inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('invoice_mark_paid_' ~ invoice.id) }}">
                                                 <button type="submit" class="text-green-400 hover:text-green-300 transition-colors duration-200" title="Marquer comme payée">
                                                     {{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
@@ -159,7 +159,7 @@
                                         
                                         {# Bouton Annuler : visible si DRAFT uniquement #}
                                         {% if invoice.statutEnum.value == 'draft' %}
-                                            <form action="{{ path('admin_invoice_cancel', {id: invoice.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Annuler cette facture la marquera comme annulée. Continuer ?">
+                                            <form action="{{ path('admin_invoice_cancel', {id: invoice.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Annuler cette facture la marquera comme annulée. Continuer ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('invoice_cancel_' ~ invoice.id) }}">
                                                 <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200" title="Annuler">
                                                     {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
@@ -215,7 +215,7 @@
                             
                             {# Bouton Émettre : visible si DRAFT #}
                             {% if invoice.statutEnum.value == 'draft' %}
-                                <form action="{{ path('admin_invoice_issue', {id: invoice.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="⚠️ ATTENTION : Émettre cette facture la rend immuable. Continuer ?">
+                                <form action="{{ path('admin_invoice_issue', {id: invoice.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cette facture la rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
                                     <input type="hidden" name="_token" value="{{ csrf_token('invoice_issue_' ~ invoice.id) }}">
                                     <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Émettre">
                                         {{ ux_icon('lucide:send', {class: 'w-5 h-5'}) }}
@@ -223,9 +223,9 @@
                                 </form>
                             {% endif %}
                             
-                            {# Bouton Envoyer : visible si ISSUED ou PAID (pas si déjà SENT) #}
-                            {% if invoice.statutEnum.value in ['issued', 'paid'] %}
-                                <form action="{{ path('admin_invoice_send', {id: invoice.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Envoyer cette facture au client ?">
+                            {# Bouton Envoyer : visible sauf si DRAFT #}
+                            {% if invoice.statutEnum.value != 'draft' %}
+                                <form action="{{ path('admin_invoice_send', {id: invoice.id}) }}" method="POST" class="inline">
                                     <input type="hidden" name="_token" value="{{ csrf_token('invoice_send_' ~ invoice.id) }}">
                                     <input type="hidden" name="channel" value="email">
                                     <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200 p-2" title="Envoyer">
@@ -236,7 +236,7 @@
 
                             {# Bouton Marquer comme payée : visible si ISSUED ou SENT #}
                             {% if invoice.statutEnum.value in ['issued', 'sent'] %}
-                                <form action="{{ path('admin_invoice_mark_paid', {id: invoice.id}) }}" method="POST" class="inline" data-controller="confirm-modal" data-confirm-modal-message="Marquer cette facture comme payée ?">
+                                <form action="{{ path('admin_invoice_mark_paid', {id: invoice.id}) }}" method="POST" class="inline">
                                     <input type="hidden" name="_token" value="{{ csrf_token('invoice_mark_paid_' ~ invoice.id) }}">
                                     <button type="submit" class="text-green-400 hover:text-green-300 transition-colors duration-200 p-2" title="Marquer comme payée">
                                         {{ ux_icon('lucide:check-circle', {class: 'w-5 h-5'}) }}
@@ -255,7 +255,7 @@
                             
                             {# Bouton Annuler : visible si DRAFT uniquement #}
                             {% if invoice.statutEnum.value == 'draft' %}
-                                <form action="{{ path('admin_invoice_cancel', {id: invoice.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Annuler cette facture la marquera comme annulée. Continuer ?">
+                                <form action="{{ path('admin_invoice_cancel', {id: invoice.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Annuler cette facture la marquera comme annulée. Continuer ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
                                     <input type="hidden" name="_token" value="{{ csrf_token('invoice_cancel_' ~ invoice.id) }}">
                                     <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200 p-2" title="Annuler">
                                         {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5'}) }}

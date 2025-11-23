@@ -31,6 +31,7 @@ class QuoteService
         private readonly AuthorizationCheckerInterface $authorizationChecker,
         private readonly Security $security,
         private readonly LoggerInterface $logger,
+        private readonly PdfGeneratorService $pdfGeneratorService,
     ) {
     }
 
@@ -45,7 +46,64 @@ class QuoteService
     }
 
     /**
-     * Envoie un devis (DRAFT → SENT)
+     * Émet un devis (DRAFT → ISSUED)
+     * 
+     * @throws AccessDeniedException si l'utilisateur n'a pas la permission
+     * @throws \RuntimeException si la transition n'est pas possible
+     */
+    public function issue(Quote $quote): void
+    {
+        // Vérifier les permissions
+        if (!$this->authorizationChecker->isGranted('QUOTE_ISSUE', $quote)) {
+            throw new AccessDeniedException('Vous n\'avez pas la permission d\'émettre ce devis.');
+        }
+
+        // Vérifier que la transition est possible
+        if (!$quote->getStatut()?->canBeIssued()) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Le devis ne peut pas être émis depuis l\'état "%s".',
+                    $quote->getStatut()?->getLabel() ?? 'inconnu'
+                )
+            );
+        }
+
+        // Valider que le devis est prêt à être émis
+        $this->validateBeforeSend($quote);
+
+        // Générer et sauvegarder le PDF AVANT de changer le statut
+        try {
+            $pdfResult = $this->pdfGeneratorService->generateDevisPdf($quote, true);
+            $quote->setPdfFilename($pdfResult['filename']);
+            $quote->setPdfHash($pdfResult['hash']);
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur lors de la génération du PDF pour le devis', [
+                'quote_id' => $quote->getId(),
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        // Effectuer la transition
+        $oldStatus = $quote->getStatut();
+        $quote->setStatut(QuoteStatus::ISSUED);
+
+        // Enregistrer l'audit
+        $this->logStatusChange($quote, $oldStatus, QuoteStatus::ISSUED, 'issue');
+
+        // Persister tout en une seule fois
+        $this->entityManager->flush();
+
+        $this->logger->info('Devis émis', [
+            'quote_id' => $quote->getId(),
+            'quote_number' => $quote->getNumero(),
+            'old_status' => $oldStatus?->value,
+            'new_status' => QuoteStatus::ISSUED->value,
+            'pdf_generated' => $quote->getPdfFilename() !== null,
+        ]);
+    }
+
+    /**
+     * Envoie un devis (ISSUED → SENT, ou renvoie si déjà SENT)
      * 
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
@@ -70,12 +128,24 @@ class QuoteService
         // Valider que le devis est prêt à être envoyé
         $this->validateBeforeSend($quote);
 
-        // Effectuer la transition
+        // Effectuer la transition seulement si le devis est en ISSUED (ISSUED → SENT)
         $oldStatus = $quote->getStatut();
-        $quote->setStatut(QuoteStatus::SENT);
-
-        // Enregistrer l'audit
-        $this->logStatusChange($quote, $oldStatus, QuoteStatus::SENT, 'send');
+        if ($oldStatus === QuoteStatus::ISSUED) {
+            $quote->setStatut(QuoteStatus::SENT);
+            // Enregistrer l'audit pour le changement de statut
+            $this->logStatusChange($quote, $oldStatus, QuoteStatus::SENT, 'send');
+        } else {
+            // Si le devis est déjà envoyé, on ne change pas le statut mais on enregistre juste l'envoi
+            $this->logStatusChange($quote, $oldStatus, $oldStatus, 'resend');
+        }
+        
+        // Toujours enregistrer la date d'envoi et incrémenter le compteur
+        $quote->setDateEnvoi(new \DateTime());
+        $quote->incrementSentCount();
+        // Par défaut, le canal est 'email' (peut être modifié plus tard)
+        if (!$quote->getDeliveryChannel()) {
+            $quote->setDeliveryChannel('email');
+        }
 
         // Persister
         $this->entityManager->flush();

@@ -108,16 +108,14 @@
                     {{ form_errors(form.dateValidite) }}
                 </div>
                 {% if companySettings and companySettings.isTvaEnabled() %}
-                    <div class="form-group" data-controller="tva-settings">
-                        {{ form_label(form.usePerLineTva, null, {'label_attr': {'class': 'form-label'}}) }}
+                    <div class="form-group">
+                        {# Champ caché pour la soumission #}
                         {{ form_widget(form.usePerLineTva, {'attr': {
                             'class': 'form-checkbox',
                             'data-admin-form-target': 'field',
-                            'data-tva-settings-target': 'toggle',
-                            'data-action': 'change->tva-settings#toggleRate',
-                            'disabled': isReadOnly ? 'disabled' : false
+                            'data-quote-use-per-line-tva': 'true',
+                            'style': 'display: none;'
                         }}) }}
-                        {{ form_help(form.usePerLineTva) }}
                         {{ form_errors(form.usePerLineTva) }}
                     </div>
                 {% endif %}
@@ -125,18 +123,33 @@
         </div>
 
         {# Lignes de devis #}
-        <div class="space-y-4">
+        <div class="space-y-4" data-controller="tva-per-line">
             <div class="flex items-center justify-between">
                 <h3 class="text-lg font-semibold text-white flex items-center gap-2">
                     {{ ux_icon('lucide:list', {class: 'w-5 h-5'}) }}
                     Lignes de devis
                 </h3>
-                <button type="button" 
-                        class="btn-secondary text-sm py-2 px-4"
-                        data-action="click->quote-form#addLine">
-                    {{ ux_icon('lucide:plus', {class: 'w-4 h-4'}) }}
-                    Ajouter une ligne
-                </button>
+                <div class="flex items-center gap-3">
+                    {% if companySettings and companySettings.isTvaEnabled() and not isReadOnly %}
+                        <button type="button" 
+                                class="btn-secondary text-sm py-2 px-4 flex items-center gap-2" 
+                                data-tva-per-line-target="toggle"
+                                data-action="click->tva-per-line#toggle"
+                                data-label-disabled="Appliquer la TVA par ligne"
+                                data-label-enabled="Désactiver la TVA par ligne">
+                            {{ ux_icon('lucide:percent', {class: 'w-4 h-4'}) }}
+                            <span>Appliquer la TVA par ligne</span>
+                        </button>
+                    {% endif %}
+                    {% if not isReadOnly %}
+                        <button type="button" 
+                                class="btn-secondary text-sm py-2 px-4"
+                                data-action="click->quote-form#addLine">
+                            {{ ux_icon('lucide:plus', {class: 'w-4 h-4'}) }}
+                            Ajouter une ligne
+                        </button>
+                    {% endif %}
+                </div>
             </div>
             
             <div data-quote-form-target="linesContainer" class="space-y-4">
@@ -163,12 +176,13 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                             {{ form_macros.simple_field(line, 'quantity', 'number', {'disabled': isReadOnly}) }}
                             {{ form_macros.simple_field(line, 'unitPrice', 'number', {'disabled': isReadOnly}) }}
-                            {% if companySettings and companySettings.isTvaEnabled() and quote.usePerLineTva %}
-                                <div data-tva-settings-target="rateWrapper">
+                            {% if companySettings and companySettings.isTvaEnabled() %}
+                                {# TVA par ligne : afficher le champ (masqué par défaut, visible si bouton activé) #}
+                                <div data-tva-per-line-target="rateWrapper" style="display: none;">
                                     {{ form_macros.simple_field(line, 'tvaRate', 'select', {'disabled': isReadOnly}) }}
                                 </div>
                             {% else %}
-                                {# Cacher le champ tvaRate si TVA désactivée ou usePerLineTva = false #}
+                                {# Cacher le champ tvaRate si TVA désactivée #}
                                 <div style="display: none;">
                                     {{ form_widget(line.tvaRate) }}
                                 </div>
@@ -212,16 +226,25 @@
                             <label class="form-label">Prix unitaire (€)</label>
                             <input type="number" name="quote[lines][__name__][unitPrice]" class="form-input" data-admin-form-target="field" step="0.01" min="0" required>
                         </div>
-                        <div class="form-group" data-tva-settings-target="rateWrapper" style="display: none;">
-                            <label class="form-label">Taux TVA (%)</label>
-                            <select name="quote[lines][__name__][tvaRate]" class="form-select" data-admin-form-target="field">
-                                <option value="">Taux global</option>
-                                <option value="0.00">0%</option>
-                                <option value="5.50">5,5%</option>
-                                <option value="10.00">10%</option>
-                                <option value="20.00">20%</option>
-                            </select>
-                        </div>
+                        {% if companySettings and companySettings.isTvaEnabled() %}
+                            <div class="form-group" data-tva-per-line-target="rateWrapper" style="display: none;">
+                                <label class="form-label">Taux TVA (%)</label>
+                                <select name="quote[lines][__name__][tvaRate]" class="form-select" data-admin-form-target="field">
+                                    <option value="">Taux global</option>
+                                    <option value="0.00">0%</option>
+                                    <option value="5.50">5,5%</option>
+                                    <option value="10.00">10%</option>
+                                    <option value="20.00">20%</option>
+                                </select>
+                            </div>
+                        {% else %}
+                            <div class="form-group" style="display: none;">
+                                <label class="form-label">Taux TVA (%)</label>
+                                <select name="quote[lines][__name__][tvaRate]" class="form-select" data-admin-form-target="field">
+                                    <option value="">Taux global</option>
+                                </select>
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="flex items-center justify-end mt-4 pt-4 border-t border-white/10">
                         <button type="button" 

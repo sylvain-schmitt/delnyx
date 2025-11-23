@@ -80,35 +80,47 @@
 
 				{{ form_widget(form.numero, {'attr': {'style': 'display: none'}}) }}
 
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-				<div class="form-group" data-controller="select-search" data-select-search-type="quote">
-					{{ form_label(form.quote, null, {'label_attr': {'class': 'form-label'}}) }}
-					{% if quote_locked|default(false) or isReadOnly %}
-						{{ form_widget(form.quote, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field', 'disabled': 'disabled'}}) }}
-						{% if form.quote.vars.value %}
-							{% set quoteValue = form.quote.vars.value %}
-							{% set quoteId = attribute(quoteValue, 'id')|default(quoteValue) %}
-							<input type="hidden" name="{{ form.quote.vars.full_name }}" value="{{ quoteId }}">
-						{% endif %}
-						<p class="text-sm text-white/60 mt-1">Le devis est verrouillé car l'avenant a été créé depuis ce devis.</p>
-					{% else %}
-						{{ form_widget(form.quote, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field'}}) }}
-					{% endif %}
-					{{ form_help(form.quote) }}
-					{{ form_errors(form.quote) }}
-				</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group" data-controller="select-search" data-select-search-type="quote">
+                    {{ form_label(form.quote, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {% if quote_locked|default(false) or isReadOnly %}
+                        {{ form_widget(form.quote, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field', 'disabled': 'disabled'}}) }}
+                        {% if quote_locked|default(false) %}
+                            <p class="text-sm text-white/60 mt-1">Le devis est verrouillé car l'avenant a été créé depuis ce devis.</p>
+                        {% endif %}
+                    {% else %}
+                        {{ form_widget(form.quote, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field'}}) }}
+                    {% endif %}
+                    {# Toujours créer un champ caché si le select a une valeur, pour s'assurer que la valeur est soumise même si le select est désactivé ou invisible (select-search) #}
+                    {% if form.quote.vars.value %}
+                        {% set quoteValue = form.quote.vars.value %}
+                        {% set quoteId = attribute(quoteValue, 'id')|default(quoteValue) %}
+                        <input type="hidden" name="{{ form.quote.vars.full_name }}" value="{{ quoteId }}" id="{{ form.quote.vars.id }}_hidden">
+                    {% endif %}
+                    {{ form_help(form.quote) }}
+                    {{ form_errors(form.quote) }}
+                </div>
 					{{ form_macros.simple_field(form, 'statut', 'select', {'disabled': isReadOnly}) }}
 				</div>
 
 				{{ form_macros.simple_field(form, 'motif', 'textarea', {'disabled': isReadOnly}) }}
 				{{ form_macros.simple_field(form, 'modifications', 'textarea', {'disabled': isReadOnly}) }}
 				{{ form_macros.simple_field(form, 'justification', 'textarea', {'disabled': isReadOnly}) }}
-				{{ form_macros.simple_field(form, 'tauxTVA', 'input', {'disabled': isReadOnly}) }}
+				{# Afficher le champ tauxTVA uniquement si TVA est activée dans les paramètres de l'entreprise #}
+				{% if companySettings and companySettings.isTvaEnabled() %}
+					{{ form_macros.simple_field(form, 'tauxTVA', 'input', {'disabled': isReadOnly}) }}
+				{% else %}
+					{# Cacher le champ mais le garder dans le formulaire pour la soumission #}
+					<div style="display: none;">
+						{{ form_widget(form.tauxTVA) }}
+					</div>
+				{% endif %}
 			</div>
 
-			{# Lignes du devis d'origine (lecture seule) #}
-			{% if amendment.quote and amendment.quote.lines|length > 0 %}
-				<div class="space-y-4">
+			{# Lignes du devis d'origine (lecture seule) - Affichage statique uniquement si le devis est verrouillé #}
+			{# Sinon, l'affichage dynamique via JavaScript prendra le relais #}
+			{% if amendment.quote and amendment.quote.lines|length > 0 and (quote_locked|default(false) or isReadOnly) %}
+				<div class="space-y-4" data-static-quote-lines>
 					<h3 class="text-lg font-semibold text-white flex items-center gap-2">
 						{{ ux_icon('lucide:file-text', {class: 'w-5 h-5'}) }}
 						Lignes du devis d'origine (référence - lecture seule)
@@ -144,7 +156,7 @@
 			{% endif %}
 
 			{# Lignes d'ajustement (avenant) #}
-			<div class="space-y-4">
+			<div class="space-y-4" data-controller="tva-per-line">
 				<div class="flex items-center justify-between">
 					<div>
 						<h3 class="text-lg font-semibold text-white flex items-center gap-2">
@@ -156,15 +168,28 @@
 							<br>Exemple : Pour passer de 200€ à 300€, saisissez <strong>+100€</strong> (et non 300€).
 						</p>
 					</div>
-					{% if not isReadOnly %}
-						<button type="button" class="btn-secondary text-sm py-2 px-4" data-action="click->quote-form#addLine">
-							{{ ux_icon('lucide:plus', {class: 'w-4 h-4'}) }}
-							Ajouter un ajustement
-						</button>
-					{% endif %}
+					<div class="flex items-center gap-3">
+						{% if companySettings and companySettings.isTvaEnabled() and not isReadOnly %}
+							<button type="button" 
+									class="btn-secondary text-sm py-2 px-4 flex items-center gap-2" 
+									data-tva-per-line-target="toggle"
+									data-action="click->tva-per-line#toggle"
+									data-label-disabled="Appliquer la TVA par ligne"
+									data-label-enabled="Désactiver la TVA par ligne">
+								{{ ux_icon('lucide:percent', {class: 'w-4 h-4'}) }}
+								<span>Appliquer la TVA par ligne</span>
+							</button>
+						{% endif %}
+						{% if not isReadOnly %}
+							<button type="button" class="btn-secondary text-sm py-2 px-4" data-action="click->quote-form#addLine">
+								{{ ux_icon('lucide:plus', {class: 'w-4 h-4'}) }}
+								Ajouter un ajustement
+							</button>
+						{% endif %}
+					</div>
 				</div>
 
-				<div data-quote-form-target="linesContainer" class="space-y-4" data-admin-form-target="linesContainer">
+				<div data-quote-form-target="linesContainer" class="space-y-4 amendment-lines-collection" data-admin-form-target="linesContainer">
 					{% for line in form.lines %}
 						<div class="bg-white/5 border border-white/10 rounded-lg p-4 {% if not line.vars.valid %}border-red-500/50{% endif %}" data-line-index="{{ loop.index0 }}">
 							{% if not line.vars.valid %}
@@ -238,12 +263,22 @@
 									</p>
 									{{ form_errors(line.unitPrice) }}
 								</div>
-								{% if companySettings and companySettings.isTvaEnabled() and amendment.quote and amendment.quote.usePerLineTva %}
-									<div data-tva-settings-target="rateWrapper">
-										{{ form_macros.simple_field(line, 'tvaRate', 'select', {'disabled': isReadOnly}) }}
-									</div>
+								{% if companySettings and companySettings.isTvaEnabled() %}
+									{# Afficher le champ TVA si TVA est activée dans companySettings #}
+									{# Si un devis est associé avec TVA globale, cacher le champ mais le garder pour la soumission #}
+									{% if amendment.quote and not amendment.quote.usePerLineTva %}
+										{# TVA globale : cacher le champ mais le garder pour la soumission #}
+										<div style="display: none;">
+											{{ form_widget(line.tvaRate) }}
+										</div>
+									{% else %}
+										{# TVA par ligne : afficher le champ (masqué par défaut, visible si bouton activé) #}
+										<div data-tva-per-line-target="rateWrapper" style="display: none;">
+											{{ form_macros.simple_field(line, 'tvaRate', 'select', {'disabled': isReadOnly}) }}
+										</div>
+									{% endif %}
 								{% else %}
-									{# Cacher le champ tvaRate si TVA désactivée ou usePerLineTva = false #}
+									{# Cacher le champ tvaRate si TVA désactivée #}
 									<div style="display: none;">
 										{{ form_widget(line.tvaRate) }}
 									</div>
@@ -300,7 +335,7 @@
 								<input type="number" name="{{ form.lines.vars.full_name }}[__name__][unitPrice]" class="form-input" data-admin-form-target="field" step="0.01" min="0" required>
 							</div>
 							{% if companySettings and companySettings.isTvaEnabled() %}
-								<div class="form-group" data-tva-settings-target="rateWrapper" style="display: none;">
+								<div class="form-group" data-tva-per-line-target="rateWrapper" style="display: none;">
 									<label class="form-label">Taux TVA (%)</label>
 									<select name="{{ form.lines.vars.full_name }}[__name__][tvaRate]" class="form-select" data-admin-form-target="field">
 										<option value="">Taux global</option>
@@ -311,8 +346,11 @@
 									</select>
 								</div>
 							{% else %}
-								<div style="display: none;">
-									<input type="hidden" name="{{ form.lines.vars.full_name }}[__name__][tvaRate]" value="">
+								<div class="form-group" style="display: none;">
+									<label class="form-label">Taux TVA (%)</label>
+									<select name="{{ form.lines.vars.full_name }}[__name__][tvaRate]" class="form-select" data-admin-form-target="field">
+										<option value="">Taux global</option>
+									</select>
 								</div>
 							{% endif %}
 						</div>

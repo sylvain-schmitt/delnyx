@@ -126,7 +126,9 @@
                                     <th class="px-4 py-3 text-left text-xs font-semibold text-white/80 uppercase">Description</th>
                                     <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Qté</th>
                                     <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Prix unitaire</th>
-                                    <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">TVA</th>
+                                    {% if companySettings and companySettings.isTvaEnabled() %}
+                                        <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">TVA</th>
+                                    {% endif %}
                                     <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Ancien montant</th>
                                     <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Nouveau montant</th>
                                     <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Delta</th>
@@ -146,9 +148,11 @@
                                         </td>
                                         <td class="px-4 py-3 text-right text-white">{{ line.quantity }}</td>
                                         <td class="px-4 py-3 text-right text-white">{{ line.unitPrice|number_format(2, ',', ' ') }} €</td>
-                                        <td class="px-4 py-3 text-right text-white">
-                                            {{ line.tvaRate ? line.tvaRate ~ '%' : '-' }}
-                                        </td>
+                                        {% if companySettings and companySettings.isTvaEnabled() %}
+                                            <td class="px-4 py-3 text-right text-white">
+                                                {{ line.tvaRate ? line.tvaRate ~ '%' : '-' }}
+                                            </td>
+                                        {% endif %}
                                         <td class="px-4 py-3 text-right text-white/60">{{ line.oldValue|number_format(2, ',', ' ') }} €</td>
                                         <td class="px-4 py-3 text-right text-white font-medium">{{ line.newValue|number_format(2, ',', ' ') }} €</td>
                                         <td class="px-4 py-3 text-right text-white font-semibold {% if (line.delta|number_format(2, '.', '')) > 0 %}text-green-400{% elseif (line.delta|number_format(2, '.', '')) < 0 %}text-red-400{% else %}text-white{% endif %}">
@@ -175,18 +179,26 @@
                     Montants
                 </h2>
                 <div class="space-y-4">
-                    <div class="flex justify-between">
-                        <span class="text-white/60">Montant HT</span>
-                        <span class="text-white font-medium">{{ creditNote.montantHTFormatted }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-white/60">TVA</span>
-                        <span class="text-white font-medium">{{ creditNote.montantTVAFormatted }}</span>
-                    </div>
-                    <div class="flex justify-between pt-4 border-t border-white/20">
-                        <span class="text-white font-semibold">Total TTC</span>
-                        <span class="text-white font-bold text-lg">{{ creditNote.montantTTCFormatted }}</span>
-                    </div>
+                    {% if companySettings and companySettings.isTvaEnabled() %}
+                        <div class="flex justify-between">
+                            <span class="text-white/60">Montant HT</span>
+                            <span class="text-white font-medium">{{ creditNote.montantHTFormatted }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-white/60">TVA</span>
+                            <span class="text-white font-medium">{{ creditNote.montantTVAFormatted }}</span>
+                        </div>
+                        <div class="flex justify-between pt-4 border-t border-white/20">
+                            <span class="text-white font-semibold">Total TTC</span>
+                            <span class="text-white font-bold text-lg">{{ creditNote.montantTTCFormatted }}</span>
+                        </div>
+                    {% else %}
+                        {# TVA désactivée : afficher TTC au lieu de HT #}
+                        <div class="flex justify-between">
+                            <span class="text-white font-semibold">Total TTC</span>
+                            <span class="text-white font-bold text-lg">{{ creditNote.montantTTCFormatted }}</span>
+                        </div>
+                    {% endif %}
                     {% if creditNote.invoice and creditNote.invoice.montantAcompte and creditNote.invoice.montantAcompte > 0 %}
                         {% set totalCorrige = creditNote.invoice.totalCorrected|number_format(2, '.', '') %}
                         {% set montantAcompte = creditNote.invoice.montantAcompte|number_format(2, '.', '') %}
@@ -227,7 +239,7 @@
 
                     {# Bouton Émettre : visible si DRAFT uniquement #}
                     {% if creditNote.canBeIssued %}
-                        <form method="POST" action="{{ path('admin_credit_note_issue', {id: creditNote.id}) }}" class="w-full">
+                        <form method="POST" action="{{ path('admin_credit_note_issue', {id: creditNote.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avoir le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
                             <input type="hidden" name="_token" value="{{ csrf_token('credit_note_issue_' ~ creditNote.id) }}">
                             <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
                                 {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
@@ -236,9 +248,9 @@
                         </form>
                     {% endif %}
 
-                    {# Bouton Envoyer : visible si ISSUED uniquement #}
-                    {% if creditNote.statutEnum.value == 'issued' %}
-                        <form method="POST" action="{{ path('admin_credit_note_send', {id: creditNote.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Envoyer cet avoir au client ?">
+                    {# Bouton Envoyer : visible sauf si DRAFT #}
+                    {% if creditNote.statutEnum.value != 'draft' %}
+                        <form method="POST" action="{{ path('admin_credit_note_send', {id: creditNote.id}) }}" class="w-full">
                             <input type="hidden" name="_token" value="{{ csrf_token('credit_note_send_' ~ creditNote.id) }}">
                             <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
                                 {{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
@@ -247,22 +259,45 @@
                         </form>
                     {% endif %}
 
-                    {# Bouton Annuler : visible si DRAFT ou ISSUED #}
-                    {% if creditNote.statutEnum.canBeCancelled %}
-                        <form method="POST" action="{{ path('admin_credit_note_cancel', {id: creditNote.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avoir ?">
+                    {# Bouton Annuler : visible si DRAFT uniquement #}
+                    {% if creditNote.statutEnum.value == 'draft' %}
+                        <form method="POST" action="{{ path('admin_credit_note_cancel', {id: creditNote.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avoir ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
                             <input type="hidden" name="_token" value="{{ csrf_token('credit_note_cancel_' ~ creditNote.id) }}">
                             <button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
                                 {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
-                                Annuler
+                                Annuler l'avoir
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {# Bouton Appliquer : visible si ISSUED ou SENT #}
+                    {% if creditNote.statutEnum.value in ['issued', 'sent'] %}
+                        <form method="POST" action="{{ path('admin_credit_note_apply', {id: creditNote.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Marquer cet avoir comme appliqué (remboursé ou déduit) ?">
+                            <input type="hidden" name="_token" value="{{ csrf_token('credit_note_apply_' ~ creditNote.id) }}">
+                            <button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
+                                {{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
+                                Appliquer
                             </button>
                         </form>
                     {% endif %}
 
                     {# Bouton Télécharger PDF #}
-                    <a href="#" class="w-full btn-secondary flex items-center justify-center gap-2">
-                        {{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
-                        Télécharger le PDF
-                    </a>
+                    {% if creditNote.pdfFilename %}
+                        <a href="{{ asset('uploads/credit_notes/' ~ creditNote.pdfFilename) }}" target="_blank" class="w-full btn-secondary flex items-center justify-center gap-2">
+                            {{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
+                            Télécharger le PDF
+                        </a>
+                        {% if creditNote.pdfHash %}
+                            <div class="text-xs text-white/40 break-all mt-2 text-center">
+                                <span title="Empreinte numérique SHA256 pour conformité légale">SHA256: {{ creditNote.pdfHash|slice(0, 16) }}...</span>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <span class="w-full btn-secondary opacity-50 cursor-not-allowed flex items-center justify-center gap-2" title="Le PDF sera généré lors de l'émission">
+                            {{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
+                            PDF non disponible
+                        </span>
+                    {% endif %}
                 </div>
             </div>
         </div>

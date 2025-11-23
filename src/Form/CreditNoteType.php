@@ -18,6 +18,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Doctrine\ORM\EntityRepository;
 use App\Entity\CompanySettings;
+use App\EventSubscriber\RemoveEmptyLinesSubscriber;
 
 class CreditNoteType extends AbstractType
 {
@@ -83,6 +84,7 @@ class CreditNoteType extends AbstractType
                 'help' => 'Statut de l\'avoir',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
+            ->addEventSubscriber(new RemoveEmptyLinesSubscriber())
             ->add('reason', TextareaType::class, [
                 'label' => 'Motif',
                 'required' => true,

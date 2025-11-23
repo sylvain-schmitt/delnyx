@@ -19,6 +19,7 @@ use Doctrine\ORM\EntityRepository;
 
 class AmendmentLineType extends AbstractType
 {
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
@@ -37,30 +38,25 @@ class AmendmentLineType extends AbstractType
                 'required' => false,
                 'placeholder' => 'Nouvelle ligne (pas de modification)',
                 'query_builder' => function (EntityRepository $er) use ($options) {
-                    // Récupérer le devis depuis l'avenant
-                    $amendment = $options['amendment'] ?? null;
-                    $quote = null;
-                    
-                    // Essayer de récupérer le devis depuis l'avenant
-                    if ($amendment && $amendment->getQuote()) {
-                        $quote = $amendment->getQuote();
-                    }
-                    
-                    // Si pas de devis, retourner une requête vide
-                    if (!$quote) {
-                        return $er->createQueryBuilder('ql')
-                            ->where('1 = 0'); // Aucune ligne si pas de devis
-                    }
-                    
+                    // Retourner TOUTES les lignes QuoteLine pour permettre la sélection de n'importe quelle ligne
+                    // Cela permet de contourner les problèmes de validation lorsque la ligne n'est pas dans le devis initial
                     return $er->createQueryBuilder('ql')
-                        ->where('ql.quote = :quote')
-                        ->setParameter('quote', $quote)
-                        ->orderBy('ql.id', 'ASC');
+                        ->orderBy('ql.id', 'DESC'); // Ordre décroissant pour afficher les plus récentes en premier
+                },
+                // Permettre les choix qui ne sont pas dans le query_builder initial
+                // (nécessaire car les lignes sont chargées dynamiquement via JavaScript)
+                'choice_value' => function (?QuoteLine $line) {
+                    return $line ? (string)$line->getId() : null;
                 },
                 'attr' => ['class' => 'form-select'],
                 'help' => 'Sélectionnez une ligne du devis à modifier, ou laissez vide pour ajouter une nouvelle ligne',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
-            ])
+            ]);
+            
+            // Plus besoin du ModelTransformer car le query_builder retourne maintenant toutes les lignes
+            // EntityType peut donc trouver n'importe quelle ligne QuoteLine
+        
+        $builder
             ->add('tariff', EntityType::class, [
                 'label' => 'Tarif du catalogue',
                 'class' => Tariff::class,
@@ -78,21 +74,21 @@ class AmendmentLineType extends AbstractType
             ])
             ->add('description', TextType::class, [
                 'label' => 'Description',
-                'required' => true,
+                'required' => false,
                 'attr' => ['class' => 'form-input'],
                 'help' => 'Description de la modification',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('quantity', IntegerType::class, [
                 'label' => 'Quantité',
-                'required' => true,
+                'required' => false,
                 'attr' => ['class' => 'form-input', 'min' => 1],
                 'help' => 'Quantité de la prestation',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('unitPrice', NumberType::class, [
                 'label' => 'Prix unitaire (€)',
-                'required' => true,
+                'required' => false,
                 'scale' => 2,
                 'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0],
                 'help' => 'Prix unitaire en euros',

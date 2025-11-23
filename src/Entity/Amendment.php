@@ -101,6 +101,10 @@ class Amendment
     #[Groups(['amendment:read'])]
     private int $sentCount = 0;
 
+    #[ORM\Column(type: Types::STRING, length: 20, nullable: true)]
+    #[Groups(['amendment:read'])]
+    private ?string $deliveryChannel = null; // 'email', 'pdp', 'both'
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['amendment:read', 'amendment:write'])]
     private ?string $signatureClient = null;
@@ -118,6 +122,20 @@ class Amendment
     #[Assert\NotBlank(message: 'Le company_id est obligatoire')]
     #[Groups(['amendment:read', 'amendment:write'])]
     private ?string $companyId = null;
+
+    /**
+     * Nom du fichier PDF généré
+     */
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['amendment:read'])]
+    private ?string $pdfFilename = null;
+
+    /**
+     * Hash SHA256 du PDF pour archivage légal (10 ans)
+     */
+    #[ORM\Column(type: Types::STRING, length: 64, nullable: true)]
+    #[Groups(['amendment:read'])]
+    private ?string $pdfHash = null;
 
     // ===== MONTANTS EN DECIMAL (EUROS) =====
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
@@ -281,6 +299,17 @@ class Amendment
         return $this;
     }
 
+    public function getDeliveryChannel(): ?string
+    {
+        return $this->deliveryChannel;
+    }
+
+    public function setDeliveryChannel(?string $deliveryChannel): static
+    {
+        $this->deliveryChannel = $deliveryChannel;
+        return $this;
+    }
+
     public function getSignatureClient(): ?string
     {
         return $this->signatureClient;
@@ -326,6 +355,28 @@ class Amendment
     public function setCompanyId(string $companyId): static
     {
         $this->companyId = $companyId;
+        return $this;
+    }
+
+    public function getPdfFilename(): ?string
+    {
+        return $this->pdfFilename;
+    }
+
+    public function setPdfFilename(?string $pdfFilename): static
+    {
+        $this->pdfFilename = $pdfFilename;
+        return $this;
+    }
+
+    public function getPdfHash(): ?string
+    {
+        return $this->pdfHash;
+    }
+
+    public function setPdfHash(?string $pdfHash): static
+    {
+        $this->pdfHash = $pdfHash;
         return $this;
     }
 
@@ -444,13 +495,58 @@ class Amendment
         $totalHtEuros = 0.0;
         $totalTvaEuros = 0.0;
 
+        // Récupérer le devis associé pour connaître le mode de TVA
+        $quote = $this->quote;
+        
+        // Déterminer si on utilise la TVA par ligne :
+        // - Si un devis est associé, utiliser usePerLineTva du devis
+        // - Sinon, détecter automatiquement si au moins une ligne a un taux de TVA défini
+        $usePerLineTva = false;
+        if ($quote) {
+            $usePerLineTva = $quote->isUsePerLineTva();
+        } else {
+            // Détecter automatiquement : si au moins une ligne a un taux de TVA, on utilise la TVA par ligne
+            foreach ($this->lines as $line) {
+                if ($line->getTvaRate() && (float) $line->getTvaRate() > 0) {
+                    $usePerLineTva = true;
+                    break;
+                }
+            }
+        }
+
         foreach ($this->lines as $line) {
             $lineTotalHt = (float) ($line->getTotalHt() ?? 0);
             $totalHtEuros += $lineTotalHt;
 
-            // Calculer la TVA de chaque ligne
-            if ($line->getTvaRate() && (float) $line->getTvaRate() > 0) {
-                $tvaAmount = $lineTotalHt * ((float) $line->getTvaRate() / 100);
+            // Déterminer le taux de TVA à utiliser pour cette ligne
+            $tvaRate = null;
+            
+            if ($usePerLineTva && $line->getSourceLine()) {
+                // TVA par ligne : pour une modification, utiliser le taux de la ligne source
+                $sourceTvaRate = $line->getSourceLine()->getTvaRate();
+                if ($sourceTvaRate && (float) $sourceTvaRate > 0) {
+                    $tvaRate = (float) $sourceTvaRate;
+                }
+            }
+            
+            // Si pas de taux depuis la source, utiliser celui de la ligne d'avenant
+            if ($tvaRate === null && $line->getTvaRate() && (float) $line->getTvaRate() > 0) {
+                $tvaRate = (float) $line->getTvaRate();
+            }
+            
+            // Si toujours pas de taux, utiliser le taux global de l'avenant
+            if ($tvaRate === null && $this->tauxTVA && (float) $this->tauxTVA > 0) {
+                $tvaRate = (float) $this->tauxTVA;
+            }
+            
+            // Si toujours pas de taux, utiliser le taux global du devis
+            if ($tvaRate === null && $quote && $quote->getTauxTVA() && (float) $quote->getTauxTVA() > 0) {
+                $tvaRate = (float) $quote->getTauxTVA();
+            }
+
+            // Calculer la TVA de cette ligne
+            if ($tvaRate !== null && $tvaRate > 0) {
+                $tvaAmount = $lineTotalHt * ($tvaRate / 100);
                 $totalTvaEuros += $tvaAmount;
             }
         }
@@ -502,12 +598,12 @@ class Amendment
 
     public function canBeSigned(): bool
     {
-        return $this->statut === AmendmentStatus::DRAFT || $this->statut === AmendmentStatus::SENT;
+        return $this->statut === AmendmentStatus::SENT;
     }
 
     public function canBeCancelled(): bool
     {
-        return $this->statut && !$this->statut->isFinal();
+        return $this->statut === AmendmentStatus::DRAFT;
     }
 
     public function getStatutLabel(): string

@@ -59,23 +59,17 @@ class CalculateDeltaSubscriber
     {
         $sourceLine = $line->getSourceLine();
         
-        // Définir oldValue seulement s'il n'est pas déjà défini
-        if (!$line->getOldValue() || $line->getOldValue() === '0.00') {
-            if ($sourceLine) {
-                // MODIFICATION : oldValue = total HT de la ligne source
-                $oldValue = (float) $sourceLine->getTotalHt();
-                $line->setOldValue(number_format($oldValue, 2, '.', ''));
-            } else {
-                // AJOUT : oldValue = 0.00
-                $line->setOldValue('0.00');
-            }
-        }
-
         // Calculer newValue selon la même logique que recalculateTotalHt()
         // Seulement si quantity et unitPrice sont définis
         if ($line->getQuantity() !== null && $line->getUnitPrice() !== null) {
             if ($sourceLine) {
                 // MODIFICATION : unitPrice représente le DELTA (ajustement)
+                // Définir oldValue en premier si pas déjà défini
+                if (!$line->getOldValue() || $line->getOldValue() === '0.00') {
+                    $oldValue = (float) $sourceLine->getTotalHt();
+                    $line->setOldValue(number_format($oldValue, 2, '.', ''));
+                }
+                
                 // newValue = oldValue + delta
                 $oldValue = (float) $line->getOldValue();
                 $delta = (float) $line->getUnitPrice() * $line->getQuantity();
@@ -85,6 +79,11 @@ class CalculateDeltaSubscriber
                 $line->setTotalHt(number_format($newValue, 2, '.', ''));
             } else {
                 // AJOUT : unitPrice représente la nouvelle valeur totale
+                // Définir oldValue à 0.00 si pas déjà défini
+                if (!$line->getOldValue() || $line->getOldValue() === '0.00') {
+                    $line->setOldValue('0.00');
+                }
+                
                 $total = (float) $line->getUnitPrice() * $line->getQuantity();
                 // Pour les avoirs, le montant doit être négatif (crédit)
                 if ($line instanceof \App\Entity\CreditNoteLine && $total > 0) {
@@ -101,6 +100,18 @@ class CalculateDeltaSubscriber
                 $newValue = (float) $line->getTotalHt();
                 if ($newValue != 0) {
                     $line->setNewValue(number_format($newValue, 2, '.', ''));
+                }
+            }
+            
+            // Définir oldValue si pas déjà défini
+            if (!$line->getOldValue() || $line->getOldValue() === '0.00') {
+                if ($sourceLine) {
+                    // MODIFICATION : oldValue = total HT de la ligne source
+                    $oldValue = (float) $sourceLine->getTotalHt();
+                    $line->setOldValue(number_format($oldValue, 2, '.', ''));
+                } else {
+                    // AJOUT : oldValue = 0.00
+                    $line->setOldValue('0.00');
                 }
             }
         }

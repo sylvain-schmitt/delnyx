@@ -16,10 +16,11 @@ use Symfony\Component\Security\Core\User\UserInterface;
  * Actions disponibles :
  * - EDIT : Modifier un devis
  * - DELETE : Supprimer un devis (jamais autorisé, archivage 10 ans)
- * - SEND : Envoyer un devis (DRAFT → SENT)
+ * - ISSUE : Émettre un devis (DRAFT → ISSUED)
+ * - SEND : Envoyer un devis (ISSUED → SENT)
  * - ACCEPT : Accepter un devis (SENT → ACCEPTED)
  * - SIGN : Signer un devis (SENT/ACCEPTED → SIGNED)
- * - CANCEL : Annuler un devis (DRAFT/SENT/ACCEPTED → CANCELLED)
+ * - CANCEL : Annuler un devis (DRAFT → CANCELLED)
  * - REFUSE : Refuser un devis (SENT/ACCEPTED → REFUSED)
  * - GENERATE_INVOICE : Générer une facture depuis un devis (SIGNED uniquement)
  * - VIEW : Voir un devis
@@ -30,6 +31,7 @@ class QuoteVoter extends Voter
 {
     public const EDIT = 'QUOTE_EDIT';
     public const DELETE = 'QUOTE_DELETE';
+    public const ISSUE = 'QUOTE_ISSUE';
     public const SEND = 'QUOTE_SEND';
     public const ACCEPT = 'QUOTE_ACCEPT';
     public const SIGN = 'QUOTE_SIGN';
@@ -47,6 +49,7 @@ class QuoteVoter extends Voter
         if (!in_array($attribute, [
             self::EDIT,
             self::DELETE,
+            self::ISSUE,
             self::SEND,
             self::ACCEPT,
             self::SIGN,
@@ -87,6 +90,7 @@ class QuoteVoter extends Voter
             self::VIEW => $this->canView($quote, $user),
             self::EDIT => $this->canEdit($quote, $user, $status),
             self::DELETE => $this->canDelete($quote, $user, $status),
+            self::ISSUE => $this->canIssue($quote, $user, $status),
             self::SEND => $this->canSend($quote, $user, $status),
             self::ACCEPT => $this->canAccept($quote, $user, $status),
             self::SIGN => $this->canSign($quote, $user, $status),
@@ -126,8 +130,17 @@ class QuoteVoter extends Voter
     }
 
     /**
+     * Vérifie si l'utilisateur peut émettre le devis
+     * DRAFT → ISSUED
+     */
+    private function canIssue(Quote $quote, UserInterface $user, QuoteStatus $status): bool
+    {
+        return $status->canBeIssued();
+    }
+
+    /**
      * Vérifie si l'utilisateur peut envoyer le devis
-     * DRAFT → SENT
+     * ISSUED → SENT (ou renvoie si déjà SENT)
      */
     private function canSend(Quote $quote, UserInterface $user, QuoteStatus $status): bool
     {
