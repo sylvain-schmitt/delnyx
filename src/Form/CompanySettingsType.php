@@ -165,13 +165,17 @@ class CompanySettingsType extends AbstractType
             }
 
             $tvaEnabled = array_key_exists('tvaEnabled', $data) ? (bool) $data['tvaEnabled'] : false;
+            $tvaEnabled = array_key_exists('tvaEnabled', $data) ? (bool) $data['tvaEnabled'] : false;
+            
             if (!$tvaEnabled) {
-                // Option: forcer à 0.00 côté données
-                if (isset($data['tauxTVADefaut'])) {
-                    $data['tauxTVADefaut'] = '0.00';
-                    $event->setData($data);
-                }
+                // Si TVA désactivée, on force à 0.00
+                $data['tauxTVADefaut'] = '0.00';
+            } elseif (empty($data['tauxTVADefaut'])) {
+                // Si TVA activée mais pas de taux choisi, on met 20% par défaut
+                $data['tauxTVADefaut'] = '20.00';
             }
+            
+            $event->setData($data);
         });
     }
 
