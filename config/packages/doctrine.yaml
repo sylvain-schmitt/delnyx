@@ -30,8 +30,9 @@ doctrine:
 when@test:
     doctrine:
         dbal:
-            # "TEST_TOKEN" is typically set by ParaTest
-            dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+            # Pour les tests, utiliser la même base que dev (ou créer une base dédiée)
+            # dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+            # Utiliser la base principale pour simplifier (en production, créer une base dédiée)
 
 when@prod:
     doctrine:

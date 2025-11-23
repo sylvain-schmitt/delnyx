@@ -1,0 +1,393 @@
+{% extends 'admin/layout/base.html.twig' %}
+{% import 'admin/macros/form_fields.html.twig' as form_macros %}
+
+{% block title %}
+	{{ title }}
+	- Administration Delnyx
+{% endblock %}
+
+{% block page_title %}
+	{{ title }}
+{% endblock %}
+
+{% block body %}
+	<div class="space-y-6">
+
+		{# Header avec breadcrumb #}
+		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+			<div>
+				<h1 class="text-2xl font-bold text-white">{{ title }}</h1>
+				<nav class="flex items-center space-x-2 text-sm text-white/60 mt-1">
+					<a href="{{ path('admin_dashboard') }}" class="hover:text-white transition-colors duration-200">Dashboard</a>
+					<span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
+					<a href="{{ path('admin_amendment_index') }}" class="hover:text-white transition-colors duration-200">Avenants</a>
+					<span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
+					<span class="text-white">{{ title }}</span>
+				</nav>
+			</div>
+			<a href="{{ path('admin_amendment_index') }}" class="btn-secondary flex items-center gap-2">
+				{{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
+				Retour à la liste
+			</a>
+		</div>
+
+		{# Alerte immutabilité si avenant signé #}
+		{% if amendment.statutEnum.value == 'signed' %}
+			<div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 scroll-animate mb-6">
+				<div class="flex items-start gap-3">
+					{{ ux_icon('lucide:lock', {class: 'w-5 h-5 text-blue-400 mt-0.5'}) }}
+					<div class="flex-1">
+						<p class="text-blue-300 font-medium mb-1">Avenant signé - Document immuable</p>
+						<p class="text-blue-200/80 text-sm">Cet avenant est signé et ne peut plus être modifié. Les lignes sont en lecture seule.</p>
+					</div>
+				</div>
+			</div>
+		{% endif %}
+
+		{# Formulaire #}
+		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100" data-controller="amendment-form quote-form flash-messages">
+			{% set isReadOnly = amendment.statutEnum.value == 'signed' %}
+			{{ form_start(form, {'attr': {'class': 'space-y-6', 'data-controller': 'admin-form', 'data-admin-form-target': 'form', 'novalidate': 'novalidate', 'data-action': 'submit->admin-form#handleSubmit'}}) }}
+
+			{# Messages flash #}
+			<div data-flash-messages-target="container" class="space-y-3 mb-4">
+				{% for type, messages in app.flashes %}
+					{% for message in messages %}
+						<div data-flash-messages-target="message" class="glass-card optimized-blur p-4 border-l-4 {% if type == 'success' %}border-emerald-500{% elseif type == 'error' %}border-red-500{% else %}border-blue-500{% endif %}">
+							<div class="flex items-center">
+								<div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 {% if type == 'success' %}bg-emerald-500/20{% else %}bg-red-500/20{% endif %}">
+									{% if type == 'success' %}
+										{{ ux_icon('lucide:check-circle', {class: 'w-5 h-5 text-emerald-400'}) }}
+									{% else %}
+										{{ ux_icon('lucide:alert-circle', {class: 'w-5 h-5 text-red-400'}) }}
+									{% endif %}
+								</div>
+								<div class="flex-1">
+									<p class="text-white font-medium">{{ message }}</p>
+								</div>
+							</div>
+						</div>
+					{% endfor %}
+				{% endfor %}
+			</div>
+
+			{# Informations générales #}
+			<div class="space-y-4">
+				<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+					{{ ux_icon('lucide:file-edit', {class: 'w-5 h-5'}) }}
+					Informations générales
+				</h3>
+
+				{{ form_widget(form.numero, {'attr': {'style': 'display: none'}}) }}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group" data-controller="select-search" data-select-search-type="quote">
+                    {{ form_label(form.quote, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {% if quote_locked|default(false) or isReadOnly %}
+                        {{ form_widget(form.quote, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field', 'disabled': 'disabled'}}) }}
+                        {% if quote_locked|default(false) %}
+                            <p class="text-sm text-white/60 mt-1">Le devis est verrouillé car l'avenant a été créé depuis ce devis.</p>
+                        {% endif %}
+                    {% else %}
+                        {{ form_widget(form.quote, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field'}}) }}
+                    {% endif %}
+                    {# Toujours créer un champ caché si le select a une valeur, pour s'assurer que la valeur est soumise même si le select est désactivé ou invisible (select-search) #}
+                    {% if form.quote.vars.value %}
+                        {% set quoteValue = form.quote.vars.value %}
+                        {% set quoteId = attribute(quoteValue, 'id')|default(quoteValue) %}
+                        <input type="hidden" name="{{ form.quote.vars.full_name }}" value="{{ quoteId }}" id="{{ form.quote.vars.id }}_hidden">
+                    {% endif %}
+                    {{ form_help(form.quote) }}
+                    {{ form_errors(form.quote) }}
+                </div>
+					{{ form_macros.simple_field(form, 'statut', 'select', {'disabled': isReadOnly}) }}
+				</div>
+
+				{{ form_macros.simple_field(form, 'motif', 'textarea', {'disabled': isReadOnly}) }}
+				{{ form_macros.simple_field(form, 'modifications', 'textarea', {'disabled': isReadOnly}) }}
+				{{ form_macros.simple_field(form, 'justification', 'textarea', {'disabled': isReadOnly}) }}
+				{# Afficher le champ tauxTVA uniquement si TVA est activée dans les paramètres de l'entreprise #}
+				{% if companySettings and companySettings.isTvaEnabled() %}
+					{{ form_macros.simple_field(form, 'tauxTVA', 'input', {'disabled': isReadOnly}) }}
+				{% else %}
+					{# Cacher le champ mais le garder dans le formulaire pour la soumission #}
+					<div style="display: none;">
+						{{ form_widget(form.tauxTVA) }}
+					</div>
+				{% endif %}
+			</div>
+
+			{# Lignes du devis d'origine (lecture seule) - Affichage statique uniquement si le devis est verrouillé #}
+			{# Sinon, l'affichage dynamique via JavaScript prendra le relais #}
+			{% if amendment.quote and amendment.quote.lines|length > 0 and (quote_locked|default(false) or isReadOnly) %}
+				<div class="space-y-4" data-static-quote-lines>
+					<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+						{{ ux_icon('lucide:file-text', {class: 'w-5 h-5'}) }}
+						Lignes du devis d'origine (référence - lecture seule)
+					</h3>
+					<div class="bg-white/5 border border-white/20 rounded-lg p-4">
+						<div class="space-y-3">
+							{% for quoteLine in amendment.quote.lines %}
+								<div class="flex items-center justify-between text-sm py-2 border-b border-white/10 last:border-0">
+									<div class="flex-1">
+										<p class="text-white font-medium">{{ quoteLine.description }}</p>
+										<p class="text-white/60 text-xs">
+											Qté: {{ quoteLine.quantity }} × {{ quoteLine.unitPrice|number_format(2, ',', ' ') }} €
+											{% if amendment.quote.usePerLineTva and quoteLine.tvaRate %}
+												(TVA {{ quoteLine.tvaRate }}%)
+											{% endif %}
+										</p>
+									</div>
+									<div class="text-right">
+										<p class="text-white font-semibold">{{ quoteLine.totalHtFormatted }}</p>
+										<p class="text-white/60 text-xs">HT</p>
+									</div>
+								</div>
+							{% endfor %}
+							<div class="pt-2 border-t border-white/20 mt-2">
+								<div class="flex items-center justify-between">
+									<span class="text-white font-semibold">Total devis initial</span>
+									<span class="text-white font-bold">{{ amendment.quote.montantTTCFormate }}</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			{% endif %}
+
+			{# Lignes d'ajustement (avenant) #}
+			<div class="space-y-4" data-controller="tva-per-line">
+				<div class="flex items-center justify-between">
+					<div>
+						<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+							{{ ux_icon('lucide:list', {class: 'w-5 h-5'}) }}
+							Lignes d'ajustement
+						</h3>
+						<p class="text-sm text-white/60 mt-1">
+							⚠️ Important : Saisissez uniquement les <strong>ajustements</strong> (deltas), pas les montants bruts.
+							<br>Exemple : Pour passer de 200€ à 300€, saisissez <strong>+100€</strong> (et non 300€).
+						</p>
+					</div>
+					<div class="flex items-center gap-3">
+						{% if companySettings and companySettings.isTvaEnabled() and not isReadOnly %}
+							<button type="button" 
+									class="btn-secondary text-sm py-2 px-4 flex items-center gap-2" 
+									data-tva-per-line-target="toggle"
+									data-action="click->tva-per-line#toggle"
+									data-label-disabled="Appliquer la TVA par ligne"
+									data-label-enabled="Désactiver la TVA par ligne">
+								{{ ux_icon('lucide:percent', {class: 'w-4 h-4'}) }}
+								<span>Appliquer la TVA par ligne</span>
+							</button>
+						{% endif %}
+						{% if not isReadOnly %}
+							<button type="button" class="btn-secondary text-sm py-2 px-4" data-action="click->quote-form#addLine">
+								{{ ux_icon('lucide:plus', {class: 'w-4 h-4'}) }}
+								Ajouter un ajustement
+							</button>
+						{% endif %}
+					</div>
+				</div>
+
+				<div data-quote-form-target="linesContainer" class="space-y-4 amendment-lines-collection" data-admin-form-target="linesContainer">
+					{% for line in form.lines %}
+						<div class="bg-white/5 border border-white/10 rounded-lg p-4 {% if not line.vars.valid %}border-red-500/50{% endif %}" data-line-index="{{ loop.index0 }}">
+							{% if not line.vars.valid %}
+								<div class="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+									<p class="text-red-300 text-sm font-medium mb-2">Erreurs dans cette ligne :</p>
+									{{ form_errors(line) }}
+									{% for child in line.children %}
+										{% if not child.vars.valid %}
+											<div class="mt-1 text-sm">
+												<strong class="text-red-300">{{ form_label(child) }}:</strong>
+												{{ form_errors(child) }}
+											</div>
+										{% endif %}
+									{% endfor %}
+								</div>
+							{% endif %}
+							<div class="bg-blue-500/10 border border-blue-500/20 rounded p-3 mb-4">
+								<p class="text-blue-300 text-sm">
+									<strong>💡 Ajustement :</strong> Saisissez un montant <strong>positif</strong> pour ajouter/augmenter, 
+									<strong>négatif</strong> pour retirer/diminuer.
+								</p>
+							</div>
+							{# Champ sourceLine : sélection de la ligne du devis à modifier #}
+							<div class="mb-4">
+								{{ form_label(line.sourceLine, null, {'label_attr': {'class': 'form-label'}}) }}
+								{{ form_widget(line.sourceLine, {'attr': {
+									'class': 'form-select',
+									'data-admin-form-target': 'field',
+									'disabled': isReadOnly ? 'disabled' : false
+								}}) }}
+								{{ form_help(line.sourceLine) }}
+								{{ form_errors(line.sourceLine) }}
+							</div>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								{{ form_macros.simple_field(line, 'tariff', 'select', {'disabled': isReadOnly}) }}
+								<div class="form-group">
+									{{ form_label(line.description, null, {'label_attr': {'class': 'form-label'}}) }}
+									{{ form_widget(line.description, {'attr': {
+										'class': 'form-input',
+										'data-admin-form-target': 'field',
+										'placeholder': 'Description de l\'ajustement (ex: "Ajustement prix", "Ajout service")',
+										'disabled': isReadOnly ? 'disabled' : false
+									}}) }}
+									<p class="text-xs text-white/60 mt-1">Description de l'ajustement (optionnel)</p>
+									{{ form_errors(line.description) }}
+								</div>
+							</div>
+							<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+								<div class="form-group">
+									{{ form_label(line.quantity, null, {'label_attr': {'class': 'form-label'}}) }}
+									{{ form_widget(line.quantity, {'attr': {
+										'class': 'form-input',
+										'data-admin-form-target': 'field',
+										'placeholder': '1',
+										'disabled': isReadOnly ? 'disabled' : false
+									}}) }}
+									<p class="text-xs text-white/60 mt-1">Quantité (optionnel, pour calcul automatique)</p>
+									{{ form_errors(line.quantity) }}
+								</div>
+								<div class="form-group">
+									{{ form_label(line.unitPrice, null, {'label_attr': {'class': 'form-label'}}) }}
+									{{ form_widget(line.unitPrice, {'attr': {
+										'class': 'form-input',
+										'data-admin-form-target': 'field',
+										'placeholder': '+100.00 ou -50.00',
+										'step': '0.01',
+										'disabled': isReadOnly ? 'disabled' : false
+									}}) }}
+									<p class="text-xs text-white/60 mt-1">
+										<strong>Montant de l'ajustement</strong> (positif ou négatif)
+									</p>
+									{{ form_errors(line.unitPrice) }}
+								</div>
+								{% if companySettings and companySettings.isTvaEnabled() %}
+									{# Afficher le champ TVA si TVA est activée dans companySettings #}
+									{# Si un devis est associé avec TVA globale, cacher le champ mais le garder pour la soumission #}
+									{% if amendment.quote and not amendment.quote.usePerLineTva %}
+										{# TVA globale : cacher le champ mais le garder pour la soumission #}
+										<div style="display: none;">
+											{{ form_widget(line.tvaRate) }}
+										</div>
+									{% else %}
+										{# TVA par ligne : afficher le champ (masqué par défaut, visible si bouton activé) #}
+										<div data-tva-per-line-target="rateWrapper" style="display: none;">
+											{{ form_macros.simple_field(line, 'tvaRate', 'select', {'disabled': isReadOnly}) }}
+										</div>
+									{% endif %}
+								{% else %}
+									{# Cacher le champ tvaRate si TVA désactivée #}
+									<div style="display: none;">
+										{{ form_widget(line.tvaRate) }}
+									</div>
+								{% endif %}
+							</div>
+							{% if not isReadOnly %}
+								<div class="flex items-center justify-end mt-4 pt-4 border-t border-white/10">
+									<button type="button" class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1" data-action="click->quote-form#removeLine">
+										{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+										Supprimer
+									</button>
+								</div>
+							{% endif %}
+						</div>
+					{% endfor %}
+				</div>
+
+				{# Template pour nouvelle ligne #}
+				<template data-quote-form-target="lineTemplate">
+					<div class="bg-white/5 border border-white/10 rounded-lg p-4" data-line-index="__name__">
+						<div class="bg-blue-500/10 border border-blue-500/20 rounded p-3 mb-4">
+							<p class="text-blue-300 text-sm">
+								<strong>💡 Ajustement :</strong> Saisissez un montant <strong>positif</strong> pour ajouter/augmenter, 
+								<strong>négatif</strong> pour retirer/diminuer.
+							</p>
+						</div>
+						{# Champ sourceLine : sélection de la ligne du devis à modifier #}
+						<div class="mb-4">
+							<label class="form-label">Ligne du devis à modifier (optionnel)</label>
+							<select name="{{ form.lines.vars.full_name }}[__name__][sourceLine]" class="form-select" data-admin-form-target="field">
+								<option value="">Nouvelle ligne (pas de modification)</option>
+							</select>
+							<p class="text-xs text-white/60 mt-1">Sélectionnez une ligne du devis à modifier, ou laissez vide pour ajouter une nouvelle ligne</p>
+						</div>
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div class="form-group">
+								<label class="form-label">Tarif du catalogue</label>
+								<select name="{{ form.lines.vars.full_name }}[__name__][tariff]" class="form-select" data-admin-form-target="field">
+									<option value="">Aucun</option>
+								</select>
+							</div>
+							<div class="form-group">
+								<label class="form-label">Description</label>
+								<input type="text" name="{{ form.lines.vars.full_name }}[__name__][description]" class="form-input" data-admin-form-target="field" required>
+							</div>
+						</div>
+						<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+							<div class="form-group">
+								<label class="form-label">Quantité</label>
+								<input type="number" name="{{ form.lines.vars.full_name }}[__name__][quantity]" class="form-input" data-admin-form-target="field" min="1" value="1" required>
+							</div>
+							<div class="form-group">
+								<label class="form-label">Prix unitaire (€)</label>
+								<input type="number" name="{{ form.lines.vars.full_name }}[__name__][unitPrice]" class="form-input" data-admin-form-target="field" step="0.01" min="0" required>
+							</div>
+							{% if companySettings and companySettings.isTvaEnabled() %}
+								<div class="form-group" data-tva-per-line-target="rateWrapper" style="display: none;">
+									<label class="form-label">Taux TVA (%)</label>
+									<select name="{{ form.lines.vars.full_name }}[__name__][tvaRate]" class="form-select" data-admin-form-target="field">
+										<option value="">Taux global</option>
+										<option value="0.00">0%</option>
+										<option value="5.50">5,5%</option>
+										<option value="10.00">10%</option>
+										<option value="20.00">20%</option>
+									</select>
+								</div>
+							{% else %}
+								<div class="form-group" style="display: none;">
+									<label class="form-label">Taux TVA (%)</label>
+									<select name="{{ form.lines.vars.full_name }}[__name__][tvaRate]" class="form-select" data-admin-form-target="field">
+										<option value="">Taux global</option>
+									</select>
+								</div>
+							{% endif %}
+						</div>
+						<div class="flex items-center justify-end mt-4 pt-4 border-t border-white/10">
+							<button type="button" class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1" data-action="click->quote-form#removeLine">
+								{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+								Supprimer
+							</button>
+						</div>
+					</div>
+				</template>
+			</div>
+
+			{# Notes #}
+			<div class="space-y-4">
+				<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+					{{ ux_icon('lucide:sticky-note', {class: 'w-5 h-5'}) }}
+					Notes
+				</h3>
+				{{ form_macros.simple_field(form, 'notes', 'textarea') }}
+			</div>
+
+			{# Actions #}
+			<div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/20">
+				<button type="submit" class="btn-primary flex items-center justify-center gap-2" data-admin-form-target="submit">
+					{{ ux_icon('lucide:save', {class: 'w-4 h-4'}) }}
+					{{ amendment.id ? 'Modifier l\'avenant' : 'Créer l\'avenant' }}
+				</button>
+				<a href="{{ path('admin_amendment_index') }}" class="btn-secondary flex items-center justify-center gap-2">
+					{{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
+					Annuler
+				</a>
+			</div>
+
+			{{ form_rest(form) }}
+			{{ form_end(form, {'render_rest': false}) }}
+		</div>
+	</div>
+{% endblock %}
+

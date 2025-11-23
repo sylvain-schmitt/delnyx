@@ -1,0 +1,119 @@
+{% extends 'public/layout/base.html.twig' %}
+
+{% block title %}Avoir {{ creditNote.numero }} - Delnyx{% endblock %}
+
+{% block body %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-8 mb-6">
+        <div class="flex items-start justify-between mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-white mb-2">Avoir</h1>
+                <p class="text-xl text-white/80">{{ creditNote.numero }}</p>
+                {% if creditNote.invoice %}
+                    <p class="text-sm text-white/60 mt-2">Facture associée : {{ creditNote.invoice.numero }}</p>
+                {% endif %}
+            </div>
+            <div class="text-right">
+                {% set status = creditNote.statutEnum %}
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium
+                    {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+                    {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
+                    {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
+                    {% elseif status.value == 'applied' %}bg-green-500/20 text-green-300
+                    {% elseif status.value == 'cancelled' %}bg-red-500/20 text-red-300
+                    {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+                    {{ status.label }}
+                </span>
+            </div>
+        </div>
+
+        {# Informations #}
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <h2 class="text-sm font-semibold text-white/60 uppercase mb-2">Client</h2>
+                {% if creditNote.invoice %}
+                    <p class="text-white font-medium">{{ creditNote.invoice.client.nomComplet }}</p>
+                    {% if creditNote.invoice.client.email %}
+                        <p class="text-white/80 text-sm">{{ creditNote.invoice.client.email }}</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <div>
+                <h2 class="text-sm font-semibold text-white/60 uppercase mb-2">Informations</h2>
+                <p class="text-white/80 text-sm">Date d'émission : {{ creditNote.dateCreation|date('d/m/Y') }}</p>
+            </div>
+        </div>
+
+        {# Raison #}
+        {% if creditNote.reason %}
+            <div class="mb-6 bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                <h2 class="text-sm font-semibold text-white/60 uppercase mb-2">Raison</h2>
+                <p class="text-white/80">{{ creditNote.reason }}</p>
+            </div>
+        {% endif %}
+
+        {# Lignes de l'avoir #}
+        <div class="overflow-x-auto mb-6">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-white/20">
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-white/80 uppercase">Description</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Qté</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">P.U. HT</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total HT</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/10">
+                    {% for line in creditNote.lines %}
+                        <tr>
+                            <td class="px-4 py-3 text-white">{{ line.description }}</td>
+                            <td class="px-4 py-3 text-right text-white/80">{{ line.quantity }}</td>
+                            <td class="px-4 py-3 text-right text-white/80">{{ (line.unitPrice|number_format(2, ',', ' ')) ~ ' €' }}</td>
+                            <td class="px-4 py-3 text-right text-white font-medium">{{ line.totalHtFormatted }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# Totaux #}
+        <div class="flex justify-end">
+            <div class="w-full md:w-1/2 space-y-2">
+                <div class="flex justify-between text-white/80">
+                    <span>Total HT</span>
+                    <span class="font-medium">{{ creditNote.montantHTFormatted }}</span>
+                </div>
+                <div class="flex justify-between text-white/80">
+                    <span>TVA</span>
+                    <span class="font-medium">{{ creditNote.montantTVAFormatted }}</span>
+                </div>
+                <div class="flex justify-between text-xl font-bold text-white pt-2 border-t border-white/20">
+                    <span>Total TTC</span>
+                    <span>{{ creditNote.montantTTCFormatted }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Actions #}
+    {% if creditNote.statutEnum.value in ['issued', 'sent'] %}
+        <a href="{{ path('public_credit_note_apply', {
+            id: creditNote.id,
+            expires: app.request.query.get('expires'),
+            signature: app.request.query.get('signature')
+        }) }}" class="btn-primary block text-center py-4">
+            {{ ux_icon('lucide:check-circle', {class: 'w-5 h-5 inline mr-2'}) }}
+            Appliquer cet avoir
+        </a>
+    {% elseif creditNote.statutEnum.value == 'applied' %}
+        <div class="bg-green-500/20 border border-green-500/30 rounded-lg p-4 text-center">
+            <p class="text-green-300 font-medium">
+                {{ ux_icon('lucide:check-circle-2', {class: 'w-5 h-5 inline mr-2'}) }}
+                Cet avoir a été appliqué !
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+

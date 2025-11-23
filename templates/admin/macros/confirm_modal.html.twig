@@ -1,0 +1,51 @@
+{# Macro pour afficher une modale de confirmation réutilisable #}
+{# Note: Le contrôleur confirm-modal est sur le body dans base.html.twig #}
+{% macro confirm_modal() %}
+<div>
+    {# Overlay #}
+    <div data-confirm-modal-target="overlay" 
+         data-action="click->confirm-modal#closeOnOverlay"
+         class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity duration-300"></div>
+    
+    {# Modale #}
+    <div data-confirm-modal-target="modal"
+         class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 max-w-md w-full shadow-2xl transform transition-all duration-300 scale-95">
+            
+            {# Icône d'alerte #}
+            <div class="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-500/20 rounded-full">
+                {{ ux_icon('lucide:alert-triangle', {class: 'w-6 h-6 text-red-400'}) }}
+            </div>
+            
+            {# Titre (dynamique) #}
+            <h3 data-confirm-modal-target="title" class="text-xl font-semibold text-white text-center mb-3">
+                Confirmer l'action
+            </h3>
+            
+            {# Message (dynamique) #}
+            <p data-confirm-modal-target="message" class="text-white/80 text-center mb-6">
+                Êtes-vous sûr de vouloir effectuer cette action ?
+            </p>
+            
+            {# Actions #}
+            <div class="flex gap-3">
+                <button type="button"
+                        data-confirm-modal-target="cancelButton"
+                        data-action="click->confirm-modal#close"
+                        class="flex-1 btn-secondary flex items-center justify-center gap-2">
+                    {{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
+                    Annuler
+                </button>
+                <button type="button"
+                        data-confirm-modal-target="confirmButton"
+                        data-action="click->confirm-modal#confirm"
+                        class="flex-1 btn-danger flex items-center justify-center gap-2">
+                    {{ ux_icon('lucide:check', {class: 'w-4 h-4'}) }}
+                    <span data-confirm-modal-target="buttonText">Confirmer</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+

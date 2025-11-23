@@ -25,11 +25,22 @@ return [
     '@hotwired/turbo' => [
         'version' => '7.3.0',
     ],
-    'admin' => [
-        'path' => './assets/admin.js',
-        'entrypoint' => true,
-    ],
     'scroll-to-top' => [
         'path' => './assets/controllers/scroll_to_top_controller.js',
+    ],
+    'dropdown' => [
+        'path' => './assets/controllers/dropdown_controller.js',
+    ],
+    'admin-sidebar' => [
+        'path' => './assets/controllers/admin_sidebar_controller.js',
+    ],
+    'admin-header' => [
+        'path' => './assets/controllers/admin_header_controller.js',
+    ],
+    'flash-messages' => [
+        'path' => './assets/controllers/flash_messages_controller.js',
+    ],
+    'admin-form' => [
+        'path' => './assets/controllers/admin_form_controller.js',
     ],
 ];

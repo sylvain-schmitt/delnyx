@@ -11,7 +11,6 @@ export default class extends Controller {
     }
 
     connect() {
-        console.log("Scroll to top controller connected")
         this.initializeButton()
         this.bindScrollListener()
     }

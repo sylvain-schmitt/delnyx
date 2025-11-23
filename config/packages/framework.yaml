@@ -8,6 +8,10 @@ framework:
     #esi: true
     #fragments: true
 
+    # Configuration du Scheduler
+    scheduler:
+        enabled: true
+
 when@test:
     framework:
         test: true

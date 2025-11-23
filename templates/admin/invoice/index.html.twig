@@ -1,0 +1,211 @@
+{% extends 'admin/layout/base.html.twig' %}
+{% import 'admin/macros/pagination.html.twig' as pagination_macro %}
+
+{% block title %}Factures - Administration Delnyx{% endblock %}
+
+{% block page_title %}Factures{% endblock %}
+
+{% block body %}
+<div class="space-y-6">
+    
+    {# Header avec actions #}
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+        <div>
+            <h1 class="text-2xl font-bold text-white">Factures</h1>
+            <p class="text-white/60 mt-1">{{ total_invoices }} factures au total{% if not include_cancelled %} (hors annulées){% endif %}</p>
+        </div>
+        <div class="flex gap-3">
+            {% if include_cancelled %}
+                <a href="{{ path('admin_invoice_index') }}" class="btn-secondary flex items-center gap-2">
+                    {{ ux_icon('lucide:eye-off', {class: 'w-4 h-4'}) }}
+                    Masquer les annulées
+                </a>
+            {% else %}
+                <a href="{{ path('admin_invoice_index', {include_cancelled: true}) }}" class="btn-secondary flex items-center gap-2">
+                    {{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
+                    Afficher les annulées
+                </a>
+            {% endif %}
+            <a href="{{ path('admin_credit_note_index') }}" class="btn-secondary flex items-center gap-2">
+                {{ ux_icon('lucide:file-minus', {class: 'w-4 h-4'}) }}
+                Voir les avoirs
+            </a>
+            <a href="{{ path('admin_invoice_new') }}" class="btn-primary flex items-center gap-2">
+                {{ ux_icon('lucide:file-plus', {class: 'w-4 h-4'}) }}
+                Nouvelle Facture
+            </a>
+        </div>
+    </div>
+
+    {# Liste des factures #}
+    {% if invoices|length > 0 %}
+        {# Version desktop : table #}
+        <div class="hidden md:block bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl overflow-hidden scroll-animate animate-delay-100">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-white/5 border-b border-white/20">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Numéro</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Client</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Échéance</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Montant TTC</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Statut</th>
+                            <th class="px-6 py-4 text-right text-xs font-semibold text-white/80 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/10">
+                        {% for invoice in invoices %}
+                            <tr class="hover:bg-white/5 transition-colors duration-200">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-white">{{ invoice.numero ?? 'N/A' }}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm text-white">{{ invoice.client.nomComplet }}</div>
+                                    <div class="text-xs text-white/60">{{ invoice.client.email }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-white">{{ invoice.dateCreation|date('d/m/Y') }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-white">{{ invoice.dateEcheance|date('d/m/Y') }}</div>
+                                    {% if invoice.isEnRetard %}
+                                        <div class="text-xs text-red-400">En retard ({{ invoice.joursRetard }}j)</div>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-white">{{ invoice.montantTTCFormate }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% set status = invoice.statutEnum %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+                                        {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
+                                        {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
+                                        {% elseif status.value == 'paid' %}bg-green-500/20 text-green-300
+                                        {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+                                        {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+                                        {{ status.label }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div class="flex items-center justify-end gap-2">
+                                        {# Indicateur d'avoirs #}
+                                        {% set creditNotesCount = invoice.creditNotes|length %}
+                                        {% if creditNotesCount > 0 %}
+                                            <a href="{{ path('admin_credit_note_index', {invoice_id: invoice.id}) }}" 
+                                               class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition-colors duration-200"
+                                               title="{{ creditNotesCount }} avoir{{ creditNotesCount > 1 ? 's' : '' }}">
+                                                {{ ux_icon('lucide:file-minus', {class: 'w-3 h-3'}) }}
+                                                <span>{{ creditNotesCount }}</span>
+                                            </a>
+                                        {% endif %}
+                                        
+                                        {{ component('EntityActions', { 
+                                            entity: invoice, 
+                                            type: 'invoice',
+                                            layout: 'inline'
+                                        }) }}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# Version mobile : cards #}
+        <div class="block md:hidden space-y-4 scroll-animate animate-delay-100">
+            {% for invoice in invoices %}
+                <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-4">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-white mb-1">{{ invoice.numero ?? 'N/A' }}</div>
+                            <div class="text-sm text-white">{{ invoice.client.nomComplet }}</div>
+                            <div class="text-xs text-white/60">{{ invoice.client.email }}</div>
+                        </div>
+                        
+                        {# Indicateur d'avoirs #}
+                        {% set creditNotesCount = invoice.creditNotes|length %}
+                        {% if creditNotesCount > 0 %}
+                            <div class="flex items-center justify-end mt-2">
+                                <a href="{{ path('admin_credit_note_index', {invoice_id: invoice.id}) }}" 
+                                   class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition-colors duration-200"
+                                   title="{{ creditNotesCount }} avoir{{ creditNotesCount > 1 ? 's' : '' }}">
+                                    {{ ux_icon('lucide:file-minus', {class: 'w-3 h-3'}) }}
+                                    <span>{{ creditNotesCount }}</span>
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="space-y-2 text-sm mb-3">
+                        <div class="flex justify-between">
+                            <span class="text-white/60">Date</span>
+                            <span class="text-white">{{ invoice.dateCreation|date('d/m/Y') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-white/60">Échéance</span>
+                            <span class="text-white {% if invoice.isEnRetard %}text-red-400{% endif %}">
+                                {{ invoice.dateEcheance|date('d/m/Y') }}
+                                {% if invoice.isEnRetard %}
+                                    <span class="text-xs">({{ invoice.joursRetard }}j de retard)</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-white/60">Montant TTC</span>
+                            <span class="text-white font-medium">{{ invoice.montantTTCFormate }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-white/60">Statut</span>
+                            {% set status = invoice.statutEnum %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+                                {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
+                                {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
+                                {% elseif status.value == 'paid' %}bg-green-500/20 text-green-300
+                                {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+                                {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+                                {{ status.label }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-3 border-t border-white/10">
+                        {{ component('EntityActions', { 
+                            entity: invoice, 
+                            type: 'invoice',
+                            layout: 'mobile'
+                        }) }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {# Pagination #}
+        {{ pagination_macro.render(current_page, total_pages, 'admin_invoice_index', include_cancelled ? {include_cancelled: true} : {}, 15, total_invoices) }}
+    {% else %}
+        {# État vide #}
+        <div class="text-center py-20 scroll-animate">
+            <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-12 max-w-md mx-auto">
+                {{ ux_icon('lucide:receipt', {class: 'w-16 h-16 text-gray-400 mb-6 mx-auto'}) }}
+                <h3 class="text-2xl font-bold text-white mb-4">Aucune facture</h3>
+                <p class="text-gray-300 mb-6">
+                    Commencez par créer votre première facture ou générez-en une depuis un devis signé.
+                </p>
+                <a href="{{ path('admin_invoice_new') }}" class="btn-primary">
+                    {{ ux_icon('lucide:file-plus', {class: 'w-4 h-4 mr-2'}) }}
+                    Créer une facture
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{# Modal d'envoi d'email #}
+{{ component('EmailModal') }}
+
+{% endblock %}
+

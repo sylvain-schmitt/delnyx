@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>
+			{% block title %}Delnyx
+			{% endblock %}
+		</title>
+
+		{# Favicon #}
+		<link rel="icon" type="image/png" href="{{ asset('images/favicon/favicon-96x96.png') }}" sizes="96x96"/>
+		<link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon/favicon.svg') }}"/>
+		<link
+		rel="shortcut icon" href="{{ asset('images/favicon/favicon.ico') }}"/>
+
+		{# Stylesheets #}
+		{% block stylesheets %}
+			<link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+		{% endblock %}
+
+		{# JavaScripts #}
+		{% block javascripts %}
+			{% block importmap %}
+				{{ importmap('app') }}
+			{% endblock %}
+		{% endblock %}
+	</head>
+	<body
+		class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 min-h-screen">
+
+		{# Header simplifié #}
+		<header class="bg-white/10 backdrop-blur-xl border-b border-white/20">
+			<div class="container mx-auto px-4 py-6">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center">
+						<img src="{{ asset('images/logo-delnyx.svg') }}" alt="Delnyx" class="h-8 w-auto">
+					</div>
+					{% block header_actions %}{% endblock %}
+				</div>
+			</div>
+		</header>
+
+		{# Main Content #}
+		<main
+			class="container mx-auto px-4 py-8">
+			{# Flash Messages #}
+			{% for type, messages in app.flashes %}
+				{% for message in messages %}
+					<div class="mb-4 p-4 rounded-lg border-l-4 {% if type == 'success' %}bg-green-500/20 border-green-500 text-green-300{% else %}bg-red-500/20 border-red-500 text-red-300{% endif %}">
+						<div class="flex items-center">
+							<div class="flex-1">{{ message|raw }}</div>
+						</div>
+					</div>
+				{% endfor %}
+			{% endfor %}
+
+			{# Page Content #}
+			{% block body %}{% endblock %}
+		</main>
+
+		{# Footer #}
+		<footer class="bg-white/5 border-t border-white/10 mt-12">
+			<div class="container mx-auto px-4 py-6 text-center text-white/60 text-sm">
+				<p>&copy;
+					{{ 'now'|date('Y') }}
+					Delnyx. Tous droits réservés.</p>
+			</div>
+		</footer>
+
+	</body>
+</html>

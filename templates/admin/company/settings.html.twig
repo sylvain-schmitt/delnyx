@@ -1,0 +1,132 @@
+{% extends 'admin/layout/base.html.twig' %}
+{% import 'admin/macros/form_fields.html.twig' as form_macros %}
+
+{% block page_title %}Paramètres de l'Entreprise
+{% endblock %}
+
+{% block breadcrumb %}
+	<span class="text-white/40">/</span>
+	<span class="text-white/80">Paramètres Entreprise</span>
+{% endblock %}
+
+{% block body %}
+	<div class="p-6 space-y-6">
+		<div class="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl">
+			<h2 class="text-2xl font-bold text-white mb-6">Configuration de l'Entreprise</h2>
+
+			{# Afficher les erreurs du formulaire #}
+			{% if not form.vars.valid %}
+				<div class="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+					<p class="text-red-300 font-medium mb-2">Erreurs dans le formulaire :</p>
+					{{ form_errors(form) }}
+				</div>
+			{% endif %}
+
+			{{ form_start(form, {'attr': {
+            'class': 'space-y-6',
+            'data-controller': 'admin-form',
+            'data-admin-form-target': 'form',
+            'novalidate': 'novalidate',
+            'data-action': 'submit->admin-form#handleSubmit',
+            'enctype': 'multipart/form-data'
+        }}) }}
+
+			{# Informations Entreprise #}
+			<div class="space-y-4">
+				<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Informations Entreprise</h3>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{{ form_macros.simple_field(form, 'raisonSociale') }}
+					{{ form_macros.simple_field(form, 'siren') }}
+					{{ form_macros.simple_field(form, 'siret') }}
+					{{ form_macros.simple_field(form, 'email') }}
+					{{ form_macros.simple_field(form, 'telephone') }}
+				</div>
+
+				{{ form_macros.simple_field(form, 'adresse', 'textarea') }}
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{{ form_macros.simple_field(form, 'codePostal') }}
+					{{ form_macros.simple_field(form, 'ville') }}
+				</div>
+
+				{# Logo #}
+				<div class="space-y-2 form-group">
+					{{ form_label(form.logo, null, {'label_attr': {'class': 'block text-sm font-medium text-white/90'}}) }}
+					{% if companySettings.logoPath %}
+						<div class="mb-4">
+							<img src="{{ asset(companySettings.logoPath) }}" alt="Logo actuel" class="h-20 w-auto object-contain bg-white/10 rounded-lg p-2">
+							<p class="text-white/60 text-sm mt-2">Logo actuel</p>
+						</div>
+					{% endif %}
+					{{ form_widget(form.logo, {'attr': {
+                    'class': 'block w-full text-sm text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600',
+                    'data-admin-form-target': 'field'
+                }}) }}
+					{{ form_help(form.logo) }}
+					{{ form_errors(form.logo) }}
+				</div>
+			</div>
+
+			{# Configuration TVA #}
+			<div class="space-y-4 pt-6 border-t border-white/20">
+				<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Configuration TVA</h3>
+
+				<div
+					class="grid grid-cols-1 md:grid-cols-2 gap-4"
+					data-controller="tva-settings">
+					{# Checkbox TVA - style personnalisé sans bordure #}
+					<div class="form-group">
+						{{ form_label(form.tvaEnabled, null, {'label_attr': {'class': 'form-label'}}) }}
+						{{ form_widget(form.tvaEnabled, {'attr': {
+							'class': 'form-checkbox',
+							'data-admin-form-target': 'field',
+							'data-tva-settings-target': 'toggle',
+							'data-action': 'change->tva-settings#toggleRate'
+						}}) }}
+						{{ form_help(form.tvaEnabled) }}
+						{{ form_errors(form.tvaEnabled) }}
+					</div>
+					{% if form.tauxTVADefaut is defined %}
+						<div data-tva-settings-target="rateWrapper"
+							 class="{{ form.tvaEnabled.vars.data ? '' : 'hidden' }}">
+							{{ form_macros.simple_field(form, 'tauxTVADefaut', 'select') }}
+						</div>
+					{% endif %}
+				</div>
+			</div>
+
+			{# Configuration PDP #}
+			<div class="space-y-4 pt-6 border-t border-white/20">
+				<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Facturation Électronique (PDP)</h3>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{{ form_macros.simple_field(form, 'pdpMode', 'select') }}
+					{{ form_macros.simple_field(form, 'pdpProvider') }}
+				</div>
+
+				{{ form_macros.simple_field(form, 'pdpApiKey') }}
+			</div>
+
+			{# Configuration Signature #}
+			<div class="space-y-4 pt-6 border-t border-white/20">
+				<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Signature Électronique</h3>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{{ form_macros.simple_field(form, 'signatureProvider', 'select') }}
+					{{ form_macros.simple_field(form, 'signatureApiKey') }}
+				</div>
+			</div>
+
+			{# Submit Button #}
+			<div class="pt-6 border-t border-white/20">
+				{{ form_widget(form.submit, {'attr': {
+                'class': 'px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40',
+                'data-admin-form-target': 'submit'
+            }}) }}
+			</div>
+
+			{{ form_end(form) }}
+		</div>
+	</div>
+{% endblock %}

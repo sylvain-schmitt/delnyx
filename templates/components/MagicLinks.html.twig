@@ -1,0 +1,92 @@
+{#
+    Composant pour afficher les "Magic Links" (liens signés) d'un document
+    
+    Usage:
+        {{ component('MagicLinks', {
+            entity: quote,
+            entityType: 'quote',
+            availableActions: ['view', 'sign', 'refuse']
+        }) }}
+#}
+
+<div class="bg-white/5 border border-white/10 rounded-lg p-6">
+	<h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+		{{ ux_icon('lucide:link-2', {class: 'w-5 h-5'}) }}
+		Liens magiques
+	</h3>
+
+	<p class="text-white/60 text-sm mb-4">
+		Partagez ces liens sécurisés avec votre client pour qu'il puisse effectuer des actions sans authentification.
+	</p>
+
+	<div class="space-y-3">
+		{% for action in availableActions %}
+			{% set link = magic_link(entity, action) %}
+			{% set label = '' %}
+			{% set icon = '' %}
+
+			{% if action == 'view' %}
+				{% if entityType == 'quote' %}
+					{% set label = 'Voir le devis' %}
+				{% elseif entityType == 'amendment' %}
+					{% set label = 'Voir l\'avenant' %}
+                {% elseif entityType == 'invoice' %}
+                    {% set label = 'Voir la facture' %}
+                {% elseif entityType == 'credit_note' %}
+                    {% set label = 'Voir l\'avoir' %}
+				{% endif %}
+				{% set icon = 'lucide:eye' %}
+
+			{% elseif action == 'sign' %}
+				{% set label = entityType == 'quote' ? 'Signer le devis' : 'Signer l\'avenant' %}
+                {% set icon = 'lucide:pen-line' %}
+                
+            {% elseif action == 'refuse' %}
+                {% set label = entityType == 'quote' ? 'Refuser le devis' : 'Refuser l\'avenant' %}
+				{% set icon = 'lucide:x-circle' %}
+
+			{% elseif action == 'pay' %}
+				{% set label = 'Payer la facture' %}
+				{% set icon = 'lucide:credit-card' %}
+
+			{% elseif action == 'apply' %}
+				{% set label = 'Appliquer l\'avoir' %}
+                {% set icon = 'lucide:check-circle' %}
+            {% endif %}
+
+            <div class="bg-white/5 border border-white/10 rounded-lg p-3" 
+                 data-controller="clipboard" 
+                 data-clipboard-text-value="{{ link }}"
+                 data-clipboard-success-message-value="Lien copié !">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        {{ ux_icon(icon, {class: 'w-4 h-4 text-white/60 flex-shrink-0'}) }}
+                        <span class="text-sm font-medium text-white truncate">{{ label }}</span>
+                    </div>
+                    <button
+                        type="button"
+                        class="btn-secondary text-xs py-1.5 px-3 flex items-center gap-2 flex-shrink-0"
+                        data-action="click->clipboard#copy"
+                    >
+                        {{ ux_icon('lucide:copy', {class: 'w-3.5 h-3.5'}) }}
+                        <span>Copier</span>
+                    </button>
+                </div>
+                <div class="mt-2">
+                    <input
+                        type="text"
+                        readonly
+                        value="{{ link }}"
+                        class="w-full px-3 py-1.5 text-xs bg-white/5 border border-white/10 rounded text-white/60 font-mono"
+                        onclick="this.select()"
+                    >
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-4 flex items-start gap-2 text-xs text-white/40">
+        {{ ux_icon('lucide:info', {class: 'w-4 h-4 flex-shrink-0 mt-0.5'}) }}
+        <p>Ces liens sont sécurisés et valides pendant 30 jours. Ils peuvent être partagés par email ou tout autre moyen.</p>
+    </div>
+</div>

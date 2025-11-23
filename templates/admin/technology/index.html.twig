@@ -1,0 +1,114 @@
+{% extends 'admin/layout/base.html.twig' %}
+{% import 'admin/macros/pagination.html.twig' as pagination_macro %}
+
+{% block title %}Technologies - Administration Delnyx
+{% endblock %}
+
+{% block page_title %}Technologies
+{% endblock %}
+
+{% block body %}
+	<div
+		class="space-y-6">
+
+		{# Header avec actions #}
+		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+			<div>
+				<h1 class="text-2xl font-bold text-white">Technologies</h1>
+				<p class="text-white/60 mt-1">{{ total_technologies }}
+					technologie(s) au total</p>
+			</div>
+			<div class="flex gap-3">
+				<a href="{{ path('admin_technology_new') }}" class="btn-primary flex items-center gap-2">
+					{{ ux_icon('lucide:plus', {class: 'w-4 h-4'}) }}
+					Nouvelle Technologie
+				</a>
+			</div>
+		</div>
+
+		{# Liste des technologies #}
+		{% if technologies|length > 0 %}
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+				{% for technology in technologies %}
+					<div
+						class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate flex flex-col" data-delay="{{ loop.index * 0.1 }}s">
+
+						{# Header de la carte #}
+						<div class="flex items-start justify-between gap-3 mb-4">
+							<div class="flex items-center gap-3 min-w-0 flex-1">
+								<div class="w-10 h-10 flex-shrink-0 rounded-lg flex items-center justify-center" style="background-color: {{ technology.couleur }}20;">
+									{% if technology.icone %}
+										{{ ux_icon(technology.icone, {class: 'w-5 h-5', style: 'color: ' ~ technology.couleur ~ ';'}) }}
+									{% else %}
+										{{ ux_icon('lucide:code', {class: 'w-5 h-5', style: 'color: ' ~ technology.couleur ~ ';'}) }}
+									{% endif %}
+								</div>
+								<div class="min-w-0 flex-1">
+									<h3 class="text-base font-semibold text-white truncate">{{ technology.nom }}</h3>
+								</div>
+							</div>
+						</div>
+
+						{# Contenu dynamique - flex-grow pour pousser les boutons en bas #}
+						<div
+							class="flex-grow">
+							{# Informations de la technologie #}
+							<div class="space-y-2 mb-4">
+								<div class="flex items-center text-sm text-white/80">
+									<span class="text-white/60 mr-2">Couleur:</span>
+									<span class="inline-flex items-center gap-2">
+										<span class="w-4 h-4 rounded-full border border-white/20" style="background-color: {{ technology.couleur }};"></span>
+										<code class="text-xs bg-white/10 px-2 py-1 rounded">{{ technology.couleur }}</code>
+									</span>
+								</div>
+								{% if technology.icone %}
+									<div class="flex items-center text-sm text-white/80">
+										<span class="text-white/60 mr-2">Icône:</span>
+										<code class="text-xs bg-white/10 px-2 py-1 rounded">{{ technology.icone }}</code>
+									</div>
+								{% endif %}
+								<div class="flex items-center text-sm text-white/80">
+									<span class="text-white/60 mr-2">Utilisée dans:</span>
+									<span class="font-semibold">{{ technology.projets|length }}
+										projet(s)</span>
+								</div>
+							</div>
+						</div>
+
+						{# Actions #}
+						<div class="flex flex-col xl:flex-row gap-2 mt-4">
+							<a href="{{ path('admin_technology_edit', {id: technology.id}) }}" class="flex-1 btn-secondary text-center text-sm py-2 flex items-center justify-center gap-1">
+								{{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
+								<span class="hidden 2xl:inline">Modifier</span>
+								<span class="2xl:hidden">Éditer</span>
+							</a>
+							<button type="button" data-action="click->confirm-modal#open" data-url="{{ path('admin_technology_delete', {id: technology.id}) }}" data-method="POST" data-csrf-token="{{ csrf_token('delete' ~ technology.id) }}" data-item-name="cette technologie" data-message="Êtes-vous sûr de vouloir supprimer cette technologie ? Cette action est irréversible." class="flex-1 btn-danger text-center text-sm py-2 flex items-center justify-center gap-1">
+								{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+								<span class="hidden 2xl:inline">Supprimer</span>
+								<span class="2xl:hidden">Suppr.</span>
+							</button>
+						</div>
+					</div>
+				{% endfor %}
+			</div>
+
+			{# Pagination #}
+			{{ pagination_macro.render(current_page, total_pages, 'admin_technology_index', {}, 20, total_technologies) }}
+		{% else %}
+			{# État vide #}
+			<div class="text-center py-20 scroll-animate">
+				<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-12 max-w-md mx-auto">
+					{{ ux_icon('lucide:code', {class: 'w-16 h-16 text-gray-400 mb-6 mx-auto'}) }}
+					<h3 class="text-2xl font-bold text-white mb-4">Aucune technologie</h3>
+					<p class="text-gray-300 mb-6">
+						Commencez par ajouter votre première technologie.
+					</p>
+					<a href="{{ path('admin_technology_new') }}" class="btn-primary">
+						{{ ux_icon('lucide:plus', {class: 'w-4 h-4 mr-2'}) }}
+						Ajouter une technologie
+					</a>
+				</div>
+			</div>
+		{% endif %}
+	</div>
+{% endblock %}

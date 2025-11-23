@@ -13,6 +13,24 @@ export default class extends Controller {
         this.setupMainObserver()
         this.setupLightObserver()
         this.observeElements()
+        
+        // Déclencher l'animation des éléments déjà visibles après un court délai
+        // Cela gère le cas où on charge directement en mobile et les éléments sont déjà dans le viewport
+        setTimeout(() => {
+            this.triggerVisibleElements()
+        }, 100)
+        
+        // Ajouter un écouteur de redimensionnement pour réobserver les éléments
+        // Cela permet de gérer les éléments qui sont cachés au chargement (ex: mobile cards avec md:hidden)
+        this.handleResize = this.debounce(() => {
+            // Réobserver tous les éléments qui ne sont pas encore animés
+            this.observeElements()
+            
+            // Forcer l'animation immédiate des éléments déjà visibles dans le viewport
+            this.triggerVisibleElements()
+        }, 250)
+        
+        window.addEventListener('resize', this.handleResize)
     }
 
     disconnect() {
@@ -22,6 +40,11 @@ export default class extends Controller {
         }
         if (this.lightObserver) {
             this.lightObserver.disconnect()
+        }
+        
+        // Nettoyer l'écouteur de resize
+        if (this.handleResize) {
+            window.removeEventListener('resize', this.handleResize)
         }
     }
 
@@ -73,7 +96,10 @@ export default class extends Controller {
         // Observer tous les éléments avec la classe scroll-animate dans le scope du controller
         const animateElements = this.element.querySelectorAll('.scroll-animate')
         animateElements.forEach(element => {
-            this.mainObserver.observe(element)
+            // Ne pas réobserver si l'élément est déjà visible ou en cours d'animation
+            if (!element.classList.contains('visible') && !element.classList.contains('animate-fade-up')) {
+                this.mainObserver.observe(element)
+            }
         })
 
         // Observer les lumières d'ambiance
@@ -93,6 +119,28 @@ export default class extends Controller {
         }
     }
 
+    // Forcer l'animation des éléments déjà visibles dans le viewport
+    // Utile lors du redimensionnement pour éviter que les éléments restent cachés
+    triggerVisibleElements() {
+        const animateElements = this.element.querySelectorAll('.scroll-animate')
+        animateElements.forEach(element => {
+            // Vérifier si l'élément est visible (pas display:none) et dans le viewport
+            const rect = element.getBoundingClientRect()
+            const isVisible = rect.width > 0 && rect.height > 0
+            const isInViewport = (
+                rect.top < window.innerHeight &&
+                rect.bottom > 0
+            )
+            
+            if (isVisible && isInViewport) {
+                // Animer immédiatement
+                element.classList.add(this.animationClassValue)
+                element.classList.add(this.visibleClassValue)
+                element.classList.remove("scroll-animate")
+            }
+        })
+    }
+    
     // Méthode pour réinitialiser les animations (utile pour le développement)
     reset() {
         const elements = this.element.querySelectorAll('.visible, .animate-fade-up')
@@ -101,5 +149,18 @@ export default class extends Controller {
             element.classList.add('scroll-animate')
         })
         this.observeElements()
+    }
+    
+    // Fonction debounce pour limiter le nombre d'appels lors du resize
+    debounce(func, wait) {
+        let timeout
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout)
+                func(...args)
+            }
+            clearTimeout(timeout)
+            timeout = setTimeout(later, wait)
+        }
     }
 }

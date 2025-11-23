@@ -6,213 +6,157 @@
 		<div class="company-info">
 			<div class="company-logo">
 				{% if logo_base64 %}
-					<img src="{{ logo_base64 }}" alt="DELNYX" style="height: 40px; width: auto;">
+					<img src="{{ logo_base64 }}" alt="{{ company.raisonSociale ?? 'Logo' }}" style="height: 40px; width: auto;">
 				{% else %}
-					<span style="font-size: 24px; font-weight: bold; color: #2563eb; letter-spacing: 2px;">DELNYX</span>
+					<span style="font-size: 24px; font-weight: bold; color: #2563eb; letter-spacing: 2px;">{{ company.raisonSociale ?? 'ENTREPRISE' }}</span>
 				{% endif %}
 			</div>
 			<div class="company-details">
-				<strong>Développement Web & Applications</strong><br>
-				Sylvain SCHMITT<br>
-				Micro-entrepreneur<br>
-				SIRET: 12345678901234<br>
-				Email: contact@delnyx.fr<br>
-				Tél: +33 6 78 31 26 84
+				{% if company %}
+					<strong>{{ company.raisonSociale }}</strong><br>
+					{% if not company.isTvaEnabled() %}
+						<em>Micro-entrepreneur</em><br>
+					{% endif %}
+					{{ company.adresse }}<br>
+					{{ company.codePostal }} {{ company.ville }}<br>
+					{% if company.siret %}SIRET: {{ company.siret }}<br>{% endif %}
+					{% if company.email %}Email: {{ company.email }}<br>{% endif %}
+					{% if company.telephone %}Tél: {{ company.telephone }}{% endif %}
+				{% else %}
+					<strong>Entreprise</strong><br>
+					Informations non disponibles
+				{% endif %}
 			</div>
 		</div>
 		<div class="document-info">
 			<div class="document-title">AVENANT</div>
-			<div class="document-number">{{ avenant.numero }}</div>
+			<div class="document-number">{{ amendment.numero ?? ('AV-' ~ amendment.id) }}</div>
 			<div class="document-date">
-				Créé le {{ avenant.dateCreation|date('d/m/Y') }}<br>
-				{% if avenant.dateValidation %}
-					Validé le {{ avenant.dateValidation|date('d/m/Y') }}
-				{% endif %}
+				Date: {{ amendment.dateCreation|date('d/m/Y') }}
 			</div>
 		</div>
 	</div>
 
-	<!-- Informations client -->
+	<!-- Informations client et devis -->
 	<div class="client-section">
 		<div class="client-info">
 			<div class="section-title">Client</div>
-			{% if avenant.devis %}
-				<div class="client-name">{{ avenant.devis.client.nomComplet }}</div>
-				<div class="client-details">
-					{% if avenant.devis.client.email %}
-						{{ avenant.devis.client.email }}<br>
-					{% endif %}
-					{% if avenant.devis.client.telephone %}
-						{{ avenant.devis.client.telephone }}<br>
-					{% endif %}
-					{% if avenant.devis.client.adresse %}
-						{{ avenant.devis.client.adresse }}<br>
-						{% if avenant.devis.client.codePostal %}
-							{{ avenant.devis.client.codePostal }}
-						{% endif %}
-						{% if avenant.devis.client.ville %}
-							{{ avenant.devis.client.ville }}
-						{% endif %}
-					{% endif %}
-					{% if avenant.devis.client.siret %}<br>SIRET:
-						{{ avenant.devis.client.siret }}
-					{% endif %}
-				</div>
-			{% else %}
-				<div class="client-name">Client non défini</div>
-			{% endif %}
-		</div>
-	</div>
-
-	<!-- Informations du devis d'origine -->
-	<div class="original-document-section">
-		<div class="section-title">Devis d'origine</div>
-		{% if avenant.devis %}
-			<div class="document-details">
-				<strong>Numéro :</strong> {{ avenant.devis.numero }}<br>
-				<strong>Date de création :</strong> {{ avenant.devis.dateCreation|date('d/m/Y') }}<br>
-				<strong>Montant TTC :</strong> {{ avenant.devis.getMontantTTCFormate() }}
+			<div class="client-name">{{ client.nomComplet }}</div>
+			<div class="client-details">
+				{% if client.email %}{{ client.email }}<br>{% endif %}
+				{% if client.telephone %}{{ client.telephone }}<br>{% endif %}
+				{% if client.adresse %}
+					{{ client.adresse }}<br>
+					{{ client.codePostal }} {{ client.ville }}
+				{% endif %}
+				{% if client.siret %}<br>SIRET: {{ client.siret }}{% endif %}
 			</div>
-
-            {% if avenant.devis.tarifs|length > 0 %}
-                <div class="tarifs-section" style="margin-top: 8px;">
-                    <div class="section-title">Tarifs du devis d'origine</div>
-                    <table class="tarifs-table">
-                        <thead>
-                            <tr>
-                                <th>Prestation</th>
-                                <th>Description</th>
-                                <th>Prix HT</th>
-                                {% if avenant.devis.tauxTVA > 0 %}
-                                    <th>Prix TTC</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for tarif in avenant.devis.tarifs %}
-                                <tr>
-                                    <td>{{ tarif.nom }}</td>
-                                    <td>{{ tarif.description }}</td>
-                                    <td>{{ tarif.getPrixFormate() }}</td>
-                                    {% if avenant.devis.tauxTVA > 0 %}
-                                        <td>
-                                            {% set prixHT = (tarif.prix / 100) %}
-                                            {% set prixTTC = prixHT * (1 + (avenant.devis.tauxTVA / 100)) %}
-                                            {{ prixTTC|number_format(2, ',', ' ') }} € TTC
-                                        </td>
-                                    {% endif %}
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% endif %}
+		</div>
+		{% if quote %}
+			<div class="company-billing">
+				<div class="section-title">Devis de référence</div>
+				<div class="client-details">
+					<strong>{{ quote.numero }}</strong><br>
+					Signé le {{ quote.dateSignature|date('d/m/Y') }}
+				</div>
+			</div>
 		{% endif %}
 	</div>
-
-	<!-- Tarifs de l'avenant -->
-	{% if avenant.tarifs|length > 0 %}
-		<div class="tarifs-section">
-			<div class="section-title">Tarifs de l'avenant</div>
-			<table class="tarifs-table">
-				<thead>
-					<tr>
-						<th>Prestation</th>
-						<th>Description</th>
-						<th>Prix HT</th>
-						{% if avenant.tauxTVA > 0 %}
-							<th>Prix TTC</th>
-						{% endif %}
-					</tr>
-				</thead>
-				<tbody>
-					{% for tarif in avenant.tarifs %}
-						<tr>
-							<td>{{ tarif.nom }}</td>
-							<td>{{ tarif.description }}</td>
-							<td>{{ tarif.getPrixFormate() }}</td>
-							{% if avenant.tauxTVA > 0 %}
-								<td>
-									{% set prixHT = (tarif.prix / 100) %}
-									{% set prixTTC = prixHT * (1 + (avenant.tauxTVA / 100)) %}
-									{{ prixTTC|number_format(2, ',', ' ') }} € TTC
-								</td>
-							{% endif %}
-						</tr>
-					{% endfor %}
-				</tbody>
-			</table>
-		</div>
-	{% endif %}
 
 	<!-- Motif et modifications -->
-	<div class="modifications-section">
-		<div class="section-title">Motif de la modification</div>
-		<div class="content-box">
-			{{ avenant.motif|nl2br }}
+	<div class="conditions-section">
+		<div class="conditions-title">Motif de l'avenant</div>
+		<div class="conditions-content">
+			{{ amendment.motif|nl2br }}
 		</div>
-
-		<div class="section-title">Modifications apportées</div>
-		<div class="content-box">
-			{{ avenant.modifications|nl2br }}
-		</div>
-
-		{% if avenant.justification %}
-			<div class="section-title">Justification</div>
-			<div class="content-box">
-				{{ avenant.justification|nl2br }}
-			</div>
-		{% endif %}
 	</div>
 
-	<!-- Résumé financier de l'avenant -->
-	<div class="summary-section">
-		<div class="section-title">Résumé financier de l'avenant</div>
-		<table class="summary-table">
+	<div class="conditions-section">
+		<div class="conditions-title">Modifications apportées</div>
+		<div class="conditions-content">
+			{{ amendment.modifications|nl2br }}
+		</div>
+	</div>
+
+	<!-- Tableau des lignes modifiées -->
+	{% if amendment.lines|length > 0 %}
+		<table class="services-table">
+			<thead>
+				<tr>
+					<th style="width: 40%;">Description</th>
+					<th style="width: 10%;" class="text-center">Qté</th>
+					<th style="width: 15%;" class="text-right">Prix unit.</th>
+					{% if company and company.isTvaEnabled() %}
+						<th style="width: 10%;" class="text-right">TVA</th>
+					{% endif %}
+					<th style="width: 15%;" class="text-right">Ancien total</th>
+					<th style="width: 15%;" class="text-right">Nouveau total</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for line in amendment.lines %}
+					<tr>
+						<td><strong>{{ line.description }}</strong></td>
+						<td class="text-center">{{ line.quantity }}</td>
+						<td class="text-right">{{ line.unitPrice|number_format(2, ',', ' ') }} €</td>
+						{% if company and company.isTvaEnabled() %}
+							<td class="text-right">{{ line.tvaRate }} %</td>
+						{% endif %}
+						<td class="text-right">{{ line.oldValue|number_format(2, ',', ' ') }} €</td>
+						<td class="text-right">{{ line.newValue|number_format(2, ',', ' ') }} €</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	{% endif %}
+
+	<!-- Totaux -->
+	<div class="totals">
+		<table class="totals-table">
 			<tr>
-				<td><strong>Montant HT :</strong></td>
-				<td>{{ avenant.getMontantHTFormate() }}</td>
+				<td class="label">Total HT (nouveaux montants):</td>
+				<td class="amount">{{ amendment.montantHTFormate }}</td>
 			</tr>
-			<tr>
-				<td><strong>TVA ({{ avenant.tauxTVA }}%) :</strong></td>
-				<td>{{ avenant.getMontantTVAFormate() }}</td>
-			</tr>
+			{% if company and company.isTvaEnabled() and amendment.montantTVA > 0 %}
+				<tr>
+					<td class="label">Total TVA:</td>
+					<td class="amount">{{ amendment.montantTVAFormatted ?? (amendment.montantTVA|number_format(2, ',', ' ') ~ ' €') }}</td>
+				</tr>
+			{% endif %}
 			<tr class="total-row">
-				<td><strong>Montant TTC :</strong></td>
-				<td><strong>{{ avenant.getMontantTTCFormate() }}</strong></td>
+				<td class="label">Total TTC:</td>
+				<td class="amount">{{ amendment.montantTTCFormate }}</td>
 			</tr>
 		</table>
 	</div>
 
-	<!-- Notes -->
-	{% if avenant.notes %}
+	{% if amendment.notes %}
 		<div class="notes-section">
-			<div class="section-title">Notes</div>
-			<div class="content-box">
-				{{ avenant.notes|nl2br }}
-			</div>
+			<strong>Notes:</strong><br>
+			{{ amendment.notes|nl2br }}
 		</div>
 	{% endif %}
 
 	<!-- Mentions légales -->
-	<div class="legal-section">
-		<div class="section-title">Mentions légales</div>
-		<div class="legal-text">
-			<p><strong>Important :</strong> Cet avenant modifie le devis {{ avenant.devis.numero }} du {{ avenant.devis.dateCreation|date('d/m/Y') }}. 
-			Le devis d'origine reste valide et inchangé. Cet avenant constitue un document complémentaire légal.</p>
-			
-			<p>En cas d'acceptation de cet avenant, les nouvelles conditions s'appliquent en complément du devis d'origine.</p>
-			
-			<p><strong>Validité :</strong> Cet avenant est valable 30 jours à compter de sa date de création.</p>
-		</div>
+	<div class="legal-mentions">
+		<strong>Mentions légales:</strong><br>
+		Avenant au devis {{ quote.numero }} émis le {{ amendment.dateCreation|date('d/m/Y') }}.<br>
+		{% if company and not company.isTvaEnabled() %}
+			<strong>Micro-entrepreneur:</strong>
+			TVA non applicable selon l'article 293 B du Code Général des Impôts.
+		{% endif %}
 	</div>
 
 	<!-- Pied de page -->
 	<div class="footer">
-		<div class="footer-content">
-			<p><strong>DELNYX</strong> - Développement Web & Applications</p>
-			<p>Micro-entrepreneur - SIRET: 12345678901234</p>
-			<p>Email: contact@delnyx.fr - Tél: +33 6 78 31 26 84</p>
-		</div>
+		{% if company %}
+			<strong>{{ company.raisonSociale }}</strong>
+			{% if company.email or company.telephone %}
+				|
+				{% if company.email %}{{ company.email }}{% endif %}
+				{% if company.email and company.telephone %} | {% endif %}
+				{% if company.telephone %}{{ company.telephone }}{% endif %}
+			{% endif %}
+		{% endif %}
 	</div>
 {% endblock %}

@@ -1,0 +1,40 @@
+{# Macro pour afficher un champ de formulaire avec validation #}
+{% macro form_field(form, field_name, field_type = 'input', options = {}) %}
+    {% set field = form[field_name] %}
+    {% set has_errors = field.vars.errors|length > 0 %}
+    {% set field_class = field_type == 'textarea' ? 'form-textarea' : (field_type == 'select' ? 'form-select' : 'form-input') %}
+    {% set field_class = field_class ~ (has_errors ? ' is-invalid' : '') %}
+    {% set wrapper_class = 'form-group ' ~ options.wrapper_class|default('') %}
+    
+    {# Préparer les attributs du champ #}
+    {% set field_attr = {
+        'class': field_class,
+        'data-admin-form-target': 'field'
+    } %}
+    
+    {# Ajouter les options supplémentaires (disabled, readonly, etc.) #}
+    {% if options.disabled|default(false) %}
+        {% set field_attr = field_attr|merge({'disabled': 'disabled'}) %}
+    {% endif %}
+    {% if options.readonly|default(false) %}
+        {% set field_attr = field_attr|merge({'readonly': 'readonly'}) %}
+    {% endif %}
+    
+    <div class="{{ wrapper_class }}">
+        {{ form_label(field, null, {'label_attr': {'class': 'form-label'}}) }}
+        {{ form_widget(field, {'attr': field_attr}) }}
+        {{ form_help(field) }}
+        {{ form_errors(field) }}
+    </div>
+{% endmacro %}
+
+{# Macro pour afficher un champ de formulaire simple #}
+{% macro simple_field(form, field_name, field_type = 'input', options = {}) %}
+    {% import _self as macros %}
+    {% if options is iterable and options is not same as([]) %}
+        {{ macros.form_field(form, field_name, field_type, options) }}
+    {% else %}
+        {# Compatibilité avec l'ancien format (wrapper_class comme string) #}
+        {{ macros.form_field(form, field_name, field_type, {'wrapper_class': options}) }}
+    {% endif %}
+{% endmacro %}

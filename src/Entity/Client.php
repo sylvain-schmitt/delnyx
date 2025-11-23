@@ -158,23 +158,23 @@ class Client
     private ?string $notes = null;
 
     /**
-     * @var Collection<int, Devis>
+     * @var Collection<int, Quote>
      */
-    #[ORM\OneToMany(mappedBy: 'client', targetEntity: Devis::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(mappedBy: 'client', targetEntity: Quote::class, cascade: ['persist', 'remove'])]
     #[Groups(['client:detail'])]
-    private Collection $devis;
+    private Collection $quotes;
 
     /**
-     * @var Collection<int, Facture>
+     * @var Collection<int, Invoice>
      */
-    #[ORM\OneToMany(mappedBy: 'client', targetEntity: Facture::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(mappedBy: 'client', targetEntity: Invoice::class, cascade: ['persist', 'remove'])]
     #[Groups(['client:detail'])]
-    private Collection $factures;
+    private Collection $invoices;
 
     public function __construct()
     {
-        $this->devis = new ArrayCollection();
-        $this->factures = new ArrayCollection();
+        $this->quotes = new ArrayCollection();
+        $this->invoices = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -337,54 +337,54 @@ class Client
     }
 
     /**
-     * @return Collection<int, Devis>
+     * @return Collection<int, Quote>
      */
-    public function getDevis(): Collection
+    public function getQuotes(): Collection
     {
-        return $this->devis;
+        return $this->quotes;
     }
 
-    public function addDevi(Devis $devi): static
+    public function addQuote(Quote $quote): static
     {
-        if (!$this->devis->contains($devi)) {
-            $this->devis->add($devi);
-            $devi->setClient($this);
+        if (!$this->quotes->contains($quote)) {
+            $this->quotes->add($quote);
+            $quote->setClient($this);
         }
         return $this;
     }
 
-    public function removeDevi(Devis $devi): static
+    public function removeQuote(Quote $quote): static
     {
-        if ($this->devis->removeElement($devi)) {
-            if ($devi->getClient() === $this) {
-                $devi->setClient(null);
+        if ($this->quotes->removeElement($quote)) {
+            if ($quote->getClient() === $this) {
+                $quote->setClient(null);
             }
         }
         return $this;
     }
 
     /**
-     * @return Collection<int, Facture>
+     * @return Collection<int, Invoice>
      */
-    public function getFactures(): Collection
+    public function getInvoices(): Collection
     {
-        return $this->factures;
+        return $this->invoices;
     }
 
-    public function addFacture(Facture $facture): static
+    public function addInvoice(Invoice $invoice): static
     {
-        if (!$this->factures->contains($facture)) {
-            $this->factures->add($facture);
-            $facture->setClient($this);
+        if (!$this->invoices->contains($invoice)) {
+            $this->invoices->add($invoice);
+            $invoice->setClient($this);
         }
         return $this;
     }
 
-    public function removeFacture(Facture $facture): static
+    public function removeInvoice(Invoice $invoice): static
     {
-        if ($this->factures->removeElement($facture)) {
-            if ($facture->getClient() === $this) {
-                $facture->setClient(null);
+        if ($this->invoices->removeElement($invoice)) {
+            if ($invoice->getClient() === $this) {
+                $invoice->setClient(null);
             }
         }
         return $this;
@@ -419,31 +419,31 @@ class Client
     }
 
     /**
-     * Retourne le nombre total de devis
+     * Retourne le nombre total de quotes
      */
-    public function getNombreDevis(): int
+    public function getNombreQuotes(): int
     {
-        return $this->devis->count();
+        return $this->quotes->count();
     }
 
     /**
-     * Retourne le nombre total de factures
+     * Retourne le nombre total de invoices
      */
-    public function getNombreFactures(): int
+    public function getNombreInvoices(): int
     {
-        return $this->factures->count();
+        return $this->invoices->count();
     }
 
     /**
-     * Retourne le montant total des factures payées
+     * Retourne le montant total des invoices payées
      */
-    public function getMontantTotalFacture(): float
+    public function getMontantTotalInvoice(): float
     {
         $total = 0;
-        foreach ($this->factures as $facture) {
-            // Pour l'instant, on additionne toutes les factures
-            // Plus tard, on filtrera par statut PAYEE
-            $montantTTC = (float) $facture->getMontantTTC();
+        foreach ($this->invoices as $invoice) {
+            // Pour l'instant, on additionne toutes les invoices
+            // Plus tard, on filtrera par statut PAID
+            $montantTTC = (float) $invoice->getMontantTTC();
             $total += $montantTTC;
         }
         return $total;
@@ -483,5 +483,16 @@ class Client
     public function getStatutValue(): string
     {
         return $this->statut->value;
+    }
+
+    /**
+     * Extrait le SIREN du SIRET (9 premiers chiffres)
+     */
+    public function getSiren(): ?string
+    {
+        if (!$this->siret || strlen($this->siret) < 9) {
+            return null;
+        }
+        return substr($this->siret, 0, 9);
     }
 }

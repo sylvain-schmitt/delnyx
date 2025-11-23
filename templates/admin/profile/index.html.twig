@@ -1,0 +1,106 @@
+{% extends 'admin/layout/base.html.twig' %}
+
+{% block page_title %}Mon Profil
+{% endblock %}
+
+{% block breadcrumb %}
+	<span class="text-white/40">/</span>
+	<span class="text-white/80">Mon Profil</span>
+{% endblock %}
+
+{% block body %}
+	<div class="p-6 space-y-6">
+		<div class="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl">
+			<h2 class="text-2xl font-bold text-white mb-6">Informations du Profil</h2>
+
+			{{ form_start(form, {'attr': {
+            'class': 'space-y-6',
+            'data-controller': 'admin-form',
+            'data-admin-form-target': 'form',
+            'novalidate': 'novalidate',
+            'data-action': 'submit->admin-form#handleSubmit',
+            'enctype': 'multipart/form-data'
+        }}) }}
+
+			{# Prénom et Nom #}
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div class="space-y-2 form-group">
+					{{ form_label(form.prenom, null, {'label_attr': {'class': 'block text-sm font-medium text-white/90'}}) }}
+					{{ form_widget(form.prenom, {'attr': {
+                    'class': 'form-input w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                    'data-admin-form-target': 'field'
+                }}) }}
+					{{ form_help(form.prenom) }}
+					{{ form_errors(form.prenom) }}
+				</div>
+				<div class="space-y-2 form-group">
+					{{ form_label(form.nom, null, {'label_attr': {'class': 'block text-sm font-medium text-white/90'}}) }}
+					{{ form_widget(form.nom, {'attr': {
+                    'class': 'form-input w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                    'data-admin-form-target': 'field'
+                }}) }}
+					{{ form_help(form.nom) }}
+					{{ form_errors(form.nom) }}
+				</div>
+			</div>
+
+			{# Email #}
+			<div class="space-y-2 form-group">
+				{{ form_label(form.email, null, {'label_attr': {'class': 'block text-sm font-medium text-white/90'}}) }}
+				{{ form_widget(form.email, {'attr': {
+                'class': 'form-input w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                'data-admin-form-target': 'field'
+            }}) }}
+				{{ form_help(form.email) }}
+				{{ form_errors(form.email) }}
+			</div>
+
+			{# Avatar #}
+			<div class="space-y-2 form-group">
+				{{ form_label(form.avatar, null, {'label_attr': {'class': 'block text-sm font-medium text-white/90'}}) }}
+				{% if user.avatarPath %}
+					<div class="mb-4">
+						<img src="{{ asset(user.avatarPath) }}" alt="Avatar actuel" class="h-20 w-20 object-cover rounded-full border-2 border-white/20">
+						<p class="text-white/60 text-sm mt-2">Avatar actuel</p>
+					</div>
+				{% endif %}
+				{{ form_widget(form.avatar, {'attr': {
+                'class': 'block w-full text-sm text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600',
+                'data-admin-form-target': 'field'
+            }}) }}
+				{{ form_help(form.avatar) }}
+				{{ form_errors(form.avatar) }}
+			</div>
+
+			{# Mot de passe #}
+			<div class="space-y-2 form-group">
+				{{ form_label(form.plainPassword.first, null, {'label_attr': {'class': 'block text-sm font-medium text-white/90'}}) }}
+				{{ form_widget(form.plainPassword.first, {'attr': {
+                'class': 'w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                'data-admin-form-target': 'field'
+            }}) }}
+				{{ form_help(form.plainPassword.first) }}
+				{{ form_errors(form.plainPassword.first) }}
+			</div>
+
+			<div class="space-y-2 form-group">
+				{{ form_label(form.plainPassword.second, null, {'label_attr': {'class': 'block text-sm font-medium text-white/90'}}) }}
+				{{ form_widget(form.plainPassword.second, {'attr': {
+                'class': 'w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                'data-admin-form-target': 'field'
+            }}) }}
+				{{ form_errors(form.plainPassword.second) }}
+			</div>
+
+			{# Submit Button #}
+			<div class="pt-6 border-t border-white/20">
+				{{ form_widget(form.submit, {'attr': {
+                'class': 'px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40',
+                'data-admin-form-target': 'submit'
+            }}) }}
+			</div>
+
+			{{ form_end(form) }}
+		</div>
+	</div>
+{% endblock %}

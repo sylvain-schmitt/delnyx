@@ -1,0 +1,308 @@
+{% props entity, type, layout = 'inline' %}
+
+{# 
+    Composant réutilisable pour afficher les boutons d'actions d'une entité
+    
+    Paramètres:
+    - entity: L'entité (Quote, Invoice, Amendment, CreditNote)
+    - type: Le type d'entité ('quote', 'invoice', 'amendment', 'credit_note')
+    - layout: 'inline' (pour index desktop), 'vertical' (pour show), ou 'mobile' (pour cards mobiles)
+#}
+
+{% if layout == 'mobile' %}
+	{# Layout mobile : grid responsive avec boutons compacts #}
+	{% set containerClass = 'grid grid-cols-2 sm:grid-cols-3 gap-2' %}
+	{% set buttonClass = 'btn-sm btn-primary flex items-center justify-center gap-1.5 text-xs' %}
+	{% set secondaryButtonClass = 'btn-sm btn-secondary flex items-center justify-center gap-1.5 text-xs' %}
+	{% set dangerButtonClass = 'btn-sm btn-danger flex items-center justify-center gap-1.5 text-xs' %}
+	{% set successButtonClass = 'btn-sm btn-success flex items-center justify-center gap-1.5 text-xs' %}
+	{% set showText = true %}
+{% elseif layout == 'vertical' %}
+	{# Layout vertical : show page #}
+	{% set containerClass = 'space-y-3' %}
+	{% set buttonClass = 'w-full btn-primary flex items-center justify-center gap-2' %}
+	{% set secondaryButtonClass = 'w-full btn-secondary flex items-center justify-center gap-2' %}
+	{% set dangerButtonClass = 'w-full btn-danger flex items-center justify-center gap-2' %}
+	{% set successButtonClass = 'w-full btn-success flex items-center justify-center gap-2' %}
+	{% set showText = true %}
+{% else %}
+	{# Layout inline : index desktop #}
+	{% set containerClass = 'flex items-center gap-2' %}
+	{% set buttonClass = 'text-blue-400 hover:text-blue-300 transition-colors duration-200' %}
+	{% set secondaryButtonClass = 'text-yellow-400 hover:text-yellow-300 transition-colors duration-200' %}
+	{% set dangerButtonClass = 'text-red-400 hover:text-red-300 transition-colors duration-200' %}
+	{% set successButtonClass = 'text-green-400 hover:text-green-300 transition-colors duration-200' %}
+	{% set showText = false %}
+{% endif %}
+
+<div
+	class="{{ containerClass }}">
+	{# Bouton Voir (index uniquement) #}
+	{% if layout == 'inline' %}
+		<a href="{{ path('admin_' ~ type ~ '_show', {id: entity.id}) }}" class="{{ buttonClass }}" title="Voir">
+			{{ ux_icon('lucide:eye', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+		</a>
+	{% elseif layout == 'mobile' %}
+		<a href="{{ path('admin_' ~ type ~ '_show', {id: entity.id}) }}" class="{{ buttonClass }}">
+			{{ ux_icon('lucide:eye', {class: 'w-3.5 h-3.5'}) }}
+			Voir
+		</a>
+	{% endif %}
+
+	{# Bouton Modifier #}
+	{% if is_granted(type|upper ~ '_EDIT', entity) %}
+		<a href="{{ path('admin_' ~ type ~ '_edit', {id: entity.id}) }}" class="{{ secondaryButtonClass }}" title="Modifier">
+			{{ ux_icon(layout == 'mobile' ? 'lucide:edit' : 'lucide:edit', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+			{% if showText %}Modifier
+			{% endif %}
+		</a>
+	{% endif %}
+
+	{# Bouton Émettre #}
+	{% if is_granted(type|upper ~ '_ISSUE', entity) %}
+		<form action="{{ path('admin_' ~ type ~ '_issue', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre ce document le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
+			<input type="hidden" name="_token" value="{{ csrf_token(type ~ '_issue_' ~ entity.id) }}">
+			<button type="submit" class="{{ buttonClass }}" title="Émettre">
+				{{ ux_icon('lucide:send', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+				{% if showText %}Émettre
+				{% endif %}
+			</button>
+		</form>
+	{% endif %}
+
+	{# Bouton Envoyer par email #}
+	{% if is_granted(type|upper ~ '_SEND', entity) %}
+		{# Vérifier si le client a un email #}
+		{% set hasEmail = false %}
+		{% if type == 'quote' or type == 'invoice' %}
+			{% set hasEmail = entity.client is defined and entity.client and entity.client.email %}
+			{% set recipientEmail = hasEmail ? entity.client.email : '' %}
+		{% elseif type == 'amendment' %}
+			{% set hasEmail = entity.quote is defined and entity.quote and entity.quote.client and entity.quote.client.email %}
+			{% set recipientEmail = hasEmail ? entity.quote.client.email : '' %}
+		{% elseif type == 'credit_note' %}
+			{% set hasEmail = entity.invoice is defined and entity.invoice and entity.invoice.client and entity.invoice.client.email %}
+			{% set recipientEmail = hasEmail ? entity.invoice.client.email : '' %}
+		{% endif %}
+
+		{% if hasEmail %}
+			{# Récupérer le numéro du document selon le type d'entité #}
+			{% set documentNumber = type == 'credit_note' ? entity.number : entity.numero %}
+
+			<button type="button" class="{{ buttonClass }}" title="Envoyer par email" data-controller="email-trigger" data-email-trigger-url-value="{{ path('admin_' ~ type ~ '_send_email', {id: entity.id}) }}" data-email-trigger-csrf-token-value="{{ csrf_token(type ~ '_send_email_' ~ entity.id) }}" data-email-trigger-recipient-value="{{ recipientEmail }}" data-email-trigger-document-type-value="{{ type }}" data-email-trigger-document-number-value="{{ documentNumber }}" data-action="click->email-trigger#open">
+				{{ ux_icon('lucide:mail', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+				{% if showText %}
+					Envoyer
+					{% if type == 'quote' %}
+						le devis
+					{% elseif type == 'invoice' %}
+						la facture
+					{% elseif type == 'amendment' %}
+						l'avenant
+					{% elseif type == 'credit_note' %}
+						l'avoir
+					{% endif %}
+				{% endif %}
+			</button>
+		{% else %}
+			{% if layout != 'inline' %}
+				<span class="{{ layout == 'mobile' ? 'btn-sm btn-secondary opacity-50 cursor-not-allowed flex items-center justify-center gap-1.5 text-xs' : 'w-full btn-secondary opacity-50 cursor-not-allowed flex items-center justify-center gap-2' }}" title="Aucun email client configuré">
+					{{ ux_icon('lucide:mail-x', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+					{% if showText %}Email non configuré
+					{% endif %}
+				</span>
+			{% endif %}
+		{% endif %}
+	{% endif %}
+
+	{# Boutons spécifiques Quote #}
+	{% if type == 'quote' %}
+		{# Accepter #}
+		{% if is_granted('QUOTE_ACCEPT', entity) %}
+			<form action="{{ path('admin_quote_accept', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}">
+				<input type="hidden" name="_token" value="{{ csrf_token('quote_accept_' ~ entity.id) }}">
+				<button type="submit" class="{{ successButtonClass }}" title="Accepter">
+					{{ ux_icon('lucide:check-circle', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+					{% if showText %}Accepter
+					{% endif %}
+				</button>
+			</form>
+		{% endif %}
+
+		{# Signer #}
+		{% if is_granted('QUOTE_SIGN', entity) %}
+			<form action="{{ path('admin_quote_sign', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer ce devis le transforme en CONTRAT et le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
+				<input type="hidden" name="_token" value="{{ csrf_token('quote_sign_' ~ entity.id) }}">
+				<button type="submit" class="{{ layout == 'inline' ? 'text-purple-400 hover:text-purple-300 transition-colors duration-200' : buttonClass }}" title="Signer">
+					{{ ux_icon('lucide:pen-tool', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+					{% if showText %}Signer
+					{% endif %}
+				</button>
+			</form>
+		{% endif %}
+
+		{# Refuser #}
+		{% if is_granted('QUOTE_REFUSE', entity) %}
+			<form action="{{ path('admin_quote_refuse', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}">
+				<input type="hidden" name="_token" value="{{ csrf_token('quote_refuse_' ~ entity.id) }}">
+				<button type="submit" class="{{ dangerButtonClass }}" title="Refuser">
+					{{ ux_icon('lucide:x', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+					{% if showText %}Refuser
+					{% endif %}
+				</button>
+			</form>
+		{% endif %}
+	{% endif %}
+
+	{# Boutons spécifiques Amendment #}
+	{% if type == 'amendment' %}
+		{# Signer #}
+		{% if is_granted('AMENDMENT_SIGN', entity) %}
+			<form action="{{ path('admin_amendment_sign', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer cet avenant le rend opposable et immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
+				<input type="hidden" name="_token" value="{{ csrf_token('amendment_sign_' ~ entity.id) }}">
+				<button type="submit" class="{{ layout == 'inline' ? 'text-purple-400 hover:text-purple-300 transition-colors duration-200' : buttonClass }}" title="Signer">
+					{{ ux_icon('lucide:pen-tool', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+					{% if showText %}Signer
+					{% endif %}
+				</button>
+			</form>
+		{% endif %}
+	{% endif %}
+
+	{# Boutons spécifiques Invoice #}
+	{% if type == 'invoice' %}
+		{# Marquer comme payée #}
+		{% if is_granted('INVOICE_MARK_PAID', entity) %}
+			<form action="{{ path('admin_invoice_mark_paid', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}">
+				<input type="hidden" name="_token" value="{{ csrf_token('invoice_mark_paid_' ~ entity.id) }}">
+				<button type="submit" class="{{ successButtonClass }}" title="Marquer comme payée">
+					{{ ux_icon('lucide:check-circle', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+					{% if showText %}Marquer comme payée
+					{% endif %}
+				</button>
+			</form>
+		{% endif %}
+
+		{# Créer un avoir #}
+		{% if is_granted('INVOICE_CREATE_CREDITNOTE', entity) %}
+			<a href="{{ path('admin_credit_note_new', {invoice_id: entity.id}) }}" class="{{ layout == 'inline' ? buttonClass : secondaryButtonClass }}" title="Créer un avoir">
+				{{ ux_icon('lucide:file-minus', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+				{% if showText %}Créer un avoir
+				{% endif %}
+			</a>
+		{% endif %}
+	{% endif %}
+
+	{# Boutons spécifiques CreditNote #}
+	{% if type == 'credit_note' %}
+		{# Appliquer #}
+		{% if is_granted('CREDIT_NOTE_APPLY', entity) %}
+			<form action="{{ path('admin_credit_note_apply', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="Marquer cet avoir comme appliqué (remboursé ou déduit) ?">
+				<input type="hidden" name="_token" value="{{ csrf_token('credit_note_apply_' ~ entity.id) }}">
+				<button type="submit" class="{{ successButtonClass }}" title="Appliquer">
+					{{ ux_icon('lucide:check-circle', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+					{% if showText %}Appliquer
+					{% endif %}
+				</button>
+			</form>
+		{% endif %}
+	{% endif %}
+
+	{# Bouton Annuler (commun) #}
+	{% if is_granted(type|upper ~ '_CANCEL', entity) %}
+		<form action="{{ path('admin_' ~ type ~ '_cancel', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler {% if type == 'quote' %}ce devis{% elseif type == 'invoice' %}cette facture{% elseif type == 'amendment' %}cet avenant{% else %}cet avoir{% endif %} ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
+			<input type="hidden" name="_token" value="{{ csrf_token(type ~ '_cancel_' ~ entity.id) }}">
+			<button type="submit" class="{{ dangerButtonClass }}" title="Annuler">
+				{{ ux_icon('lucide:x-circle', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+				{% if showText %}Annuler
+					{% if type == 'quote' %}le devis{% elseif type == 'invoice' %}la facture{% elseif type == 'amendment' %}l'avenant{% else %}l'avoir
+					{% endif %}
+				{% endif %}
+			</button>
+		</form>
+	{% endif %}
+
+	{# Boutons supplémentaires pour Quote (show seulement) #}
+	{% if type == 'quote' and layout == 'vertical' %}
+		{# Créer un avenant #}
+		{% if entity.statut.value == 'signed' %}
+			<a href="{{ path('admin_amendment_new', {quote_id: entity.id}) }}" class="w-full btn-primary flex items-center justify-center gap-2">
+				{{ ux_icon('lucide:file-edit', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+				Créer un avenant
+			</a>
+		{% endif %}
+
+		{# Générer facture #}
+		{% if is_granted('QUOTE_GENERATE_INVOICE', entity) %}
+			<form action="{{ path('admin_quote_generate_invoice', {id: entity.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Générer une facture depuis ce devis signé ?" data-confirm-modal-title="Confirmer la génération" data-confirm-modal-button="Générer">
+				<input type="hidden" name="_token" value="{{ csrf_token('quote_generate_invoice_' ~ entity.id) }}">
+				<button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
+					{{ ux_icon('lucide:receipt', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+					Générer une facture
+				</button>
+			</form>
+		{% endif %}
+	{% endif %}
+
+	{# Bouton Télécharger PDF (vertical layout only) #}
+	{% if layout == 'vertical' %}
+		{% set isDraft = false %}
+
+		{# Détecter si c'est un brouillon selon le type d'entité #}
+		{% if entity.statut is defined %}
+			{# Gérer le cas où statut est un objet ou une string #}
+			{% if entity.statut.value is defined %}
+				{% set isDraft = entity.statut.value == 'draft' %}
+			{% else %}
+				{% set isDraft = entity.statut == 'draft' %}
+			{% endif %}
+		{% elseif entity.statutEnum is defined %}
+			{# Gérer le cas où statutEnum est un objet ou une string #}
+			{% if entity.statutEnum.value is defined %}
+				{% set isDraft = entity.statutEnum.value == 'draft' %}
+			{% else %}
+				{% set isDraft = entity.statutEnum == 'draft' %}
+			{% endif %}
+		{% endif %}
+
+		{% set hasPdf = false %}
+
+		{# Vérifier si le PDF existe selon le type #}
+		{% if type == 'credit_note' %}
+			{% set hasPdf = entity.pdfFilename is defined and entity.pdfFilename %}
+		{% else %}
+			{# Pour quote, amendment, invoice - le PDF est généré à l'émission #}
+			{% set hasPdf = not isDraft %}
+		{% endif %}
+
+		{# Vérifier si le client a un email configuré #}
+		{% set hasClientEmail = false %}
+		{% if type == 'quote' or type == 'invoice' %}
+			{% set hasClientEmail = entity.client is defined and entity.client and entity.client.email is defined and entity.client.email %}
+		{% elseif type == 'amendment' %}
+			{% set hasClientEmail = entity.quote is defined and entity.quote and entity.quote.client is defined and entity.quote.client and entity.quote.client.email is defined and entity.quote.client.email %}
+		{% elseif type == 'credit_note' %}
+			{% set hasClientEmail = entity.invoice is defined and entity.invoice and entity.invoice.client is defined and entity.invoice.client and entity.invoice.client.email is defined and entity.invoice.client.email %}
+		{% endif %}
+
+		{% if hasPdf %}
+			<a href="{{ path('admin_' ~ type ~ '_download_pdf', {id: entity.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2" target="_blank">
+				{{ ux_icon('lucide:download', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+				Télécharger le PDF
+			</a>
+		{% else %}
+			<span class="w-full btn-secondary opacity-50 cursor-not-allowed flex items-center justify-center gap-2" title="Le PDF sera généré lors de l'émission">
+				{{ ux_icon('lucide:download', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+				PDF non disponible
+			</span>
+		{% endif %}
+
+		{# Hash PDF si disponible #}
+		{% if entity.pdfHash is defined and entity.pdfHash %}
+			<div class="text-xs text-white/40 break-all mt-2 text-center">
+				<span title="Empreinte numérique SHA256 pour conformité légale">SHA256:
+					{{ entity.pdfHash|slice(0, 16) }}...</span>
+			</div>
+		{% endif %}
+	{% endif %}
+</div>

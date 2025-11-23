@@ -1,0 +1,102 @@
+{# 
+    Modale réutilisable pour l'envoi d'emails
+    Gérée par le contrôleur Stimulus email-modal
+#}
+<div data-controller="email-modal">
+    <div 
+        data-email-modal-target="overlay"
+        data-action="click->email-modal#closeOnOverlay"
+        class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
+        <div 
+            data-email-modal-target="modal"
+            class="bg-slate-800 rounded-lg shadow-xl max-w-md w-full border border-white/10 transform transition-all"
+        >
+        {# Header #}
+        <div class="flex items-center justify-between p-6 border-b border-white/10">
+            <h3 
+                data-email-modal-target="title"
+                class="text-lg font-semibold text-white"
+            >
+                Envoyer par email
+            </h3>
+            <button 
+                type="button" 
+                data-action="click->email-modal#close"
+                class="text-white/60 hover:text-white transition-colors"
+                title="Fermer"
+            >
+                {{ ux_icon('lucide:x', {class: 'w-5 h-5'}) }}
+            </button>
+        </div>
+        
+        {# Form #}
+        <form 
+            data-email-modal-target="form"
+            data-action="submit->email-modal#submit"
+            method="POST"
+        >
+            <input type="hidden" name="_token">
+            
+            <div class="p-6 space-y-4">
+                {# Destinataire #}
+                <div>
+                    <label class="block text-sm font-medium text-white/80 mb-2">
+                        Destinataire
+                    </label>
+                    <p class="text-white font-medium flex items-center gap-2">
+                        {{ ux_icon('lucide:mail', {class: 'w-4 h-4'}) }}
+                        <span data-email-modal-target="recipient">-</span>
+                    </p>
+                </div>
+                
+                {# Message personnalisé #}
+                <div>
+                    <label for="email-custom-message" class="block text-sm font-medium text-white/80 mb-2">
+                        Message personnalisé (optionnel)
+                    </label>
+                    <textarea 
+                        id="email-custom-message"
+                        name="custom_message"
+                        data-email-modal-target="message"
+                        rows="4"
+                        class="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        placeholder="Ajoutez un message personnalisé qui apparaîtra dans l'email..."
+                    ></textarea>
+                    <p class="mt-1 text-xs text-white/40">
+                        Ce message sera ajouté au début de l'email
+                    </p>
+                </div>
+                
+                {# Info PDF #}
+                <div class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                    <p class="text-sm text-blue-200 flex items-start gap-2">
+                        {{ ux_icon('lucide:info', {class: 'w-4 h-4 mt-0.5 flex-shrink-0'}) }}
+                        <span>Le document PDF sera automatiquement joint à l'email</span>
+                    </p>
+                </div>
+            </div>
+            
+            {# Footer #}
+            <div class="flex gap-3 p-6 border-t border-white/10 bg-slate-900/50">
+                <button 
+                    type="button"
+                    data-action="click->email-modal#close"
+                    class="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                >
+                    Annuler
+                </button>
+                <button 
+                    type="submit"
+                    class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                    {{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
+                    Envoyer
+                </button>
+            </div>
+        </form>
+        </div>
+    </div>
+</div>
+
+

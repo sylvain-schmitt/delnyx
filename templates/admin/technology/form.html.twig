@@ -1,0 +1,113 @@
+{% extends 'admin/layout/base.html.twig' %}
+{% import 'admin/macros/form_fields.html.twig' as form_macros %}
+
+{% block title %}
+	{{ title }}
+	- Administration Delnyx
+{% endblock %}
+
+{% block page_title %}
+	{{ title }}
+{% endblock %}
+
+{% block body %}
+	<div
+		class="space-y-6">
+
+		{# Header avec breadcrumb #}
+		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+			<div>
+				<h1 class="text-2xl font-bold text-white">{{ title }}</h1>
+				<nav class="flex items-center space-x-2 text-sm text-white/60 mt-1">
+					<a href="{{ path('admin_dashboard') }}" class="hover:text-white transition-colors duration-200">Dashboard</a>
+					<span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
+					<a href="{{ path('admin_technology_index') }}" class="hover:text-white transition-colors duration-200">Technologies</a>
+					<span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
+					<span class="text-white">{{ title }}</span>
+				</nav>
+			</div>
+			<a href="{{ path('admin_technology_index') }}" class="btn-secondary flex items-center gap-2">
+				{{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
+				Retour à la liste
+			</a>
+		</div>
+
+		{# Formulaire #}
+		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100">
+			{{ form_start(form, {'attr': {'class': 'space-y-6', 'data-controller': 'admin-form', 'data-admin-form-target': 'form', 'novalidate': 'novalidate', 'data-action': 'submit->admin-form#handleSubmit'}}) }}
+
+			{# Informations principales #}
+			<div class="space-y-4">
+				<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+					{{ ux_icon('lucide:code', {class: 'w-5 h-5'}) }}
+					Informations de la technologie
+				</h3>
+
+				<div class="grid grid-cols-1 gap-4">
+					{{ form_macros.simple_field(form, 'nom') }}
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{{ form_macros.simple_field(form, 'couleur') }}
+					{{ form_macros.simple_field(form, 'icone') }}
+				</div>
+			</div>
+
+			{# Aperçu de la technologie #}
+			<div class="bg-white/5 border border-white/10 rounded-lg p-4" data-controller="technology-preview">
+				<div class="flex items-center justify-between mb-3">
+					<h4 class="text-sm font-semibold text-white/80">Aperçu en temps réel</h4>
+					<span class="text-xs text-white/50">L'icône sera importée automatiquement à la sauvegarde</span>
+				</div>
+				<div
+					class="flex items-center gap-4">
+					{# Conteneur pour l'icône - sera remplacé dynamiquement par Stimulus #}
+					<div
+						data-technology-preview-target="icon" class="w-12 h-12 rounded-lg flex items-center justify-center" style="background-color: {% if technology.couleur %}{{ technology.couleur }}20{% else %}#3b82f620{% endif %};">
+						{# Icône initiale - sera remplacée par le contrôleur Stimulus #}
+						{% if technology.icone %}
+							{{ ux_icon(technology.icone, {class: 'w-6 h-6', style: 'color: ' ~ (technology.couleur ?: '#3b82f6') ~ ';'}) }}
+						{% else %}
+							{{ ux_icon('lucide:code', {class: 'w-6 h-6', style: 'color: ' ~ (technology.couleur ?: '#3b82f6') ~ ';'}) }}
+						{% endif %}
+					</div>
+					<div>
+						<p data-technology-preview-target="name" class="text-white font-semibold">{{ technology.nom ?: 'Nom de la technologie' }}</p>
+						<p class="text-white/60 text-sm mb-1">Couleur:
+							<code data-technology-preview-target="colorCode" class="bg-white/10 px-2 py-1 rounded">{{ technology.couleur ?: '#3b82f6' }}</code>
+						</p>
+						{% if form.icone.vars.value %}
+							<p class="text-white/60 text-xs">Icône:
+								<code data-technology-preview-target="iconName" class="bg-white/10 px-2 py-1 rounded">{{ form.icone.vars.value }}</code>
+							</p>
+						{% else %}
+							<p class="text-white/60 text-xs">Icône:
+								<code data-technology-preview-target="iconName" class="bg-white/10 px-2 py-1 rounded">Aucune icône</code>
+							</p>
+						{% endif %}
+					</div>
+				</div>
+
+				{# Champs cachés pour Stimulus #}
+				<input type="hidden" data-technology-preview-target="nomField" value="{{ form.nom.vars.id }}">
+				<input type="hidden" data-technology-preview-target="couleurField" value="{{ form.couleur.vars.id }}">
+				<input type="hidden" data-technology-preview-target="iconeField" value="{{ form.icone.vars.id }}">
+			</div>
+
+			{# Actions #}
+			<div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/20">
+				<button type="submit" class="btn-primary flex items-center justify-center gap-2" data-admin-form-target="submit">
+					{{ ux_icon('lucide:save', {class: 'w-4 h-4'}) }}
+					{{ technology.id ? 'Modifier la technologie' : 'Créer la technologie' }}
+				</button>
+
+				<a href="{{ path('admin_technology_index') }}" class="btn-secondary flex items-center justify-center gap-2">
+					{{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
+					Annuler
+				</a>
+			</div>
+
+			{{ form_end(form) }}
+		</div>
+	</div>
+{% endblock %}

@@ -29,3 +29,18 @@ services:
         tags:
             - { name: 'doctrine.event_listener', event: 'postPersist' }
             - { name: 'doctrine.event_listener', event: 'postUpdate' }
+
+    # Configuration du QuoteService avec injection d'AuditService
+    App\Service\QuoteService:
+        calls:
+            - [setAuditService, ['@App\Service\AuditService']]
+
+    # Configuration du InvoiceService avec injection d'AuditService
+    App\Service\InvoiceService:
+        calls:
+            - [setAuditService, ['@App\Service\AuditService']]
+
+    # Configuration du MagicLinkService pour les liens signés
+    App\Service\MagicLinkService:
+        arguments:
+            $appSecret: '%env(APP_SECRET)%'

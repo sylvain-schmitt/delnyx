@@ -4,6 +4,7 @@
 /.env.local.php
 /.env.*.local
 /.env.dev
+/.env.prod
 /.env
 /config/secrets/prod/prod.decrypt.private.php
 /public/bundles/
@@ -30,5 +31,15 @@ docker-compose.yml
 ### Ignore Cursor
 .cursor
 
+### Ignore Agent
+.agent
+
+.vscode
+
 ### Ignore uploaded files (managed by Docker volume)
 /public/uploads/
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###

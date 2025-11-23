@@ -1,0 +1,58 @@
+{# Macro de pagination élégante (style portfolio) #}
+{% macro render(current_page, total_pages, route_name, route_params = {}, limit = 12, total_items = null) %}
+	{% if total_pages > 1 %}
+		<div class="mt-16 flex justify-center">
+			<nav class="flex items-center space-x-2" aria-label="Pagination">
+				{# Bouton Précédent #}
+				{% if current_page > 1 %}
+					<a href="{{ path(route_name, route_params|merge({'page': current_page - 1})) }}" class="px-4 py-2 text-sm font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors duration-300 flex items-center gap-2">
+						{{ ux_icon('lucide:chevron-left', {class: 'w-4 h-4'}) }}
+						Précédent
+					</a>
+				{% endif %}
+
+				{# Pages #}
+				{% for page in range(max(1, current_page - 2), min(total_pages, current_page + 2)) %}
+					{% if page == current_page %}
+						<span class="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg">
+							{{ page }}
+						</span>
+					{% else %}
+						<a href="{{ path(route_name, route_params|merge({'page': page})) }}" class="px-4 py-2 text-sm font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors duration-300">
+							{{ page }}
+						</a>
+					{% endif %}
+				{% endfor %}
+
+				{# Bouton Suivant #}
+				{% if current_page < total_pages %}
+					<a href="{{ path(route_name, route_params|merge({'page': current_page + 1})) }}" class="px-4 py-2 text-sm font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors duration-300 flex items-center gap-2">
+						Suivant
+						{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}
+					</a>
+				{% endif %}
+			</nav>
+		</div>
+
+		{# Informations sur la pagination #}
+		{% if total_items is not null %}
+			<div class="mt-4 text-center text-sm text-white/60">
+				Affichage de
+				{{ ((current_page - 1) * limit) + 1 }}
+				à
+				{{ min(current_page * limit, total_items) }}
+				sur
+				{{ total_items }}
+				{% if route_name starts with 'admin_client' %}
+					client(s)
+				{% elseif route_name starts with 'admin_project' %}
+					projet(s)
+				{% elseif route_name starts with 'admin_technology' %}
+					technologie(s)
+				{% else %}
+					élément(s)
+				{% endif %}
+			</div>
+		{% endif %}
+	{% endif %}
+{% endmacro %}

@@ -14,8 +14,6 @@ export default class extends Controller {
     }
 
     connect() {
-        console.log("💬 Flash Messages Controller connecté")
-
         if (this.autoHideValue) {
             this.scheduleAutoHide()
         }
@@ -24,11 +22,44 @@ export default class extends Controller {
         this.messageTargets.forEach(message => {
             this.addCloseButton(message)
         })
+
+        // Écouter les événements Turbo pour recharger les messages après une navigation
+        this.turboLoadHandler = () => {
+            // Après un chargement Turbo, réinitialiser les messages
+            if (this.autoHideValue) {
+                // Annuler le timeout précédent s'il existe
+                if (this.timeout) {
+                    clearTimeout(this.timeout)
+                }
+                // Programmer un nouveau timeout pour les nouveaux messages
+                this.scheduleAutoHide()
+            }
+
+            // Ajouter les boutons de fermeture aux nouveaux messages
+            this.messageTargets.forEach(message => {
+                // Vérifier si le bouton existe déjà
+                const existingButton = message.querySelector('[data-action*="flash-messages#hideMessage"]')
+                if (!existingButton) {
+                    this.addCloseButton(message)
+                }
+            })
+        }
+
+        // Écouter turbo:load pour les chargements de page complets
+        document.addEventListener('turbo:load', this.turboLoadHandler)
+        // Écouter aussi turbo:frame-load pour les chargements de frames
+        document.addEventListener('turbo:frame-load', this.turboLoadHandler)
     }
 
     disconnect() {
         if (this.timeout) {
             clearTimeout(this.timeout)
+        }
+        
+        // Retirer les écouteurs Turbo
+        if (this.turboLoadHandler) {
+            document.removeEventListener('turbo:load', this.turboLoadHandler)
+            document.removeEventListener('turbo:frame-load', this.turboLoadHandler)
         }
     }
 

@@ -1,0 +1,39 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block body %}
+    <h1>Votre devis est prêt</h1>
+    
+    <p>Bonjour {{ client.nomComplet }},</p>
+    
+    {% if customMessage %}
+        <div class="custom-message">
+            {{ customMessage|nl2br }}
+        </div>
+    {% else %}
+        <p>Nous avons le plaisir de vous transmettre votre devis.</p>
+    {% endif %}
+    
+    <div class="info-box">
+        <p><strong>Numéro de devis :</strong> {{ quote.numero }}</p>
+        <p><strong>Date :</strong> {{ quote.dateCreation|date('d/m/Y') }}</p>
+        {% if quote.dateValidite %}
+            <p><strong>Valide jusqu'au :</strong> {{ quote.dateValidite|date('d/m/Y') }}</p>
+        {% endif %}
+        <p><strong>Montant TTC :</strong> <span style="font-size: 18px; color: #1e293b;">{{ quote.montantTTCFormate }}</span></p>
+    </div>
+    
+    <div style="background-color: #f0f9ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 30px 0;">
+        <p style="margin: 0; color: #1e40af;">
+            📎 <strong>Le devis complet est disponible en pièce jointe de cet email (PDF).</strong>
+        </p>
+    </div>
+    
+    <p>Pour toute question concernant ce devis, n'hésitez pas à nous contacter.</p>
+    
+    <p style="margin-top: 30px;">
+        Cordialement,<br>
+        <strong>L'équipe Delnyx</strong>
+    </p>
+{% endblock %}
+
+
