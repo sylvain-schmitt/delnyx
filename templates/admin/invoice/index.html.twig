@@ -109,7 +109,7 @@
                                         </a>
                                         
                                         {# Bouton Modifier : visible si DRAFT #}
-                                        {% if invoice.statutEnum.value == 'draft' %}
+                                        {% if is_granted('INVOICE_EDIT', invoice) %}
                                             <a href="{{ path('admin_invoice_edit', {id: invoice.id}) }}" 
                                                class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200"
                                                title="Modifier">
@@ -118,7 +118,7 @@
                                         {% endif %}
                                         
                                         {# Bouton Émettre : visible si DRAFT #}
-                                        {% if invoice.statutEnum.value == 'draft' %}
+                                        {% if is_granted('INVOICE_ISSUE', invoice) %}
                                             <form action="{{ path('admin_invoice_issue', {id: invoice.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cette facture la rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('invoice_issue_' ~ invoice.id) }}">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Émettre">
@@ -128,7 +128,7 @@
                                         {% endif %}
                                         
                                         {# Bouton Envoyer : visible sauf si DRAFT #}
-                                        {% if invoice.statutEnum.value != 'draft' %}
+                                        {% if is_granted('INVOICE_SEND', invoice) %}
                                             <form action="{{ path('admin_invoice_send', {id: invoice.id}) }}" method="POST" class="inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('invoice_send_' ~ invoice.id) }}">
                                                 <input type="hidden" name="channel" value="email">
@@ -139,7 +139,7 @@
                                         {% endif %}
 
                                         {# Bouton Marquer comme payée : visible si ISSUED ou SENT #}
-                                        {% if invoice.statutEnum.value in ['issued', 'sent'] %}
+                                        {% if is_granted('INVOICE_MARK_PAID', invoice) %}
                                             <form action="{{ path('admin_invoice_mark_paid', {id: invoice.id}) }}" method="POST" class="inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('invoice_mark_paid_' ~ invoice.id) }}">
                                                 <button type="submit" class="text-green-400 hover:text-green-300 transition-colors duration-200" title="Marquer comme payée">
@@ -149,7 +149,7 @@
                                         {% endif %}
                                         
                                         {# Bouton Créer un avoir : visible si ISSUED, SENT ou PAID #}
-                                        {% if invoice.statutEnum.value in ['issued', 'sent', 'paid'] %}
+                                        {% if is_granted('INVOICE_CREATE_CREDITNOTE', invoice) %}
                                             <a href="{{ path('admin_credit_note_new', {invoice_id: invoice.id}) }}" 
                                                class="text-blue-400 hover:text-blue-300 transition-colors duration-200"
                                                title="Créer un avoir">

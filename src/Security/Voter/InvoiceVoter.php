@@ -147,11 +147,12 @@ class InvoiceVoter extends Voter
 
     /**
      * Vérifie si l'utilisateur peut marquer la facture comme payée
-     * ISSUED → PAID
+     * ISSUED ou SENT → PAID
      */
     private function canMarkPaid(Invoice $invoice, UserInterface $user, InvoiceStatus $status): bool
     {
-        return $status->canBeMarkedPaid();
+        // On peut marquer comme payée dès que la facture est émise (ISSUED) ou envoyée (SENT)
+        return in_array($status, [InvoiceStatus::ISSUED, InvoiceStatus::SENT]);
     }
 
     /**

@@ -158,11 +158,12 @@ class QuoteVoter extends Voter
 
     /**
      * Vérifie si l'utilisateur peut signer le devis
-     * SENT → SIGNED ou ACCEPTED → SIGNED
+     * ISSUED, SENT ou ACCEPTED → SIGNED
      */
     private function canSign(Quote $quote, UserInterface $user, QuoteStatus $status): bool
     {
-        if (!$status->canBeSigned()) {
+        // On peut signer un devis dès qu'il est émis (ISSUED), envoyé (SENT) ou accepté (ACCEPTED)
+        if (!in_array($status, [QuoteStatus::ISSUED, QuoteStatus::SENT, QuoteStatus::ACCEPTED])) {
             return false;
         }
 
@@ -177,20 +178,21 @@ class QuoteVoter extends Voter
 
     /**
      * Vérifie si l'utilisateur peut annuler le devis
-     * DRAFT, SENT, ACCEPTED → CANCELLED
+     * DRAFT, ISSUED, SENT, ACCEPTED → CANCELLED
      */
     private function canCancel(Quote $quote, UserInterface $user, QuoteStatus $status): bool
     {
-        return $status->canBeCancelled();
+        // On peut annuler un devis tant qu'il n'est pas signé ou refusé
+        return in_array($status, [QuoteStatus::DRAFT, QuoteStatus::ISSUED, QuoteStatus::SENT, QuoteStatus::ACCEPTED]);
     }
 
     /**
      * Vérifie si l'utilisateur peut refuser le devis
-     * SENT, ACCEPTED → REFUSED
+     * ISSUED, SENT, ACCEPTED → REFUSED
      */
     private function canRefuse(Quote $quote, UserInterface $user, QuoteStatus $status): bool
     {
-        return $status->canBeRefused();
+        return in_array($status, [QuoteStatus::ISSUED, QuoteStatus::SENT, QuoteStatus::ACCEPTED]);
     }
 
     /**

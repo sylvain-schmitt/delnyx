@@ -138,7 +138,7 @@ class AmendmentVoter extends Voter
 
     /**
      * Vérifie si l'utilisateur peut signer l'avenant
-     * SENT → SIGNED
+     * ISSUED ou SENT → SIGNED
      */
     private function canSign(Amendment $amendment, UserInterface $user, AmendmentStatus $status): bool
     {

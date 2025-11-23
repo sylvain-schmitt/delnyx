@@ -264,16 +264,16 @@
                 </h2>
 
                 <div class="space-y-3">
-                    {# Bouton Modifier : visible si DRAFT ou SENT #}
-                    {% if amendment.canBeModified %}
+                    {# Bouton Modifier #}
+                    {% if is_granted('AMENDMENT_EDIT', amendment) %}
                         <a href="{{ path('admin_amendment_edit', {id: amendment.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2">
                             {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
                             Modifier
                         </a>
                     {% endif %}
 
-                    {# Bouton Émettre : visible si DRAFT #}
-                    {% if amendment.statutEnum.value == 'draft' %}
+                    {# Bouton Émettre #}
+                    {% if is_granted('AMENDMENT_ISSUE', amendment) %}
                         <form method="POST" action="{{ path('admin_amendment_issue', {id: amendment.id}) }}" class="w-full" data-controller="confirm-modal" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avenant le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
                             <input type="hidden" name="_token" value="{{ csrf_token('amendment_issue_' ~ amendment.id) }}">
                             <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
@@ -283,8 +283,8 @@
                         </form>
                     {% endif %}
 
-                    {# Bouton Envoyer : visible si ISSUED, SENT, SIGNED (pas DRAFT, CANCELLED) #}
-                    {% if amendment.statutEnum.value in ['issued', 'sent', 'signed'] %}
+                    {# Bouton Envoyer #}
+                    {% if is_granted('AMENDMENT_SEND', amendment) %}
                         <form method="POST" action="{{ path('admin_amendment_send', {id: amendment.id}) }}" class="w-full">
                             <input type="hidden" name="_token" value="{{ csrf_token('amendment_send_' ~ amendment.id) }}">
                             <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
@@ -294,8 +294,8 @@
                         </form>
                     {% endif %}
 
-                    {# Bouton Signer : visible si SENT uniquement #}
-                    {% if amendment.canBeSigned %}
+                    {# Bouton Signer #}
+                    {% if is_granted('AMENDMENT_SIGN', amendment) %}
                         <form method="POST" action="{{ path('admin_amendment_sign', {id: amendment.id}) }}" class="w-full" data-controller="confirm-modal" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer cet avenant le rend opposable et immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
                             <input type="hidden" name="_token" value="{{ csrf_token('amendment_sign_' ~ amendment.id) }}">
                             <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
@@ -305,8 +305,8 @@
                         </form>
                     {% endif %}
 
-                    {# Bouton Annuler : visible si DRAFT ou SENT #}
-                    {% if amendment.canBeCancelled %}
+                    {# Bouton Annuler #}
+                    {% if is_granted('AMENDMENT_CANCEL', amendment) %}
                         <form method="POST" action="{{ path('admin_amendment_cancel', {id: amendment.id}) }}" class="w-full" data-controller="confirm-modal" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avenant ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
                             <input type="hidden" name="_token" value="{{ csrf_token('amendment_cancel_' ~ amendment.id) }}">
                             <button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">

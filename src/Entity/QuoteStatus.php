@@ -161,20 +161,20 @@ enum QuoteStatus: string
 
     /**
      * Vérifie si le devis peut être annulé
-     * DRAFT uniquement → CANCELLED
+     * DRAFT, ISSUED, SENT, ACCEPTED → CANCELLED
      */
     public function canBeCancelled(): bool
     {
-        return $this === self::DRAFT;
+        return in_array($this, [self::DRAFT, self::ISSUED, self::SENT, self::ACCEPTED]);
     }
 
     /**
      * Vérifie si le devis peut être refusé
-     * SENT, ACCEPTED → REFUSED
+     * ISSUED, SENT, ACCEPTED → REFUSED
      */
     public function canBeRefused(): bool
     {
-        return in_array($this, [self::SENT, self::ACCEPTED]);
+        return in_array($this, [self::ISSUED, self::SENT, self::ACCEPTED]);
     }
 
     /**

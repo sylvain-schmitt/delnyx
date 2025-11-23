@@ -106,8 +106,8 @@
                                             {{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
                                         </a>
                                         
-                                        {# Bouton Modifier : visible si DRAFT uniquement #}
-                                        {% if quote.statut.value == 'draft' %}
+                                        {# Bouton Modifier #}
+                                        {% if is_granted('QUOTE_EDIT', quote) %}
                                             <a href="{{ path('admin_quote_edit', {id: quote.id}) }}" 
                                                class="text-yellow-400 hover:text-yellow-300 transition-colors duration-200"
                                                title="Modifier">
@@ -115,8 +115,8 @@
                                             </a>
                                         {% endif %}
                                         
-                                        {# Bouton Émettre : visible si DRAFT #}
-                                        {% if quote.statut.value == 'draft' %}
+                                        {# Bouton Émettre #}
+                                        {% if is_granted('QUOTE_ISSUE', quote) %}
                                             <form action="{{ path('admin_quote_issue', {id: quote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre ce devis le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('quote_issue_' ~ quote.id) }}">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Émettre">
@@ -125,8 +125,8 @@
                                             </form>
                                         {% endif %}
 
-                                        {# Bouton Envoyer : visible si ISSUED, SENT, SIGNED, ACCEPTED (pas DRAFT, REFUSED, EXPIRED, CANCELLED) #}
-                                        {% if quote.statut.value in ['issued', 'sent', 'signed', 'accepted'] %}
+                                        {# Bouton Envoyer #}
+                                        {% if is_granted('QUOTE_SEND', quote) %}
                                             <form action="{{ path('admin_quote_send', {id: quote.id}) }}" method="POST" class="inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('quote_send_' ~ quote.id) }}">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Envoyer">
@@ -135,8 +135,8 @@
                                             </form>
                                         {% endif %}
                                         
-                                        {# Bouton Accepter : visible si SENT #}
-                                        {% if quote.statut.value == 'sent' %}
+                                        {# Bouton Accepter #}
+                                        {% if is_granted('QUOTE_ACCEPT', quote) %}
                                             <form action="{{ path('admin_quote_accept', {id: quote.id}) }}" method="POST" class="inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('quote_accept_' ~ quote.id) }}">
                                                 <button type="submit" class="text-green-400 hover:text-green-300 transition-colors duration-200" title="Accepter">
@@ -145,8 +145,8 @@
                                             </form>
                                         {% endif %}
                                         
-                                        {# Bouton Signer : visible si SENT ou ACCEPTED #}
-                                        {% if quote.statut.value in ['sent', 'accepted'] %}
+                                        {# Bouton Signer #}
+                                        {% if is_granted('QUOTE_SIGN', quote) %}
                                             <form action="{{ path('admin_quote_sign', {id: quote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer ce devis le transforme en CONTRAT et le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('quote_sign_' ~ quote.id) }}">
                                                 <button type="submit" class="text-purple-400 hover:text-purple-300 transition-colors duration-200" title="Signer">
@@ -155,8 +155,8 @@
                                             </form>
                                         {% endif %}
                                         
-                                        {# Bouton Refuser : visible si SENT ou ACCEPTED #}
-                                        {% if quote.statut.value in ['sent', 'accepted'] %}
+                                        {# Bouton Refuser #}
+                                        {% if is_granted('QUOTE_REFUSE', quote) %}
                                             <form action="{{ path('admin_quote_refuse', {id: quote.id}) }}" method="POST" class="inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('quote_refuse_' ~ quote.id) }}">
                                                 <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200" title="Refuser">
@@ -165,8 +165,8 @@
                                             </form>
                                         {% endif %}
                                         
-                                        {# Bouton Annuler : visible si DRAFT #}
-                                        {% if quote.statut.value == 'draft' %}
+                                        {# Bouton Annuler #}
+                                        {% if is_granted('QUOTE_CANCEL', quote) %}
                                             <form action="{{ path('admin_quote_cancel', {id: quote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler ce devis ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('quote_cancel_' ~ quote.id) }}">
                                                 <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200" title="Annuler">

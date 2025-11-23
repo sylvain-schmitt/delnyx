@@ -239,10 +239,10 @@ class CreditNoteService
         }
 
         $status = $creditNote->getStatut();
-        if ($status !== CreditNoteStatus::DRAFT) {
+        if (!$status || !$status->canBeCancelled()) {
             throw new \RuntimeException(
                 sprintf(
-                    'L\'avoir ne peut pas être annulé depuis l\'état "%s". Seuls les brouillons peuvent être annulés.',
+                    'L\'avoir ne peut pas être annulé depuis l\'état "%s".',
                     $status?->getLabel() ?? 'inconnu'
                 )
             );

@@ -230,16 +230,16 @@
                 </h2>
 
                 <div class="space-y-3">
-                    {# Bouton Modifier : visible si DRAFT uniquement #}
-                    {% if creditNote.canBeModified %}
+                    {# Bouton Modifier #}
+                    {% if is_granted('CREDIT_NOTE_EDIT', creditNote) %}
                         <a href="{{ path('admin_credit_note_edit', {id: creditNote.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2">
                             {{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
                             Modifier
                         </a>
                     {% endif %}
 
-                    {# Bouton Émettre : visible si DRAFT uniquement #}
-                    {% if creditNote.canBeIssued %}
+                    {# Bouton Émettre #}
+                    {% if is_granted('CREDIT_NOTE_ISSUE', creditNote) %}
                         <form method="POST" action="{{ path('admin_credit_note_issue', {id: creditNote.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avoir le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
                             <input type="hidden" name="_token" value="{{ csrf_token('credit_note_issue_' ~ creditNote.id) }}">
                             <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
@@ -249,8 +249,8 @@
                         </form>
                     {% endif %}
 
-                    {# Bouton Envoyer : visible sauf si DRAFT #}
-                    {% if creditNote.statutEnum.value != 'draft' %}
+                    {# Bouton Envoyer #}
+                    {% if is_granted('CREDIT_NOTE_SEND', creditNote) %}
                         <form method="POST" action="{{ path('admin_credit_note_send', {id: creditNote.id}) }}" class="w-full">
                             <input type="hidden" name="_token" value="{{ csrf_token('credit_note_send_' ~ creditNote.id) }}">
                             <button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
@@ -260,8 +260,8 @@
                         </form>
                     {% endif %}
 
-                    {# Bouton Annuler : visible si DRAFT uniquement #}
-                    {% if creditNote.statutEnum.value == 'draft' %}
+                    {# Bouton Annuler #}
+                    {% if is_granted('CREDIT_NOTE_CANCEL', creditNote) %}
                         <form method="POST" action="{{ path('admin_credit_note_cancel', {id: creditNote.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avoir ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
                             <input type="hidden" name="_token" value="{{ csrf_token('credit_note_cancel_' ~ creditNote.id) }}">
                             <button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
@@ -271,8 +271,8 @@
                         </form>
                     {% endif %}
 
-                    {# Bouton Appliquer : visible si ISSUED ou SENT #}
-                    {% if creditNote.statutEnum.value in ['issued', 'sent'] %}
+                    {# Bouton Appliquer #}
+                    {% if is_granted('CREDIT_NOTE_APPLY', creditNote) %}
                         <form method="POST" action="{{ path('admin_credit_note_apply', {id: creditNote.id}) }}" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Marquer cet avoir comme appliqué (remboursé ou déduit) ?">
                             <input type="hidden" name="_token" value="{{ csrf_token('credit_note_apply_' ~ creditNote.id) }}">
                             <button type="submit" class="w-full btn-success flex items-center justify-center gap-2">

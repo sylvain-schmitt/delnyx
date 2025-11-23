@@ -435,16 +435,16 @@
 					</h2>
 
 					<div class="space-y-3">
-						{# Bouton Modifier : visible si DRAFT uniquement #}
-						{% if quote.statut.value == 'draft' %}
+						{# Bouton Modifier #}
+						{% if is_granted('QUOTE_EDIT', quote) %}
 							<a href="{{ path('admin_quote_edit', {id: quote.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2">
 								{{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
 								Modifier
 							</a>
 						{% endif %}
 
-						{# Bouton Émettre : visible si DRAFT #}
-						{% if quote.statut.value == 'draft' %}
+						{# Bouton Émettre #}
+						{% if is_granted('QUOTE_ISSUE', quote) %}
 							<form action="{{ path('admin_quote_issue', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre ce devis le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
 								<input type="hidden" name="_token" value="{{ csrf_token('quote_issue_' ~ quote.id) }}">
 								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
@@ -454,8 +454,8 @@
 							</form>
 						{% endif %}
 
-						{# Bouton Envoyer : visible si ISSUED, SENT, SIGNED, ACCEPTED (pas DRAFT, REFUSED, EXPIRED, CANCELLED) #}
-						{% if quote.statut.value in ['issued', 'sent', 'signed', 'accepted'] %}
+						{# Bouton Envoyer #}
+						{% if is_granted('QUOTE_SEND', quote) %}
 							<form action="{{ path('admin_quote_send', {id: quote.id}) }}" method="POST" class="w-full">
 								<input type="hidden" name="_token" value="{{ csrf_token('quote_send_' ~ quote.id) }}">
 								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
@@ -465,41 +465,41 @@
 							</form>
 						{% endif %}
 
-						{# Bouton Accepter : visible si ISSUED ou SENT #}
-			{% if quote.statut.value in ['issued', 'sent'] %}
-				<form action="{{ path('admin_quote_accept', {id: quote.id}) }}" method="POST" class="w-full">
-					<input type="hidden" name="_token" value="{{ csrf_token('quote_accept_' ~ quote.id) }}">
-					<button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
-						{{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
-						Accepter
-					</button>
-				</form>
-			{% endif %}
+						{# Bouton Accepter #}
+						{% if is_granted('QUOTE_ACCEPT', quote) %}
+							<form action="{{ path('admin_quote_accept', {id: quote.id}) }}" method="POST" class="w-full">
+								<input type="hidden" name="_token" value="{{ csrf_token('quote_accept_' ~ quote.id) }}">
+								<button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
+									{{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
+									Accepter
+								</button>
+							</form>
+						{% endif %}
 
-			{# Bouton Signer : visible si ISSUED, SENT ou ACCEPTED #}
-			{% if quote.statut.value in ['issued', 'sent', 'accepted'] %}
-				<form action="{{ path('admin_quote_sign', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer ce devis le transforme en CONTRAT et le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
-					<input type="hidden" name="_token" value="{{ csrf_token('quote_sign_' ~ quote.id) }}">
-					<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
-						{{ ux_icon('lucide:pen-tool', {class: 'w-4 h-4'}) }}
-						Signer
-					</button>
-				</form>
-			{% endif %}
+						{# Bouton Signer #}
+						{% if is_granted('QUOTE_SIGN', quote) %}
+							<form action="{{ path('admin_quote_sign', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer ce devis le transforme en CONTRAT et le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
+								<input type="hidden" name="_token" value="{{ csrf_token('quote_sign_' ~ quote.id) }}">
+								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
+									{{ ux_icon('lucide:pen-tool', {class: 'w-4 h-4'}) }}
+									Signer
+								</button>
+							</form>
+						{% endif %}
 
-			{# Bouton Refuser : visible si ISSUED, SENT ou ACCEPTED #}
-			{% if quote.statut.value in ['issued', 'sent', 'accepted'] %}
-				<form action="{{ path('admin_quote_refuse', {id: quote.id}) }}" method="POST" class="w-full">
-					<input type="hidden" name="_token" value="{{ csrf_token('quote_refuse_' ~ quote.id) }}">
-					<button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
-						{{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
-						Refuser
-					</button>
-				</form>
-			{% endif %}
+						{# Bouton Refuser #}
+						{% if is_granted('QUOTE_REFUSE', quote) %}
+							<form action="{{ path('admin_quote_refuse', {id: quote.id}) }}" method="POST" class="w-full">
+								<input type="hidden" name="_token" value="{{ csrf_token('quote_refuse_' ~ quote.id) }}">
+								<button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
+									{{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
+									Refuser
+								</button>
+							</form>
+						{% endif %}
 
-						{# Bouton Annuler : visible si DRAFT uniquement #}
-						{% if quote.statut.value == 'draft' %}
+						{# Bouton Annuler #}
+						{% if is_granted('QUOTE_CANCEL', quote) %}
 							<form action="{{ path('admin_quote_cancel', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler ce devis ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
 								<input type="hidden" name="_token" value="{{ csrf_token('quote_cancel_' ~ quote.id) }}">
 								<button type="submit" class="w-full btn-danger flex items-center justify-center gap-2">
@@ -509,7 +509,7 @@
 							</form>
 						{% endif %}
 
-						{# Bouton Créer un avenant : visible si SIGNED #}
+						{# Bouton Créer un avenant #}
 						{% if quote.statut.value == 'signed' %}
 							<a href="{{ path('admin_amendment_new', {quote_id: quote.id}) }}" class="w-full btn-primary flex items-center justify-center gap-2">
 								{{ ux_icon('lucide:file-edit', {class: 'w-4 h-4'}) }}
@@ -517,8 +517,8 @@
 							</a>
 						{% endif %}
 
-						{# Bouton Générer facture : visible si SIGNED et pas de facture existante #}
-						{% if quote.statut.value == 'signed' and not quote.invoice %}
+						{# Bouton Générer facture #}
+						{% if is_granted('QUOTE_GENERATE_INVOICE', quote) %}
 							<form action="{{ path('admin_quote_generate_invoice', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Générer une facture depuis ce devis signé ?" data-confirm-modal-title="Confirmer la génération" data-confirm-modal-button="Générer">
 								<input type="hidden" name="_token" value="{{ csrf_token('quote_generate_invoice_' ~ quote.id) }}">
 								<button type="submit" class="w-full btn-success flex items-center justify-center gap-2">

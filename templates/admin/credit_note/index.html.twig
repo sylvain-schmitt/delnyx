@@ -119,7 +119,7 @@
                                         {% endif %}
                                         
                                         {# Bouton Émettre : visible si DRAFT #}
-                                        {% if creditNote.statutEnum.value == 'draft' %}
+                                        {% if is_granted('CREDIT_NOTE_ISSUE', creditNote) %}
                                             <form action="{{ path('admin_credit_note_issue', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avoir le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('credit_note_issue_' ~ creditNote.id) }}">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Émettre">
@@ -129,7 +129,7 @@
                                         {% endif %}
                                         
                                         {# Bouton Envoyer : visible sauf si DRAFT #}
-                                        {% if creditNote.statutEnum.value != 'draft' %}
+                                        {% if is_granted('CREDIT_NOTE_SEND', creditNote) %}
                                             <form action="{{ path('admin_credit_note_send', {id: creditNote.id}) }}" method="POST" class="inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('credit_note_send_' ~ creditNote.id) }}">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Envoyer">
@@ -139,11 +139,21 @@
                                         {% endif %}
                                         
                                         {# Bouton Annuler : visible si DRAFT uniquement #}
-                                        {% if creditNote.statutEnum.value == 'draft' %}
+                                        {% if is_granted('CREDIT_NOTE_CANCEL', creditNote) %}
                                             <form action="{{ path('admin_credit_note_cancel', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler cet avoir ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('credit_note_cancel_' ~ creditNote.id) }}">
                                                 <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200" title="Annuler">
                                                     {{ ux_icon('lucide:x-circle', {class: 'w-4 h-4'}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        {# Bouton Appliquer : visible si ISSUED ou SENT #}
+                                        {% if is_granted('CREDIT_NOTE_APPLY', creditNote) %}
+                                            <form action="{{ path('admin_credit_note_apply', {id: creditNote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Marquer cet avoir comme appliqué (remboursé ou déduit) ?">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('credit_note_apply_' ~ creditNote.id) }}">
+                                                <button type="submit" class="text-green-400 hover:text-green-300 transition-colors duration-200" title="Appliquer">
+                                                    {{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
                                                 </button>
                                             </form>
                                         {% endif %}

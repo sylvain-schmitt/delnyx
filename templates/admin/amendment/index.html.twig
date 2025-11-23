@@ -118,8 +118,8 @@
                                             </a>
                                         {% endif %}
                                         
-                                        {# Bouton Émettre : visible si DRAFT #}
-                                        {% if amendment.statutEnum.value == 'draft' %}
+                                        {# Bouton Émettre #}
+                                        {% if is_granted('AMENDMENT_ISSUE', amendment) %}
                                             <form action="{{ path('admin_amendment_issue', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cet avenant le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('amendment_issue_' ~ amendment.id) }}">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Émettre">
@@ -128,8 +128,8 @@
                                             </form>
                                         {% endif %}
 
-                                        {# Bouton Envoyer : visible si ISSUED, SENT, SIGNED (pas DRAFT, CANCELLED) #}
-                                        {% if amendment.statutEnum.value in ['issued', 'sent', 'signed'] %}
+                                        {# Bouton Envoyer #}
+                                        {% if is_granted('AMENDMENT_SEND', amendment) %}
                                             <form action="{{ path('admin_amendment_send', {id: amendment.id}) }}" method="POST" class="inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('amendment_send_' ~ amendment.id) }}">
                                                 <button type="submit" class="text-blue-400 hover:text-blue-300 transition-colors duration-200" title="Envoyer">
@@ -138,8 +138,8 @@
                                             </form>
                                         {% endif %}
                                         
-                                        {# Bouton Signer : visible si SENT uniquement #}
-                                        {% if amendment.canBeSigned %}
+                                        {# Bouton Signer #}
+                                        {% if is_granted('AMENDMENT_SIGN', amendment) %}
                                             <form action="{{ path('admin_amendment_sign', {id: amendment.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer cet avenant le rend opposable et immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('amendment_sign_' ~ amendment.id) }}">
                                                 <button type="submit" class="text-purple-400 hover:text-purple-300 transition-colors duration-200" title="Signer">

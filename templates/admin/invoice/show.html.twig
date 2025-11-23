@@ -498,16 +498,16 @@
 
 					<div
 						class="space-y-3">
-						{# Bouton Modifier : visible si DRAFT #}
-						{% if invoice.statutEnum.value == 'draft' %}
+						{# Bouton Modifier #}
+						{% if is_granted('INVOICE_EDIT', invoice) %}
 							<a href="{{ path('admin_invoice_edit', {id: invoice.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2">
 								{{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
 								Modifier
 							</a>
 						{% endif %}
 
-						{# Bouton Émettre : visible si DRAFT #}
-						{% if invoice.statutEnum.value == 'draft' %}
+						{# Bouton Émettre #}
+						{% if is_granted('INVOICE_ISSUE', invoice) %}
 							<form action="{{ path('admin_invoice_issue', {id: invoice.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre cette facture la rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
 								<input type="hidden" name="_token" value="{{ csrf_token('invoice_issue_' ~ invoice.id) }}">
 								<button type="submit" class="w-full btn-primary flex items-center justify-center gap-2">
@@ -517,8 +517,8 @@
 							</form>
 						{% endif %}
 
-						{# Bouton Envoyer : visible sauf si DRAFT #}
-						{% if invoice.statutEnum.value != 'draft' %}
+						{# Bouton Envoyer #}
+						{% if is_granted('INVOICE_SEND', invoice) %}
 							<form action="{{ path('admin_invoice_send', {id: invoice.id}) }}" method="POST" class="w-full">
 								<input type="hidden" name="_token" value="{{ csrf_token('invoice_send_' ~ invoice.id) }}">
 								<input type="hidden" name="channel" value="email">
@@ -529,8 +529,8 @@
 							</form>
 						{% endif %}
 
-						{# Bouton Marquer comme payée : visible si ISSUED ou SENT #}
-						{% if invoice.statutEnum.value in ['issued', 'sent'] %}
+						{# Bouton Marquer comme payée #}
+						{% if is_granted('INVOICE_MARK_PAID', invoice) %}
 							<form action="{{ path('admin_invoice_mark_paid', {id: invoice.id}) }}" method="POST" class="w-full">
 								<input type="hidden" name="_token" value="{{ csrf_token('invoice_mark_paid_' ~ invoice.id) }}">
 								<button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
@@ -540,8 +540,8 @@
 							</form>
 						{% endif %}
 
-						{# Bouton Créer un avoir : visible si ISSUED, SENT ou PAID #}
-						{% if invoice.statutEnum.value in ['issued', 'sent', 'paid'] %}
+						{# Bouton Créer un avoir #}
+						{% if is_granted('INVOICE_CREATE_CREDITNOTE', invoice) %}
 							<a href="{{ path('admin_credit_note_new', {invoice_id: invoice.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2">
 								{{ ux_icon('lucide:file-minus', {class: 'w-4 h-4'}) }}
 								Créer un avoir
