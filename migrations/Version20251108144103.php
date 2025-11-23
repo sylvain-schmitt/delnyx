@@ -20,10 +20,11 @@ final class Version20251108144103 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('DROP SEQUENCE devis_id_seq CASCADE');
-        $this->addSql('DROP SEQUENCE factures_id_seq CASCADE');
-        $this->addSql('DROP SEQUENCE tarifs_id_seq CASCADE');
-        $this->addSql('DROP SEQUENCE avenants_id_seq CASCADE');
+        // DROP only if exists (for migration from old schema)
+        $this->addSql('DROP SEQUENCE IF EXISTS devis_id_seq CASCADE');
+        $this->addSql('DROP SEQUENCE IF EXISTS factures_id_seq CASCADE');
+        $this->addSql('DROP SEQUENCE IF EXISTS tarifs_id_seq CASCADE');
+        $this->addSql('DROP SEQUENCE IF EXISTS avenants_id_seq CASCADE');
         $this->addSql('CREATE TABLE amendments (id SERIAL NOT NULL, quote_id INT NOT NULL, numero VARCHAR(20) NOT NULL, motif TEXT NOT NULL, modifications TEXT NOT NULL, justification TEXT DEFAULT NULL, date_creation TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, date_validation TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL, statut VARCHAR(20) NOT NULL, notes TEXT DEFAULT NULL, montant_ht INT NOT NULL, montant_tva INT NOT NULL, montant_ttc INT NOT NULL, taux_tva NUMERIC(5, 2) NOT NULL, PRIMARY KEY(id))');
         $this->addSql('CREATE INDEX IDX_D287B73DB805178 ON amendments (quote_id)');
         $this->addSql('CREATE TABLE amendment_tariffs (amendment_id INT NOT NULL, tariff_id INT NOT NULL, PRIMARY KEY(amendment_id, tariff_id))');
@@ -48,20 +49,13 @@ final class Version20251108144103 extends AbstractMigration
         $this->addSql('ALTER TABLE quotes ADD CONSTRAINT FK_A1B588C519EB6921 FOREIGN KEY (client_id) REFERENCES clients (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
         $this->addSql('ALTER TABLE quote_tariffs ADD CONSTRAINT FK_DAC10F2EDB805178 FOREIGN KEY (quote_id) REFERENCES quotes (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE');
         $this->addSql('ALTER TABLE quote_tariffs ADD CONSTRAINT FK_DAC10F2E92348FD2 FOREIGN KEY (tariff_id) REFERENCES tariffs (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE');
-        $this->addSql('ALTER TABLE devis_tarifs DROP CONSTRAINT fk_c5ad035a357c0a59');
-        $this->addSql('ALTER TABLE devis_tarifs DROP CONSTRAINT fk_c5ad035a41defada');
-        $this->addSql('ALTER TABLE factures DROP CONSTRAINT fk_647590b19eb6921');
-        $this->addSql('ALTER TABLE factures DROP CONSTRAINT fk_647590b41defada');
-        $this->addSql('ALTER TABLE avenant_tarifs DROP CONSTRAINT fk_7752449e357c0a59');
-        $this->addSql('ALTER TABLE avenant_tarifs DROP CONSTRAINT fk_7752449e85631a3a');
-        $this->addSql('ALTER TABLE devis DROP CONSTRAINT fk_8b27c52b19eb6921');
-        $this->addSql('ALTER TABLE avenants DROP CONSTRAINT fk_cb6c27a041defada');
-        $this->addSql('DROP TABLE devis_tarifs');
-        $this->addSql('DROP TABLE factures');
-        $this->addSql('DROP TABLE avenant_tarifs');
-        $this->addSql('DROP TABLE devis');
-        $this->addSql('DROP TABLE tarifs');
-        $this->addSql('DROP TABLE avenants');
+        // Drop old tables only if they exist (for migration from old schema)
+        $this->addSql('DROP TABLE IF EXISTS devis_tarifs CASCADE');
+        $this->addSql('DROP TABLE IF EXISTS factures CASCADE');
+        $this->addSql('DROP TABLE IF EXISTS avenant_tarifs CASCADE');
+        $this->addSql('DROP TABLE IF EXISTS devis CASCADE');
+        $this->addSql('DROP TABLE IF EXISTS tarifs CASCADE');
+        $this->addSql('DROP TABLE IF EXISTS avenants CASCADE');
     }
 
     public function down(Schema $schema): void
