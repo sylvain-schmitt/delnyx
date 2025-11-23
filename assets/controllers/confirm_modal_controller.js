@@ -109,40 +109,24 @@ export default class extends Controller {
         // Fermer la modale avant la soumission
         this.close()
 
-        // Créer un FormData pour la soumission
-        const formData = new FormData()
+        // Créer un formulaire temporaire pour la soumission native
+        // Cela permet au navigateur de gérer la redirection et les messages flash correctement
+        const form = document.createElement('form')
+        form.method = this.actionMethodValue
+        form.action = this.actionUrlValue
+        form.style.display = 'none'
 
         // Ajouter le token CSRF si disponible
         if (this.csrfTokenValue) {
-            formData.append('_token', this.csrfTokenValue)
+            const input = document.createElement('input')
+            input.type = 'hidden'
+            input.name = '_token'
+            input.value = this.csrfTokenValue
+            form.appendChild(input)
         }
 
-        // Soumettre via fetch pour avoir un contrôle total
-        fetch(this.actionUrlValue, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            credentials: 'same-origin'
-        })
-            .then(response => {
-                // Si redirection, suivre la redirection
-                if (response.redirected) {
-                    window.location.href = response.url
-                } else if (response.ok) {
-                    // Si pas de redirection mais succès, recharger la page
-                    window.location.reload()
-                } else {
-                    // En cas d'erreur, recharger quand même pour voir les messages flash
-                    window.location.reload()
-                }
-            })
-            .catch(error => {
-                console.error('Erreur lors de la soumission:', error)
-                // En cas d'erreur, recharger la page
-                window.location.reload()
-            })
+        document.body.appendChild(form)
+        form.submit()
     }
 
     /**

@@ -282,8 +282,8 @@ class CreditNoteService
      */
     public function apply(CreditNote $creditNote): void
     {
-        // Vérifier les permissions (utiliser CREDIT_NOTE_ISSUE par défaut ou créer une nouvelle permission)
-        if (!$this->authorizationChecker->isGranted('CREDIT_NOTE_ISSUE', $creditNote)) {
+        // Vérifier les permissions
+        if (!$this->authorizationChecker->isGranted('CREDIT_NOTE_APPLY', $creditNote)) {
             throw new AccessDeniedException('Vous n\'avez pas la permission d\'appliquer cet avoir.');
         }
 

@@ -31,6 +31,7 @@ class CreditNoteVoter extends Voter
     public const SEND = 'CREDIT_NOTE_SEND';
     public const CANCEL = 'CREDIT_NOTE_CANCEL';
     public const VIEW = 'CREDIT_NOTE_VIEW';
+    public const APPLY = 'CREDIT_NOTE_APPLY';
 
     /**
      * Détermine si le voter peut traiter l'attribut et le sujet
@@ -45,6 +46,7 @@ class CreditNoteVoter extends Voter
             self::SEND,
             self::CANCEL,
             self::VIEW,
+            self::APPLY,
         ])) {
             return false;
         }
@@ -81,6 +83,7 @@ class CreditNoteVoter extends Voter
             self::ISSUE => $this->canIssue($creditNote, $user, $status),
             self::SEND => $this->canSend($creditNote, $user, $status),
             self::CANCEL => $this->canCancel($creditNote, $user, $status),
+            self::APPLY => $this->canApply($creditNote, $user, $status),
             default => false,
         };
     }
@@ -158,6 +161,15 @@ class CreditNoteVoter extends Voter
     {
         // Autoriser depuis DRAFT ou ISSUED
         return in_array($status, [CreditNoteStatus::DRAFT, CreditNoteStatus::ISSUED]);
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut appliquer l'avoir
+     * ISSUED ou SENT
+     */
+    private function canApply(CreditNote $creditNote, UserInterface $user, CreditNoteStatus $status): bool
+    {
+        return in_array($status, [CreditNoteStatus::ISSUED, CreditNoteStatus::SENT]);
     }
 }
 

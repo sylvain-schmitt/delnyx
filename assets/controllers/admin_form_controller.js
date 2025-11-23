@@ -248,9 +248,15 @@ export default class extends Controller {
         const value = field.type === 'file' ? field.files.length > 0 : (field.value ? field.value.trim() : '')
         // Pour les selects, vérifier aussi si c'est un champ client (toujours obligatoire)
         // Pour les textarea, vérifier aussi si c'est adresseLivraison (obligatoire)
-        const isRequired = field.hasAttribute('required') || field.getAttribute('required') === 'required' ||
+        // Pour les champs de lignes (description, quantity, unitPrice), on ignore l'attribut required standard
+        // car on utilise la validation intelligente (voir plus bas)
+        const isLineField = fieldName.includes('[description]') || fieldName.includes('[quantity]') || fieldName.includes('[unitPrice]')
+
+        const isRequired = !isLineField && (
+            field.hasAttribute('required') || field.getAttribute('required') === 'required' ||
             (field.tagName === 'SELECT' && fieldName && fieldName.includes('client')) ||
             (field.tagName === 'TEXTAREA' && fieldName && fieldName.includes('adresseLivraison'))
+        )
 
         // Suppression des erreurs existantes
         this.clearFieldError(field)
@@ -802,26 +808,6 @@ export default class extends Controller {
         }
 
         if (hasErrors) {
-            // Debug: afficher les champs invalides
-            const invalidFields = this.element.querySelectorAll('.is-invalid')
-            console.warn('[AdminFormController] Validation failed. Invalid fields:', invalidFields)
-            invalidFields.forEach(field => {
-                console.warn(`- Field: ${field.name || field.id}, Value: "${field.value}", Visible: ${field.offsetParent !== null}`)
-            })
-            // Log when the lines check fails
-            if (isQuoteForm) {
-                const linesContainer = this.element.querySelector('[data-quote-form-target="linesContainer"]')
-                if (linesContainer) {
-                    const existingLines = Array.from(linesContainer.children).filter(line => {
-                        return line.tagName !== 'TEMPLATE' &&
-                            line.querySelector('input[name*="[description]"], input[name*="[quantity]"], input[name*="[unitPrice]"]')
-                    })
-                    if (existingLines.length === 0) {
-                        console.warn('[AdminFormController] Validation failed: No lines found in quote form.')
-                    }
-                }
-            }
-
             // Empêcher la soumission si la validation client échoue
             event.preventDefault()
             event.stopPropagation()

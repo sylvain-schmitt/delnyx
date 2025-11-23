@@ -728,7 +728,7 @@ class CreditNoteController extends AbstractController
     }
 
     #[Route('/{id}/apply', name: 'apply', requirements: ['id' => '\d+'], methods: ['POST'])]
-    #[IsGranted('CREDIT_NOTE_ISSUE', subject: 'creditNote')]
+    #[IsGranted('CREDIT_NOTE_APPLY', subject: 'creditNote')]
     public function apply(Request $request, CreditNote $creditNote): Response
     {
         // Vérifier le token CSRF

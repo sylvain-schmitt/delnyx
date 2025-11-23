@@ -61,7 +61,7 @@
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Numéro</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Facture</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Date</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Montant TTC</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Total Facture Corrigé</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Statut</th>
                             <th class="px-6 py-4 text-right text-xs font-semibold text-white/80 uppercase tracking-wider">Actions</th>
                         </tr>
@@ -87,7 +87,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-white">{{ creditNote.montantTTCFormatted }}</div>
+                                    <div class="text-sm font-medium text-white">{{ creditNote.invoice ? creditNote.invoice.totalCorrectedFormatted : '-' }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     {% set status = creditNote.statutEnum %}
@@ -96,7 +96,7 @@
                                         {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
                                         {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
                                         {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
-                                        {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+                                        {% else %}bg-green-500/20 text-green-300{% endif %}">
                                         {{ status.label }}
                                     </span>
                                 </td>
