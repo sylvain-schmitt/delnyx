@@ -51,7 +51,9 @@ class LockOnCreditNoteEmissionSubscriber
         $allowedFields = [
             'statut',           // Pour passer à un autre statut (si besoin)
             'dateEmission',     // Pour enregistrer l'émission
-            'dateModification'  // Horodatage automatique
+            'dateModification', // Horodatage automatique
+            'pdfFilename',      // Nom du fichier PDF généré (technique, ne change pas le contenu)
+            'pdfHash'           // Hash du PDF généré (technique, ne change pas le contenu)
         ];
 
         foreach ($changeset as $field => $change) {

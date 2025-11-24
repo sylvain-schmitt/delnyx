@@ -57,7 +57,9 @@ class LockOnInvoiceEmissionSubscriber
             'pdpStatus',        // Statut PDP (facturation électronique)
             'pdpProvider',      // Provider PDP
             'pdpTransmissionDate', // Date transmission PDP
-            'pdpResponse'       // Réponse PDP
+            'pdpResponse',      // Réponse PDP
+            'pdfFilename',      // Nom du fichier PDF généré (technique, ne change pas le contenu)
+            'pdfHash'           // Hash du PDF généré (technique, ne change pas le contenu)
         ];
 
         foreach ($changeset as $field => $change) {

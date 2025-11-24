@@ -77,7 +77,14 @@ class LockOnSignatureSubscriber
     private function preventModifications(Quote $quote, array $changeset): void
     {
         // Champs autorisés à être modifiés même après signature
-        $allowedFields = ['statut', 'dateSignature', 'signatureClient', 'dateModification'];
+        $allowedFields = [
+            'statut', 
+            'dateSignature', 
+            'signatureClient', 
+            'dateModification',
+            'pdfFilename',      // Nom du fichier PDF généré (technique, ne change pas le contenu)
+            'pdfHash'           // Hash du PDF généré (technique, ne change pas le contenu)
+        ];
 
         foreach ($changeset as $field => $change) {
             if (!in_array($field, $allowedFields)) {

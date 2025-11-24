@@ -75,7 +75,9 @@ class LockOnAmendmentSignatureSubscriber
             'statut',           // Pour passer à CANCELLED
             'dateSignature',    // Pour enregistrer la signature
             'signatureClient',  // Pour enregistrer la signature
-            'dateModification'  // Horodatage automatique
+            'dateModification', // Horodatage automatique
+            'pdfFilename',      // Nom du fichier PDF généré (technique, ne change pas le contenu)
+            'pdfHash'           // Hash du PDF généré (technique, ne change pas le contenu)
         ];
 
         foreach ($changeset as $field => $change) {

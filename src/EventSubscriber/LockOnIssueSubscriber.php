@@ -81,7 +81,9 @@ class LockOnIssueSubscriber
             // - sentCount (incrémenté lors de l'envoi)
             // - deliveryChannel (mis à jour lors de l'envoi)
             // - dateModification (mis à jour automatiquement)
-            $allowedFields = ['statut', 'datePaiement', 'dateEnvoi', 'sentCount', 'deliveryChannel', 'dateModification'];
+            // - pdfFilename (nom du fichier PDF généré, technique)
+            // - pdfHash (hash du PDF généré, technique)
+            $allowedFields = ['statut', 'datePaiement', 'dateEnvoi', 'sentCount', 'deliveryChannel', 'dateModification', 'pdfFilename', 'pdfHash'];
             $changedFields = array_keys($args->getEntityChangeSet());
 
             foreach ($changedFields as $field) {
