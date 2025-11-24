@@ -31,22 +31,25 @@
             <h1 class="text-2xl font-bold text-white">Avoirs</h1>
             <p class="text-white/60 mt-1">{{ total_credit_notes }} avoir{{ total_credit_notes > 1 ? 's' : '' }} au total{% if not include_cancelled %} (hors annulés){% endif %}</p>
         </div>
-        <div class="flex gap-3">
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+            {# Bouton principal en pleine largeur sur mobile #}
+            <a href="{{ path('admin_credit_note_new') }}" class="btn-primary flex items-center justify-center gap-2 order-first sm:order-last">
+                {{ ux_icon('lucide:file-plus', {class: 'w-4 h-4'}) }}
+                <span class="sm:inline">Nouvel Avoir</span>
+            </a>
+            
+            {# Bouton secondaire #}
             {% if include_cancelled %}
-                <a href="{{ path('admin_credit_note_index') }}" class="btn-secondary flex items-center gap-2">
+                <a href="{{ path('admin_credit_note_index') }}" class="btn-secondary flex items-center justify-center gap-2" title="Masquer les annulés">
                     {{ ux_icon('lucide:eye-off', {class: 'w-4 h-4'}) }}
-                    Masquer les annulés
+                    <span class="hidden lg:inline">Masquer les annulés</span>
                 </a>
             {% else %}
-                <a href="{{ path('admin_credit_note_index', {include_cancelled: true}) }}" class="btn-secondary flex items-center gap-2">
+                <a href="{{ path('admin_credit_note_index', {include_cancelled: true}) }}" class="btn-secondary flex items-center justify-center gap-2" title="Afficher les annulés">
                     {{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
-                    Afficher les annulés
+                    <span class="hidden lg:inline">Afficher les annulés</span>
                 </a>
             {% endif %}
-            <a href="{{ path('admin_credit_note_new') }}" class="btn-primary flex items-center gap-2">
-                {{ ux_icon('lucide:file-plus', {class: 'w-4 h-4'}) }}
-                Nouvel Avoir
-            </a>
         </div>
     </div>
 

@@ -14,26 +14,31 @@
             <h1 class="text-2xl font-bold text-white">Factures</h1>
             <p class="text-white/60 mt-1">{{ total_invoices }} factures au total{% if not include_cancelled %} (hors annulées){% endif %}</p>
         </div>
-        <div class="flex gap-3">
-            {% if include_cancelled %}
-                <a href="{{ path('admin_invoice_index') }}" class="btn-secondary flex items-center gap-2">
-                    {{ ux_icon('lucide:eye-off', {class: 'w-4 h-4'}) }}
-                    Masquer les annulées
-                </a>
-            {% else %}
-                <a href="{{ path('admin_invoice_index', {include_cancelled: true}) }}" class="btn-secondary flex items-center gap-2">
-                    {{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
-                    Afficher les annulées
-                </a>
-            {% endif %}
-            <a href="{{ path('admin_credit_note_index') }}" class="btn-secondary flex items-center gap-2">
-                {{ ux_icon('lucide:file-minus', {class: 'w-4 h-4'}) }}
-                Voir les avoirs
-            </a>
-            <a href="{{ path('admin_invoice_new') }}" class="btn-primary flex items-center gap-2">
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+            {# Bouton principal en pleine largeur sur mobile #}
+            <a href="{{ path('admin_invoice_new') }}" class="btn-primary flex items-center justify-center gap-2 order-first sm:order-last">
                 {{ ux_icon('lucide:file-plus', {class: 'w-4 h-4'}) }}
-                Nouvelle Facture
+                <span class="sm:inline">Nouvelle Facture</span>
             </a>
+            
+            {# Boutons secondaires en ligne sur mobile #}
+            <div class="flex gap-2">
+                {% if include_cancelled %}
+                    <a href="{{ path('admin_invoice_index') }}" class="btn-secondary flex items-center justify-center gap-2 flex-1 sm:flex-initial" title="Masquer les annulées">
+                        {{ ux_icon('lucide:eye-off', {class: 'w-4 h-4'}) }}
+                        <span class="hidden lg:inline">Masquer les annulées</span>
+                    </a>
+                {% else %}
+                    <a href="{{ path('admin_invoice_index', {include_cancelled: true}) }}" class="btn-secondary flex items-center justify-center gap-2 flex-1 sm:flex-initial" title="Afficher les annulées">
+                        {{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
+                        <span class="hidden lg:inline">Afficher les annulées</span>
+                    </a>
+                {% endif %}
+                <a href="{{ path('admin_credit_note_index') }}" class="btn-secondary flex items-center justify-center gap-2 flex-1 sm:flex-initial" title="Voir les avoirs">
+                    {{ ux_icon('lucide:file-minus', {class: 'w-4 h-4'}) }}
+                    <span class="hidden lg:inline">Voir les avoirs</span>
+                </a>
+            </div>
         </div>
     </div>
 

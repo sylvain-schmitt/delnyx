@@ -11,39 +11,44 @@
 	<div
 		class="space-y-6">
 
-		{# Header avec actions #}
-		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
-			<div>
-				<h1 class="text-2xl font-bold text-white">Devis</h1>
-				<p class="text-white/60 mt-1">{{ total_quotes }}
-					devis au total
-					{% if not include_cancelled %}
-						(hors annulés)
-					{% endif %}
-				</p>
-			</div>
-			<div class="flex gap-3">
+	{# Header avec actions #}
+	<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+		<div>
+			<h1 class="text-2xl font-bold text-white">Devis</h1>
+			<p class="text-white/60 mt-1">{{ total_quotes }}
+				devis au total
+				{% if not include_cancelled %}
+					(hors annulés)
+				{% endif %}
+			</p>
+		</div>
+		<div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+			{# Bouton principal en pleine largeur sur mobile #}
+			<a href="{{ path('admin_quote_new') }}" class="btn-primary flex items-center justify-center gap-2 order-first sm:order-last">
+				{{ ux_icon('lucide:file-plus', {class: 'w-4 h-4'}) }}
+				<span class="sm:inline">Nouveau Devis</span>
+			</a>
+			
+			{# Boutons secondaires en ligne sur mobile #}
+			<div class="flex gap-2">
 				{% if include_cancelled %}
-					<a href="{{ path('admin_quote_index') }}" class="btn-secondary flex items-center gap-2">
+					<a href="{{ path('admin_quote_index') }}" class="btn-secondary flex items-center justify-center gap-2 flex-1 sm:flex-initial" title="Masquer les annulés">
 						{{ ux_icon('lucide:eye-off', {class: 'w-4 h-4'}) }}
-						Masquer les annulés
+						<span class="hidden lg:inline">Masquer les annulés</span>
 					</a>
 				{% else %}
-					<a href="{{ path('admin_quote_index', {include_cancelled: true}) }}" class="btn-secondary flex items-center gap-2">
+					<a href="{{ path('admin_quote_index', {include_cancelled: true}) }}" class="btn-secondary flex items-center justify-center gap-2 flex-1 sm:flex-initial" title="Afficher les annulés">
 						{{ ux_icon('lucide:eye', {class: 'w-4 h-4'}) }}
-						Afficher les annulés
+						<span class="hidden lg:inline">Afficher les annulés</span>
 					</a>
 				{% endif %}
-				<a href="{{ path('admin_amendment_index') }}" class="btn-secondary flex items-center gap-2">
+				<a href="{{ path('admin_amendment_index') }}" class="btn-secondary flex items-center justify-center gap-2 flex-1 sm:flex-initial" title="Voir les avenants">
 					{{ ux_icon('lucide:file-edit', {class: 'w-4 h-4'}) }}
-					Voir les avenants
-				</a>
-				<a href="{{ path('admin_quote_new') }}" class="btn-primary flex items-center gap-2">
-					{{ ux_icon('lucide:file-plus', {class: 'w-4 h-4'}) }}
-					Nouveau Devis
+					<span class="hidden lg:inline">Voir les avenants</span>
 				</a>
 			</div>
 		</div>
+	</div>
 
 		{# Liste des devis #}
 		{% if quotes|length > 0 %}
