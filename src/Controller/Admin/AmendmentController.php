@@ -686,7 +686,11 @@ class AmendmentController extends AbstractController
 
         try {
             $customMessage = $request->request->get('custom_message');
-            $emailLog = $this->emailService->sendAmendment($amendment, $customMessage);
+            
+            // Récupérer les fichiers uploadés
+            $uploadedFiles = $request->files->get('attachments', []);
+            
+            $emailLog = $this->emailService->sendAmendment($amendment, $customMessage, $uploadedFiles);
             
             if ($emailLog->getStatus() === 'sent') {
                 $this->addFlash('success', sprintf('Avenant envoyé avec succès à %s', $client->getEmail()));

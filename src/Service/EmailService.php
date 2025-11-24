@@ -59,8 +59,10 @@ class EmailService
 
     /**
      * Envoie un devis par email
+     * 
+     * @param array $additionalAttachments Fichiers supplémentaires à joindre (UploadedFile[])
      */
-    public function sendQuote(Quote $quote, ?string $customMessage = null): EmailLog
+    public function sendQuote(Quote $quote, ?string $customMessage = null, array $additionalAttachments = []): EmailLog
     {
         $client = $quote->getClient();
         $senderInfo = $this->getSenderInfo();
@@ -95,14 +97,17 @@ class EmailService
             senderEmail: $senderInfo['email'],
             senderName: $senderInfo['name'],
             pdfContent: $pdfContent,
-            pdfFilename: $pdfFilename
+            pdfFilename: $pdfFilename,
+            additionalAttachments: $additionalAttachments
         );
     }
 
     /**
      * Envoie une facture par email
+     * 
+     * @param array $additionalAttachments Fichiers supplémentaires à joindre (UploadedFile[])
      */
-    public function sendInvoice(Invoice $invoice, ?string $customMessage = null): EmailLog
+    public function sendInvoice(Invoice $invoice, ?string $customMessage = null, array $additionalAttachments = []): EmailLog
     {
         $client = $invoice->getClient();
         $senderInfo = $this->getSenderInfo();
@@ -137,14 +142,17 @@ class EmailService
             senderEmail: $senderInfo['email'],
             senderName: $senderInfo['name'],
             pdfContent: $pdfContent,
-            pdfFilename: $pdfFilename
+            pdfFilename: $pdfFilename,
+            additionalAttachments: $additionalAttachments
         );
     }
 
     /**
      * Envoie un avenant par email
+     * 
+     * @param array $additionalAttachments Fichiers supplémentaires à joindre (UploadedFile[])
      */
-    public function sendAmendment(Amendment $amendment, ?string $customMessage = null): EmailLog
+    public function sendAmendment(Amendment $amendment, ?string $customMessage = null, array $additionalAttachments = []): EmailLog
     {
         $quote = $amendment->getQuote();
         $client = $quote?->getClient();
@@ -185,14 +193,17 @@ class EmailService
             senderEmail: $senderInfo['email'],
             senderName: $senderInfo['name'],
             pdfContent: $pdfContent,
-            pdfFilename: $pdfFilename
+            pdfFilename: $pdfFilename,
+            additionalAttachments: $additionalAttachments
         );
     }
 
     /**
      * Envoie un avoir par email
+     * 
+     * @param array $additionalAttachments Fichiers supplémentaires à joindre (UploadedFile[])
      */
-    public function sendCreditNote(CreditNote $creditNote, ?string $customMessage = null): EmailLog
+    public function sendCreditNote(CreditNote $creditNote, ?string $customMessage = null, array $additionalAttachments = []): EmailLog
     {
         $invoice = $creditNote->getInvoice();
         $client = $invoice?->getClient();
@@ -233,12 +244,15 @@ class EmailService
             senderEmail: $senderInfo['email'],
             senderName: $senderInfo['name'],
             pdfContent: $pdfContent,
-            pdfFilename: $pdfFilename
+            pdfFilename: $pdfFilename,
+            additionalAttachments: $additionalAttachments
         );
     }
 
     /**
      * Méthode générique d'envoi avec traçabilité
+     * 
+     * @param array $additionalAttachments Fichiers supplémentaires à joindre (UploadedFile[])
      */
     private function send(
         string $recipient,
@@ -250,7 +264,8 @@ class EmailService
         string $senderEmail,
         string $senderName,
         ?string $pdfContent = null,
-        ?string $pdfFilename = null
+        ?string $pdfFilename = null,
+        array $additionalAttachments = []
     ): EmailLog {
         // Créer le log avant l'envoi
         $emailLog = new EmailLog();
@@ -280,6 +295,23 @@ class EmailService
                 $email->attach($pdfContent, $pdfFilename, 'application/pdf');
             }
 
+            // Attacher les fichiers supplémentaires
+            $attachedFilesInfo = [];
+            foreach ($additionalAttachments as $file) {
+                if ($file instanceof \Symfony\Component\HttpFoundation\File\UploadedFile && $file->isValid()) {
+                    $email->attachFromPath(
+                        $file->getPathname(),
+                        $file->getClientOriginalName(),
+                        $file->getMimeType()
+                    );
+                    $attachedFilesInfo[] = [
+                        'name' => $file->getClientOriginalName(),
+                        'size' => $file->getSize(),
+                        'type' => $file->getMimeType()
+                    ];
+                }
+            }
+
             // Envoyer
             $this->mailer->send($email);
 
@@ -287,7 +319,9 @@ class EmailService
             $emailLog->setMetadata([
                 'sent_successfully' => true,
                 'sent_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
-                'pdf_attached' => $pdfContent !== null
+                'pdf_attached' => $pdfContent !== null,
+                'additional_attachments_count' => count($attachedFilesInfo),
+                'additional_attachments' => $attachedFilesInfo
             ]);
         } catch (\Exception $e) {
             $emailLog->setStatus('failed');

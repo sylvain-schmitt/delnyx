@@ -700,7 +700,11 @@ class QuoteController extends AbstractController
 
         try {
             $customMessage = $request->request->get('custom_message');
-            $emailLog = $this->emailService->sendQuote($quote, $customMessage);
+            
+            // Récupérer les fichiers uploadés
+            $uploadedFiles = $request->files->get('attachments', []);
+            
+            $emailLog = $this->emailService->sendQuote($quote, $customMessage, $uploadedFiles);
             
             if ($emailLog->getStatus() === 'sent') {
                 $this->addFlash('success', sprintf('Devis envoyé avec succès à %s', $client->getEmail()));

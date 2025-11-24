@@ -863,7 +863,11 @@ class CreditNoteController extends AbstractController
 
         try {
             $customMessage = $request->request->get('custom_message');
-            $emailLog = $this->emailService->sendCreditNote($creditNote, $customMessage);
+            
+            // Récupérer les fichiers uploadés
+            $uploadedFiles = $request->files->get('attachments', []);
+            
+            $emailLog = $this->emailService->sendCreditNote($creditNote, $customMessage, $uploadedFiles);
             
             if ($emailLog->getStatus() === 'sent') {
                 $this->addFlash('success', sprintf('Avoir envoyé avec succès à %s', $client->getEmail()));

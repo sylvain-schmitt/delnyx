@@ -35,6 +35,7 @@
             data-email-modal-target="form"
             data-action="submit->email-modal#submit"
             method="POST"
+            enctype="multipart/form-data"
         >
             <input type="hidden" name="_token">
             
@@ -65,6 +66,43 @@
                     ></textarea>
                     <p class="mt-1 text-xs text-white/40">
                         Ce message sera ajouté au début de l'email
+                    </p>
+                </div>
+                
+                {# Pièces jointes supplémentaires #}
+                <div>
+                    <label for="email-attachments" class="block text-sm font-medium text-white/80 mb-2">
+                        Pièces jointes supplémentaires (optionnel)
+                    </label>
+                    <div class="space-y-2">
+                        <input 
+                            type="file"
+                            id="email-attachments"
+                            name="attachments[]"
+                            multiple
+                            data-email-modal-target="fileInput"
+                            data-action="change->email-modal#handleFileChange"
+                            class="hidden"
+                        >
+                        <button 
+                            type="button"
+                            data-action="click->email-modal#openFileSelector"
+                            class="w-full px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2 border border-white/10"
+                        >
+                            {{ ux_icon('lucide:paperclip', {class: 'w-4 h-4'}) }}
+                            Ajouter des fichiers
+                        </button>
+                        
+                        {# Liste des fichiers sélectionnés #}
+                        <div 
+                            data-email-modal-target="fileList"
+                            class="hidden space-y-2"
+                        >
+                            {# Les fichiers seront ajoutés ici dynamiquement #}
+                        </div>
+                    </div>
+                    <p class="mt-1 text-xs text-white/40">
+                        Ex: RIB, contrat, CGV... (max 10 Mo par fichier)
                     </p>
                 </div>
                 
