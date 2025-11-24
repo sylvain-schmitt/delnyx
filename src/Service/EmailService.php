@@ -10,13 +10,13 @@ use App\Entity\Invoice;
 use App\Entity\CreditNote;
 use App\Entity\EmailLog;
 use App\Entity\User;
+use App\Entity\CompanySettings;
+use App\Repository\CompanySettingsRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Bundle\SecurityBundle\Security;
 use Twig\Environment;
-use Symfony\Component\Mime\Part\DataPart;
-use Symfony\Component\Mime\Part\File as MimeFile;
 
 /**
  * Service d'envoi d'emails pour les documents
@@ -31,9 +31,30 @@ class EmailService
         private readonly EntityManagerInterface $entityManager,
         private readonly Security $security,
         private readonly PdfGeneratorService $pdfGeneratorService,
-        private readonly string $senderEmail = 'noreply@delnyx.com',
-        private readonly string $senderName = 'Delnyx'
-    ) {
+        private readonly CompanySettingsRepository $companySettingsRepository,
+    ) {}
+
+    /**
+     * Récupère les informations d'expéditeur depuis les paramètres de l'entreprise
+     * 
+     * @return array{email: string, name: string}
+     */
+    private function getSenderInfo(): array
+    {
+        $settings = $this->companySettingsRepository->findOneBy([]);
+
+        if ($settings) {
+            return [
+                'email' => $settings->getEmail() ?: 'contact@delnyx.com',
+                'name' => $settings->getRaisonSociale() ?: 'Delnyx'
+            ];
+        }
+
+        // Fallback si pas de settings configurés
+        return [
+            'email' => 'contact@delnyx.com',
+            'name' => 'Delnyx'
+        ];
     }
 
     /**
@@ -42,9 +63,10 @@ class EmailService
     public function sendQuote(Quote $quote, ?string $customMessage = null): EmailLog
     {
         $client = $quote->getClient();
-        
-        $subject = sprintf('Devis %s - %s', $quote->getNumero(), $this->senderName);
-        
+        $senderInfo = $this->getSenderInfo();
+
+        $subject = sprintf('Devis %s - %s', $quote->getNumero(), $senderInfo['name']);
+
         $html = $this->twig->render('emails/quote.html.twig', [
             'quote' => $quote,
             'client' => $client,
@@ -70,6 +92,8 @@ class EmailService
             entityType: 'Quote',
             entityId: $quote->getId(),
             type: 'quote',
+            senderEmail: $senderInfo['email'],
+            senderName: $senderInfo['name'],
             pdfContent: $pdfContent,
             pdfFilename: $pdfFilename
         );
@@ -81,9 +105,10 @@ class EmailService
     public function sendInvoice(Invoice $invoice, ?string $customMessage = null): EmailLog
     {
         $client = $invoice->getClient();
-        
-        $subject = sprintf('Facture %s - %s', $invoice->getNumero(), $this->senderName);
-        
+        $senderInfo = $this->getSenderInfo();
+
+        $subject = sprintf('Facture %s - %s', $invoice->getNumero(), $senderInfo['name']);
+
         $html = $this->twig->render('emails/invoice.html.twig', [
             'invoice' => $invoice,
             'client' => $client,
@@ -109,6 +134,8 @@ class EmailService
             entityType: 'Invoice',
             entityId: $invoice->getId(),
             type: 'invoice',
+            senderEmail: $senderInfo['email'],
+            senderName: $senderInfo['name'],
             pdfContent: $pdfContent,
             pdfFilename: $pdfFilename
         );
@@ -121,13 +148,14 @@ class EmailService
     {
         $quote = $amendment->getQuote();
         $client = $quote?->getClient();
-        
+
         if (!$client) {
             throw new \RuntimeException('Impossible d\'envoyer l\'avenant : aucun client associé');
         }
-        
-        $subject = sprintf('Avenant %s - %s', $amendment->getNumero(), $this->senderName);
-        
+
+        $senderInfo = $this->getSenderInfo();
+        $subject = sprintf('Avenant %s - %s', $amendment->getNumero(), $senderInfo['name']);
+
         $html = $this->twig->render('emails/amendment.html.twig', [
             'amendment' => $amendment,
             'quote' => $quote,
@@ -154,6 +182,8 @@ class EmailService
             entityType: 'Amendment',
             entityId: $amendment->getId(),
             type: 'amendment',
+            senderEmail: $senderInfo['email'],
+            senderName: $senderInfo['name'],
             pdfContent: $pdfContent,
             pdfFilename: $pdfFilename
         );
@@ -166,13 +196,14 @@ class EmailService
     {
         $invoice = $creditNote->getInvoice();
         $client = $invoice?->getClient();
-        
+
         if (!$client) {
             throw new \RuntimeException('Impossible d\'envoyer l\'avoir : aucun client associé');
         }
-        
-        $subject = sprintf('Avoir %s - %s', $creditNote->getNumber(), $this->senderName);
-        
+
+        $senderInfo = $this->getSenderInfo();
+        $subject = sprintf('Avoir %s - %s', $creditNote->getNumber(), $senderInfo['name']);
+
         $html = $this->twig->render('emails/credit_note.html.twig', [
             'creditNote' => $creditNote,
             'invoice' => $invoice,
@@ -199,6 +230,8 @@ class EmailService
             entityType: 'CreditNote',
             entityId: $creditNote->getId(),
             type: 'credit_note',
+            senderEmail: $senderInfo['email'],
+            senderName: $senderInfo['name'],
             pdfContent: $pdfContent,
             pdfFilename: $pdfFilename
         );
@@ -214,6 +247,8 @@ class EmailService
         string $entityType,
         int $entityId,
         string $type,
+        string $senderEmail,
+        string $senderName,
         ?string $pdfContent = null,
         ?string $pdfFilename = null
     ): EmailLog {
@@ -224,7 +259,7 @@ class EmailService
         $emailLog->setRecipient($recipient);
         $emailLog->setSubject($subject);
         $emailLog->setType($type);
-        
+
         // Enregistrer l'utilisateur qui envoie
         $user = $this->security->getUser();
         if ($user instanceof User) {
@@ -235,7 +270,7 @@ class EmailService
         try {
             // Créer l'email
             $email = (new Email())
-                ->from(sprintf('%s <%s>', $this->senderName, $this->senderEmail))
+                ->from(sprintf('%s <%s>', $senderName, $senderEmail))
                 ->to($recipient)
                 ->subject($subject)
                 ->html($html);
@@ -247,7 +282,7 @@ class EmailService
 
             // Envoyer
             $this->mailer->send($email);
-            
+
             $emailLog->setStatus('sent');
             $emailLog->setMetadata([
                 'sent_successfully' => true,
@@ -280,5 +315,3 @@ class EmailService
             ->findByEntity($entityType, $entityId);
     }
 }
-
-
