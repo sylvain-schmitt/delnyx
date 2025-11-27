@@ -66,7 +66,12 @@
                                     <div class="text-sm font-medium text-white">{{ invoice.numero ?? 'N/A' }}</div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="text-sm text-white">{{ invoice.client.nomComplet }}</div>
+                                    {% if invoice.client.companyName %}
+                                        <div class="text-sm text-white">{{ invoice.client.companyName }}</div>
+                                        <div class="text-xs text-white/80">{{ invoice.client.prenom }} {{ invoice.client.nom }}</div>
+                                    {% else %}
+                                        <div class="text-sm text-white">{{ invoice.client.prenom }} {{ invoice.client.nom }}</div>
+                                    {% endif %}
                                     <div class="text-xs text-white/60">{{ invoice.client.email }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -127,7 +132,12 @@
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex-1">
                             <div class="text-sm font-medium text-white mb-1">{{ invoice.numero ?? 'N/A' }}</div>
-                            <div class="text-sm text-white">{{ invoice.client.nomComplet }}</div>
+                            {% if invoice.client.companyName %}
+                                <div class="text-sm text-white">{{ invoice.client.companyName }}</div>
+                                <div class="text-xs text-white/80">{{ invoice.client.prenom }} {{ invoice.client.nom }}</div>
+                            {% else %}
+                                <div class="text-sm text-white">{{ invoice.client.prenom }} {{ invoice.client.nom }}</div>
+                            {% endif %}
                             <div class="text-xs text-white/60">{{ invoice.client.email }}</div>
                         </div>
                         

@@ -40,8 +40,13 @@
 									{{ ux_icon('lucide:user', {class: 'w-5 h-5 text-blue-400'}) }}
 								</div>
 								<div class="min-w-0 flex-1">
-									<h3 class="text-base font-semibold text-white truncate">{{ client.nomComplet }}</h3>
-									<p class="text-white/60 text-xs truncate">{{ client.email }}</p>
+									{% if client.companyName %}
+										<h3 class="text-base font-semibold text-white truncate">{{ client.companyName }}</h3>
+										<p class="text-white/60 text-xs truncate">{{ client.prenom }} {{ client.nom }}</p>
+									{% else %}
+										<h3 class="text-base font-semibold text-white truncate">{{ client.prenom }} {{ client.nom }}</h3>
+										<p class="text-white/60 text-xs truncate">{{ client.email }}</p>
+									{% endif %}
 								</div>
 							</div>
 							<span class="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap
@@ -57,6 +62,12 @@
 							class="flex-grow">
 							{# Informations du client #}
 							<div class="space-y-2 mb-4">
+								{% if client.companyName %}
+									<div class="flex items-center text-sm text-white/80">
+										{{ ux_icon('lucide:building-2', {class: 'w-4 h-4 mr-2'}) }}
+										{{ client.companyName }}
+									</div>
+								{% endif %}
 								{% if client.ville %}
 									<div class="flex items-center text-sm text-white/80">
 										{{ ux_icon('lucide:map-pin', {class: 'w-4 h-4 mr-2'}) }}

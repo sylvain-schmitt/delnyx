@@ -41,8 +41,14 @@
 	<div class="client-section">
 		<div class="client-info">
 			<div class="section-title">Client</div>
-			<div class="client-name">{{ client.nomComplet }}</div>
-			<div class="client-details">
+			{% if client.companyName %}
+				<div class="client-name">{{ client.companyName }}</div>
+				<div class="client-details">
+					<strong>{{ client.prenom }} {{ client.nom }}</strong><br>
+			{% else %}
+				<div class="client-name">{{ client.prenom }} {{ client.nom }}</div>
+				<div class="client-details">
+			{% endif %}
 				{% if client.email %}{{ client.email }}<br>{% endif %}
 				{% if client.telephone %}{{ client.telephone }}<br>{% endif %}
 				{% if client.adresse %}

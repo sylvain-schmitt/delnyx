@@ -69,6 +69,14 @@ class Client
     #[Groups(['client:read', 'client:write'])]
     private ?string $prenom = null;
 
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: 'La raison sociale ne peut pas dépasser {{ limit }} caractères.'
+    )]
+    #[Groups(['client:read', 'client:write'])]
+    private ?string $companyName = null;
+
     #[ORM\Column(type: Types::STRING, length: 255, unique: true)]
     #[Assert\NotBlank(message: 'L\'email est obligatoire.')]
     #[Assert\Email(message: 'L\'email {{ value }} n\'est pas valide.')]
@@ -201,6 +209,17 @@ class Client
     public function setPrenom(?string $prenom): static
     {
         $this->prenom = $prenom;
+        return $this;
+    }
+
+    public function getCompanyName(): ?string
+    {
+        return $this->companyName;
+    }
+
+    public function setCompanyName(?string $companyName): static
+    {
+        $this->companyName = $companyName;
         return $this;
     }
 
@@ -395,7 +414,14 @@ class Client
      */
     public function getNomComplet(): string
     {
-        return trim($this->prenom . ' ' . $this->nom);
+        $nomComplet = trim($this->prenom . ' ' . $this->nom);
+        
+        // Si une raison sociale est définie, l'ajouter
+        if ($this->companyName) {
+            $nomComplet = $this->companyName . ' (' . $nomComplet . ')';
+        }
+        
+        return $nomComplet;
     }
 
     /**

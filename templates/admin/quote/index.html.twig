@@ -73,7 +73,12 @@
 										<div class="text-sm font-medium text-white">{{ quote.numero ?? 'N/A' }}</div>
 									</td>
 									<td class="px-6 py-4">
-										<div class="text-sm text-white">{{ quote.client.nomComplet }}</div>
+										{% if quote.client.companyName %}
+											<div class="text-sm text-white">{{ quote.client.companyName }}</div>
+											<div class="text-xs text-white/80">{{ quote.client.prenom }} {{ quote.client.nom }}</div>
+										{% else %}
+											<div class="text-sm text-white">{{ quote.client.prenom }} {{ quote.client.nom }}</div>
+										{% endif %}
 										<div class="text-xs text-white/60">{{ quote.client.email }}</div>
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap">
@@ -144,7 +149,12 @@
 						<div class="flex items-start justify-between mb-3">
 							<div class="flex-1">
 								<div class="text-sm font-medium text-white mb-1">{{ quote.numero ?? 'N/A' }}</div>
-								<div class="text-sm text-white">{{ quote.client.nomComplet }}</div>
+								{% if quote.client.companyName %}
+									<div class="text-sm text-white">{{ quote.client.companyName }}</div>
+									<div class="text-xs text-white/80">{{ quote.client.prenom }} {{ quote.client.nom }}</div>
+								{% else %}
+									<div class="text-sm text-white">{{ quote.client.prenom }} {{ quote.client.nom }}</div>
+								{% endif %}
 								<div class="text-xs text-white/60">{{ quote.client.email }}</div>
 							</div>
 							<div

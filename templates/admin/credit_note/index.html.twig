@@ -78,7 +78,13 @@
                                 <td class="px-6 py-4">
                                     {% if creditNote.invoice %}
                                         <div class="text-sm text-white">{{ creditNote.invoice.numero }}</div>
-                                        <div class="text-xs text-white/60">{{ creditNote.invoice.client.nomComplet }}</div>
+                                        <div class="text-xs text-white/60">
+                                            {% if creditNote.invoice.client.companyName %}
+                                                {{ creditNote.invoice.client.companyName }} - {{ creditNote.invoice.client.prenom }} {{ creditNote.invoice.client.nom }}
+                                            {% else %}
+                                                {{ creditNote.invoice.client.prenom }} {{ creditNote.invoice.client.nom }}
+                                            {% endif %}
+                                        </div>
                                     {% else %}
                                         <div class="text-sm text-white/60">Aucune facture</div>
                                     {% endif %}
@@ -128,7 +134,13 @@
                             <div class="text-sm font-medium text-white mb-1">{{ creditNote.number ?? 'N/A' }}</div>
                             {% if creditNote.invoice %}
                                 <div class="text-sm text-white">{{ creditNote.invoice.numero }}</div>
-                                <div class="text-xs text-white/60">{{ creditNote.invoice.client.nomComplet }}</div>
+                                <div class="text-xs text-white/60">
+                                    {% if creditNote.invoice.client.companyName %}
+                                        {{ creditNote.invoice.client.companyName }} - {{ creditNote.invoice.client.prenom }} {{ creditNote.invoice.client.nom }}
+                                    {% else %}
+                                        {{ creditNote.invoice.client.prenom }} {{ creditNote.invoice.client.nom }}
+                                    {% endif %}
+                                </div>
                             {% endif %}
                         </div>
                     </div>

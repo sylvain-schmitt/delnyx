@@ -173,7 +173,13 @@
 							</div>
 							<div>
 								<p class="text-white font-medium">{{ quote.numero }}</p>
-								<p class="text-white/60 text-sm">{{ quote.client.nomComplet }}</p>
+								<p class="text-white/60 text-sm">
+									{% if quote.client.companyName %}
+										{{ quote.client.companyName }} - {{ quote.client.prenom }} {{ quote.client.nom }}
+									{% else %}
+										{{ quote.client.prenom }} {{ quote.client.nom }}
+									{% endif %}
+								</p>
 							</div>
 						</div>
 						<div class="text-right">
@@ -214,7 +220,13 @@
 							</div>
 							<div>
 								<p class="text-white font-medium">{{ invoice.numero }}</p>
-								<p class="text-white/60 text-sm">{{ invoice.client.nomComplet }}</p>
+								<p class="text-white/60 text-sm">
+									{% if invoice.client.companyName %}
+										{{ invoice.client.companyName }} - {{ invoice.client.prenom }} {{ invoice.client.nom }}
+									{% else %}
+										{{ invoice.client.prenom }} {{ invoice.client.nom }}
+									{% endif %}
+								</p>
 							</div>
 						</div>
 						<div class="text-right">

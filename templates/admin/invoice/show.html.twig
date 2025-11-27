@@ -71,8 +71,14 @@
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<div>
 							<p class="text-sm text-white/60 mb-1">Client</p>
-							<p class="text-white font-medium">{{ invoice.client.nomComplet }}</p>
-							<p class="text-sm text-white/60">{{ invoice.client.email }}</p>
+							{% if invoice.client.companyName %}
+								<p class="text-white font-medium">{{ invoice.client.companyName }}</p>
+								<p class="text-sm text-white/80">{{ invoice.client.prenom }} {{ invoice.client.nom }}</p>
+								<p class="text-sm text-white/60">{{ invoice.client.email }}</p>
+							{% else %}
+								<p class="text-white font-medium">{{ invoice.client.prenom }} {{ invoice.client.nom }}</p>
+								<p class="text-sm text-white/60">{{ invoice.client.email }}</p>
+							{% endif %}
 						</div>
 
 						<div>

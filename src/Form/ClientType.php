@@ -32,6 +32,15 @@ class ClientType extends AbstractType
                     'placeholder' => 'Prénom du client'
                 ]
             ])
+            ->add('companyName', TextType::class, [
+                'label' => 'Raison sociale',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-input',
+                    'placeholder' => 'Nom de l\'entreprise (optionnel)'
+                ],
+                'help' => 'Si le client représente une entreprise, indiquez sa raison sociale'
+            ])
             ->add('email', EmailType::class, [
                 'label' => 'Email',
                 'attr' => [

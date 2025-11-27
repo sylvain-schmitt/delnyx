@@ -78,7 +78,13 @@
                                 <td class="px-6 py-4">
                                     {% if amendment.quote %}
                                         <div class="text-sm text-white">{{ amendment.quote.numero }}</div>
-                                        <div class="text-xs text-white/60">{{ amendment.quote.client.nomComplet }}</div>
+                                        <div class="text-xs text-white/60">
+                                            {% if amendment.quote.client.companyName %}
+                                                {{ amendment.quote.client.companyName }} - {{ amendment.quote.client.prenom }} {{ amendment.quote.client.nom }}
+                                            {% else %}
+                                                {{ amendment.quote.client.prenom }} {{ amendment.quote.client.nom }}
+                                            {% endif %}
+                                        </div>
                                     {% else %}
                                         <div class="text-sm text-white/60">Aucun devis</div>
                                     {% endif %}
@@ -128,7 +134,13 @@
                             <div class="text-sm font-medium text-white mb-1">{{ amendment.numero ?? 'N/A' }}</div>
                             {% if amendment.quote %}
                                 <div class="text-sm text-white">{{ amendment.quote.numero }}</div>
-                                <div class="text-xs text-white/60">{{ amendment.quote.client.nomComplet }}</div>
+                                <div class="text-xs text-white/60">
+                                    {% if amendment.quote.client.companyName %}
+                                        {{ amendment.quote.client.companyName }} - {{ amendment.quote.client.prenom }} {{ amendment.quote.client.nom }}
+                                    {% else %}
+                                        {{ amendment.quote.client.prenom }} {{ amendment.quote.client.nom }}
+                                    {% endif %}
+                                </div>
                             {% endif %}
                         </div>
                     </div>
