@@ -1,0 +1,149 @@
+{# Modal d'annulation de document avec raisons prédéfinies #}
+{% props entity, entityType, cancelRoute %}
+
+<div data-controller="modal" data-modal-id="cancel-modal-{{ entity.id }}" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" data-action="click->modal#closeOnBackdrop">
+    <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl max-w-md w-full border border-white/10 transform transition-all"
+         data-modal-target="content"
+         data-action="click->modal#stopPropagation">
+        
+        {# Header #}
+        <div class="px-6 py-4 border-b border-white/10">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                    {{ ux_icon('lucide:alert-triangle', {class: 'w-5 h-5 text-amber-400'}) }}
+                    Annuler 
+                    {% if entityType == 'quote' %}
+                        le devis
+                    {% elseif entityType == 'invoice' %}
+                        la facture
+                    {% elseif entityType == 'amendment' %}
+                        l'avenant
+                    {% elseif entityType == 'credit_note' %}
+                        l'avoir
+                    {% endif %}
+                </h3>
+                <button type="button" 
+                        class="text-white/60 hover:text-white transition-colors"
+                        data-action="click->modal#close">
+                    {{ ux_icon('lucide:x', {class: 'w-5 h-5'}) }}
+                </button>
+            </div>
+        </div>
+
+        {# Body #}
+        <form method="POST" action="{{ cancelRoute }}" class="px-6 py-4 space-y-4">
+            <input type="hidden" name="_token" value="{{ csrf_token(entityType ~ '_cancel_' ~ entity.id) }}">
+            
+            {# Message d'avertissement #}
+            <div class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
+                <p class="text-sm text-amber-200">
+                    {{ ux_icon('lucide:info', {class: 'w-4 h-4 inline mr-1'}) }}
+                    Cette action est <strong>irréversible</strong>. 
+                    {% if entityType == 'quote' %}
+                        Le devis sera marqué comme annulé et ne pourra plus être signé.
+                    {% elseif entityType == 'invoice' %}
+                        La facture sera marquée comme annulée. Pour une annulation légale, créez un avoir.
+                    {% elseif entityType == 'amendment' %}
+                        L'avenant sera marqué comme annulé et n'affectera plus le devis parent.
+                    {% elseif entityType == 'credit_note' %}
+                        L'avoir sera marqué comme annulé.
+                    {% endif %}
+                </p>
+            </div>
+
+            {# Dropdown de raisons #}
+            <div class="space-y-2">
+                <label for="cancel_reason" class="block text-sm font-medium text-white/90">
+                    Raison de l'annulation <span class="text-red-400">*</span>
+                </label>
+                <select name="cancel_reason" 
+                        id="cancel_reason" 
+                        required
+                        class="w-full px-4 py-2.5 bg-slate-700/50 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                        data-controller="cancel-reason"
+                        data-action="change->cancel-reason#toggleCustomInput">
+                    <option value="">-- Sélectionnez une raison --</option>
+                    {% if entityType == 'quote' %}
+                        <option value="Refusé par le client">Refusé par le client</option>
+                        <option value="Client injoignable">Client injoignable</option>
+                        <option value="Budget insuffisant">Budget insuffisant du client</option>
+                        <option value="Délais trop longs">Délais trop longs pour le client</option>
+                        <option value="Concurrent choisi">Concurrent choisi par le client</option>
+                        <option value="Projet abandonné">Projet abandonné par le client</option>
+                        <option value="Devis erroné">Devis erroné (erreur de calcul/contenu)</option>
+                        <option value="Doublon">Devis en doublon</option>
+                    {% elseif entityType == 'invoice' %}
+                        <option value="Erreur de facturation">Erreur de facturation</option>
+                        <option value="Doublon">Facture en doublon</option>
+                        <option value="Prestation non réalisée">Prestation non réalisée</option>
+                        <option value="Remplacée par avoir">Remplacée par un avoir</option>
+                    {% elseif entityType == 'amendment' %}
+                        <option value="Modifications non validées">Modifications non validées par le client</option>
+                        <option value="Erreur de saisie">Erreur de saisie</option>
+                        <option value="Doublon">Avenant en doublon</option>
+                    {% elseif entityType == 'credit_note' %}
+                        <option value="Erreur de création">Erreur de création</option>
+                        <option value="Doublon">Avoir en doublon</option>
+                        <option value="Montant erroné">Montant erroné</option>
+                    {% endif %}
+                    <option value="other">Autre raison...</option>
+                </select>
+            </div>
+
+            {# Champ raison personnalisée (caché par défaut) #}
+            <div class="space-y-2 hidden" data-cancel-reason-target="customInput">
+                <label for="custom_reason" class="block text-sm font-medium text-white/90">
+                    Précisez la raison <span class="text-red-400">*</span>
+                </label>
+                <textarea name="custom_reason" 
+                          id="custom_reason" 
+                          rows="3"
+                          placeholder="Décrivez la raison de l'annulation..."
+                          class="w-full px-4 py-2.5 bg-slate-700/50 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all resize-none"></textarea>
+            </div>
+
+            {# Actions #}
+            <div class="flex items-center justify-end gap-3 pt-4">
+                <button type="button" 
+                        class="px-4 py-2 text-sm font-medium text-white/70 hover:text-white transition-colors"
+                        data-action="click->modal#close">
+                    Annuler
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-red-500/20">
+                    {{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+                    Confirmer l'annulation
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Stimulus controller pour gérer l'affichage du champ personnalisé
+if (!window.cancelReasonControllerRegistered) {
+    window.cancelReasonControllerRegistered = true;
+    
+    if (typeof Stimulus !== 'undefined') {
+        Stimulus.register('cancel-reason', class extends Controller {
+            static targets = ['customInput']
+
+            toggleCustomInput(event) {
+                const select = event.target;
+                const customInput = this.customInputTarget;
+                const textarea = customInput.querySelector('textarea');
+                
+                if (select.value === 'other') {
+                    customInput.classList.remove('hidden');
+                    textarea.required = true;
+                } else {
+                    customInput.classList.add('hidden');
+                    textarea.required = false;
+                    textarea.value = '';
+                }
+            }
+        });
+    }
+}
+</script>
+

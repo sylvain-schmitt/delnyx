@@ -454,11 +454,72 @@ class QuoteController extends AbstractController
         }
 
         try {
-            $reason = $request->request->get('reason');
-            $this->quoteService->cancel($quote, $reason);
+            $reason = $request->request->get('cancel_reason');
+            $customReason = $request->request->get('custom_reason');
+            
+            // Si "Autre" est sélectionné, utiliser la raison personnalisée
+            $finalReason = $reason === 'other' ? $customReason : $reason;
+            
+            $this->quoteService->cancel($quote, $finalReason);
             $this->addFlash('success', 'Devis annulé avec succès.');
         } catch (\Exception $e) {
             $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+    }
+
+    /**
+     * Repasse un devis SENT en DRAFT pour modification
+     */
+    #[Route('/{id}/back-to-draft', name: 'back_to_draft', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('QUOTE_EDIT', subject: 'quote')]
+    public function backToDraft(Quote $quote, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('quote_back_to_draft_' . $quote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        try {
+            $this->quoteService->backToDraft($quote);
+            $this->addFlash('success', 'Le devis est repassé en brouillon. Vous pouvez maintenant le modifier.');
+            return $this->redirectToRoute('admin_quote_edit', ['id' => $quote->getId()]);
+        } catch (\Exception $e) {
+            $this->addFlash('error', $e->getMessage());
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+    }
+
+    /**
+     * Envoie un email de relance au client
+     */
+    #[Route('/{id}/remind', name: 'remind', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('QUOTE_SEND', subject: 'quote')]
+    public function remind(Quote $quote, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('quote_remind_' . $quote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        try {
+            // Enregistrer la relance
+            $this->quoteService->remind($quote);
+            
+            // Envoyer l'email de relance (avec template spécifique)
+            $customMessage = $request->request->get('custom_message', 'Nous vous rappelons que ce devis est en attente de votre retour.');
+            $uploadedFiles = $request->files->get('attachments', []);
+            
+            $emailLog = $this->emailService->sendQuote($quote, $customMessage, $uploadedFiles);
+            
+            if ($emailLog->getStatus() === 'sent') {
+                $this->addFlash('success', sprintf('Relance envoyée avec succès à %s', $quote->getClient()->getEmail()));
+            } else {
+                $this->addFlash('error', sprintf('Erreur lors de l\'envoi de la relance : %s', $emailLog->getErrorMessage()));
+            }
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de l\'envoi de la relance : ' . $e->getMessage());
         }
 
         return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
@@ -680,6 +741,7 @@ class QuoteController extends AbstractController
 
     /**
      * Envoie le devis par email
+     * Change le statut DRAFT → SENT puis envoie l'email
      */
     #[Route('/{id}/send-email', name: 'send_email', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function sendEmail(Request $request, Quote $quote): Response
@@ -699,9 +761,21 @@ class QuoteController extends AbstractController
         }
 
         try {
-            $customMessage = $request->request->get('custom_message');
+            // 1. Changer le statut (DRAFT/ISSUED → SENT)
+            // Ceci gère aussi la génération du PDF et la validation
+            try {
+                $this->quoteService->send($quote);
+            } catch (\RuntimeException $e) {
+                // Si la transition échoue, on continue quand même pour permettre le renvoi
+                // (cas où le devis est déjà SENT)
+                $this->logger->warning('Transition de statut échouée lors de l\'envoi', [
+                    'quote_id' => $quote->getId(),
+                    'error' => $e->getMessage()
+                ]);
+            }
             
-            // Récupérer les fichiers uploadés
+            // 2. Envoyer l'email
+            $customMessage = $request->request->get('custom_message');
             $uploadedFiles = $request->files->get('attachments', []);
             
             $emailLog = $this->emailService->sendQuote($quote, $customMessage, $uploadedFiles);

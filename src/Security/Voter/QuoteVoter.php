@@ -158,12 +158,12 @@ class QuoteVoter extends Voter
 
     /**
      * Vérifie si l'utilisateur peut signer le devis
-     * ISSUED, SENT ou ACCEPTED → SIGNED
+     * Workflow simplifié : SENT → SIGNED
      */
     private function canSign(Quote $quote, UserInterface $user, QuoteStatus $status): bool
     {
-        // On peut signer un devis dès qu'il est émis (ISSUED), envoyé (SENT) ou accepté (ACCEPTED)
-        if (!in_array($status, [QuoteStatus::ISSUED, QuoteStatus::SENT, QuoteStatus::ACCEPTED])) {
+        // Workflow simplifié : signature uniquement depuis SENT
+        if ($status !== QuoteStatus::SENT) {
             return false;
         }
 
@@ -178,21 +178,22 @@ class QuoteVoter extends Voter
 
     /**
      * Vérifie si l'utilisateur peut annuler le devis
-     * DRAFT, ISSUED, SENT, ACCEPTED → CANCELLED
+     * DRAFT ou SENT → CANCELLED
      */
     private function canCancel(Quote $quote, UserInterface $user, QuoteStatus $status): bool
     {
-        // On peut annuler un devis tant qu'il n'est pas signé ou refusé
-        return in_array($status, [QuoteStatus::DRAFT, QuoteStatus::ISSUED, QuoteStatus::SENT, QuoteStatus::ACCEPTED]);
+        // Workflow simplifié : annulation uniquement depuis DRAFT ou SENT
+        return in_array($status, [QuoteStatus::DRAFT, QuoteStatus::SENT]);
     }
 
     /**
      * Vérifie si l'utilisateur peut refuser le devis
-     * ISSUED, SENT, ACCEPTED → REFUSED
+     * SENT → REFUSED
      */
     private function canRefuse(Quote $quote, UserInterface $user, QuoteStatus $status): bool
     {
-        return in_array($status, [QuoteStatus::ISSUED, QuoteStatus::SENT, QuoteStatus::ACCEPTED]);
+        // Workflow simplifié : refus uniquement depuis SENT
+        return $status === QuoteStatus::SENT;
     }
 
     /**

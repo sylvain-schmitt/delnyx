@@ -49,6 +49,20 @@
 		</a>
 	{% endif %}
 
+	{# Définir hasEmail et recipientEmail pour tous les boutons email #}
+	{% set hasEmail = false %}
+	{% set recipientEmail = '' %}
+	{% if type == 'quote' or type == 'invoice' %}
+		{% set hasEmail = entity.client is defined and entity.client and entity.client.email %}
+		{% set recipientEmail = hasEmail ? entity.client.email : '' %}
+	{% elseif type == 'amendment' %}
+		{% set hasEmail = entity.quote is defined and entity.quote and entity.quote.client and entity.quote.client.email %}
+		{% set recipientEmail = hasEmail ? entity.quote.client.email : '' %}
+	{% elseif type == 'credit_note' %}
+		{% set hasEmail = entity.invoice is defined and entity.invoice and entity.invoice.client and entity.invoice.client.email %}
+		{% set recipientEmail = hasEmail ? entity.invoice.client.email : '' %}
+	{% endif %}
+
 	{# Bouton Modifier #}
 	{% if is_granted(type|upper ~ '_EDIT', entity) %}
 		<a href="{{ path('admin_' ~ type ~ '_edit', {id: entity.id}) }}" class="{{ secondaryButtonClass }}" title="Modifier">
@@ -58,96 +72,69 @@
 		</a>
 	{% endif %}
 
-	{# Bouton Émettre #}
-	{% if is_granted(type|upper ~ '_ISSUE', entity) %}
-		<form action="{{ path('admin_' ~ type ~ '_issue', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Émettre ce document le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer l'émission" data-confirm-modal-button="Émettre">
-			<input type="hidden" name="_token" value="{{ csrf_token(type ~ '_issue_' ~ entity.id) }}">
-			<button type="submit" class="{{ buttonClass }}" title="Émettre">
-				{{ ux_icon('lucide:send', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
-				{% if showText %}Émettre
+	{# Bouton Émettre - SUPPRIMÉ : workflow simplifié DRAFT → SENT #}
+
+	{# Bouton Envoyer par email - UNIQUEMENT pour DRAFT #}
+	{% if is_granted(type|upper ~ '_SEND', entity) and entity.statut.value == 'draft' and hasEmail %}
+		{# Récupérer le numéro du document selon le type d'entité #}
+		{% set documentNumber = type == 'credit_note' ? entity.number : entity.numero %}
+
+		<button type="button" class="{{ buttonClass }}" title="Envoyer par email" data-controller="email-trigger" data-email-trigger-url-value="{{ path('admin_' ~ type ~ '_send_email', {id: entity.id}) }}" data-email-trigger-csrf-token-value="{{ csrf_token(type ~ '_send_email_' ~ entity.id) }}" data-email-trigger-recipient-value="{{ recipientEmail }}" data-email-trigger-document-type-value="{{ type }}" data-email-trigger-document-number-value="{{ documentNumber }}" data-action="click->email-trigger#open">
+			{{ ux_icon('lucide:mail', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+			{% if showText %}
+				Envoyer
+				{% if type == 'quote' %}
+					le devis
+				{% elseif type == 'invoice' %}
+					la facture
+				{% elseif type == 'amendment' %}
+					l'avenant
+				{% elseif type == 'credit_note' %}
+					l'avoir
 				{% endif %}
-			</button>
-		</form>
-	{% endif %}
-
-	{# Bouton Envoyer par email #}
-	{% if is_granted(type|upper ~ '_SEND', entity) %}
-		{# Vérifier si le client a un email #}
-		{% set hasEmail = false %}
-		{% if type == 'quote' or type == 'invoice' %}
-			{% set hasEmail = entity.client is defined and entity.client and entity.client.email %}
-			{% set recipientEmail = hasEmail ? entity.client.email : '' %}
-		{% elseif type == 'amendment' %}
-			{% set hasEmail = entity.quote is defined and entity.quote and entity.quote.client and entity.quote.client.email %}
-			{% set recipientEmail = hasEmail ? entity.quote.client.email : '' %}
-		{% elseif type == 'credit_note' %}
-			{% set hasEmail = entity.invoice is defined and entity.invoice and entity.invoice.client and entity.invoice.client.email %}
-			{% set recipientEmail = hasEmail ? entity.invoice.client.email : '' %}
-		{% endif %}
-
-		{% if hasEmail %}
-			{# Récupérer le numéro du document selon le type d'entité #}
-			{% set documentNumber = type == 'credit_note' ? entity.number : entity.numero %}
-
-			<button type="button" class="{{ buttonClass }}" title="Envoyer par email" data-controller="email-trigger" data-email-trigger-url-value="{{ path('admin_' ~ type ~ '_send_email', {id: entity.id}) }}" data-email-trigger-csrf-token-value="{{ csrf_token(type ~ '_send_email_' ~ entity.id) }}" data-email-trigger-recipient-value="{{ recipientEmail }}" data-email-trigger-document-type-value="{{ type }}" data-email-trigger-document-number-value="{{ documentNumber }}" data-action="click->email-trigger#open">
-				{{ ux_icon('lucide:mail', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
-				{% if showText %}
-					Envoyer
-					{% if type == 'quote' %}
-						le devis
-					{% elseif type == 'invoice' %}
-						la facture
-					{% elseif type == 'amendment' %}
-						l'avenant
-					{% elseif type == 'credit_note' %}
-						l'avoir
-					{% endif %}
-				{% endif %}
-			</button>
-		{% else %}
-			{% if layout != 'inline' %}
-				<span class="{{ layout == 'mobile' ? 'btn-sm btn-secondary opacity-50 cursor-not-allowed flex items-center justify-center gap-1.5 text-xs' : 'w-full btn-secondary opacity-50 cursor-not-allowed flex items-center justify-center gap-2' }}" title="Aucun email client configuré">
-					{{ ux_icon('lucide:mail-x', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
-					{% if showText %}Email non configuré
-					{% endif %}
-				</span>
 			{% endif %}
+		</button>
+	{% elseif is_granted(type|upper ~ '_SEND', entity) and entity.statut.value == 'draft' and not hasEmail %}
+		{# Message si pas d'email configuré (seulement en mode vertical) #}
+		{% if layout != 'inline' %}
+			<span class="{{ layout == 'mobile' ? 'btn-sm btn-secondary opacity-50 cursor-not-allowed flex items-center justify-center gap-1.5 text-xs' : 'w-full btn-secondary opacity-50 cursor-not-allowed flex items-center justify-center gap-2' }}" title="Aucun email client configuré">
+				{{ ux_icon('lucide:mail-x', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+				{% if showText %}Email non configuré
+				{% endif %}
+			</span>
 		{% endif %}
 	{% endif %}
 
 	{# Boutons spécifiques Quote #}
 	{% if type == 'quote' %}
-		{# Accepter #}
-		{% if is_granted('QUOTE_ACCEPT', entity) %}
-			<form action="{{ path('admin_quote_accept', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}">
-				<input type="hidden" name="_token" value="{{ csrf_token('quote_accept_' ~ entity.id) }}">
-				<button type="submit" class="{{ successButtonClass }}" title="Accepter">
-					{{ ux_icon('lucide:check-circle', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
-					{% if showText %}Accepter
+		{# Relancer le client (seulement pour SENT) #}
+		{% if entity.statut.value == 'sent' and hasEmail %}
+			<button type="button" class="{{ layout == 'inline' ? buttonClass : secondaryButtonClass }}" title="Relancer le client" data-controller="email-trigger" data-email-trigger-url-value="{{ path('admin_quote_remind', {id: entity.id}) }}" data-email-trigger-csrf-token-value="{{ csrf_token('quote_remind_' ~ entity.id) }}" data-email-trigger-recipient-value="{{ recipientEmail }}" data-email-trigger-document-type-value="{{ type }}" data-email-trigger-document-number-value="{{ entity.numero }}" data-email-trigger-is-reminder-value="true" data-action="click->email-trigger#open">
+				{{ ux_icon('lucide:bell', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+				{% if showText %}Relancer le client
+				{% endif %}
+			</button>
+		{% endif %}
+
+		{# Modifier (retour en DRAFT depuis SENT uniquement) #}
+		{% if entity.statut.value == 'sent' %}
+			<form action="{{ path('admin_quote_back_to_draft', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ Le devis sera repassé en brouillon pour modification. Continuer ?" data-confirm-modal-title="Modifier le devis" data-confirm-modal-button="Oui, modifier">
+				<input type="hidden" name="_token" value="{{ csrf_token('quote_back_to_draft_' ~ entity.id) }}">
+				<button type="submit" class="{{ secondaryButtonClass }}" title="Modifier (repasser en brouillon)">
+					{{ ux_icon('lucide:edit', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+					{% if showText %}Modifier
 					{% endif %}
 				</button>
 			</form>
 		{% endif %}
 
-		{# Signer #}
+		{# Signer - SIMPLIFIÉ : seulement depuis SENT #}
 		{% if is_granted('QUOTE_SIGN', entity) %}
 			<form action="{{ path('admin_quote_sign', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="⚠️ ATTENTION : Signer ce devis le transforme en CONTRAT et le rend immuable. Continuer ?" data-confirm-modal-title="Confirmer la signature" data-confirm-modal-button="Signer">
 				<input type="hidden" name="_token" value="{{ csrf_token('quote_sign_' ~ entity.id) }}">
 				<button type="submit" class="{{ layout == 'inline' ? 'text-purple-400 hover:text-purple-300 transition-colors duration-200' : buttonClass }}" title="Signer">
 					{{ ux_icon('lucide:pen-tool', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
 					{% if showText %}Signer
-					{% endif %}
-				</button>
-			</form>
-		{% endif %}
-
-		{# Refuser #}
-		{% if is_granted('QUOTE_REFUSE', entity) %}
-			<form action="{{ path('admin_quote_refuse', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}">
-				<input type="hidden" name="_token" value="{{ csrf_token('quote_refuse_' ~ entity.id) }}">
-				<button type="submit" class="{{ dangerButtonClass }}" title="Refuser">
-					{{ ux_icon('lucide:x', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
-					{% if showText %}Refuser
 					{% endif %}
 				</button>
 			</form>
@@ -208,18 +195,15 @@
 		{% endif %}
 	{% endif %}
 
-	{# Bouton Annuler (commun) #}
+	{# Bouton Annuler avec modal (commun) #}
 	{% if is_granted(type|upper ~ '_CANCEL', entity) %}
-		<form action="{{ path('admin_' ~ type ~ '_cancel', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="Êtes-vous sûr de vouloir annuler {% if type == 'quote' %}ce devis{% elseif type == 'invoice' %}cette facture{% elseif type == 'amendment' %}cet avenant{% else %}cet avoir{% endif %} ?" data-confirm-modal-title="Confirmer l'annulation" data-confirm-modal-button="Annuler">
-			<input type="hidden" name="_token" value="{{ csrf_token(type ~ '_cancel_' ~ entity.id) }}">
-			<button type="submit" class="{{ dangerButtonClass }}" title="Annuler">
-				{{ ux_icon('lucide:x-circle', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
-				{% if showText %}Annuler
-					{% if type == 'quote' %}le devis{% elseif type == 'invoice' %}la facture{% elseif type == 'amendment' %}l'avenant{% else %}l'avoir
-					{% endif %}
+		<button type="button" class="{{ dangerButtonClass }}" title="Annuler" onclick="window.modals['cancel-modal-{{ entity.id }}'].show()">
+			{{ ux_icon('lucide:x-circle', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+			{% if showText %}Annuler
+				{% if type == 'quote' %}le devis{% elseif type == 'invoice' %}la facture{% elseif type == 'amendment' %}l'avenant{% else %}l'avoir
 				{% endif %}
-			</button>
-		</form>
+			{% endif %}
+		</button>
 	{% endif %}
 
 	{# Boutons supplémentaires pour Quote (show seulement) #}

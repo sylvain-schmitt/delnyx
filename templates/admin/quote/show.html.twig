@@ -467,4 +467,11 @@
 	
 	{# Modal d'envoi d'email #}
 	{{ component('EmailModal') }}
+	
+	{# Modal d'annulation avec raisons #}
+	{{ component('CancelModal', {
+		entity: quote,
+		entityType: 'quote',
+		cancelRoute: path('admin_quote_cancel', {id: quote.id})
+	}) }}
 {% endblock %}

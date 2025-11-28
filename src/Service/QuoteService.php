@@ -103,7 +103,9 @@ class QuoteService
     }
 
     /**
-     * Envoie un devis (ISSUED → SENT, ou renvoie si déjà SENT)
+     * Envoie un devis (DRAFT/ISSUED → SENT, ou renvoie si déjà SENT)
+     * 
+     * Workflow simplifié : DRAFT peut être envoyé directement (skip ISSUED)
      * 
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
@@ -128,21 +130,38 @@ class QuoteService
         // Valider que le devis est prêt à être envoyé
         $this->validateBeforeSend($quote);
 
-        // Effectuer la transition seulement si le devis est en ISSUED (ISSUED → SENT)
+        // Gérer la transition selon l'état actuel
         $oldStatus = $quote->getStatut();
-        if ($oldStatus === QuoteStatus::ISSUED) {
+        
+        if ($oldStatus === QuoteStatus::DRAFT) {
+            // Workflow simplifié : DRAFT → SENT directement
             $quote->setStatut(QuoteStatus::SENT);
-            // Enregistrer l'audit pour le changement de statut
+            
+            // Générer le PDF si pas encore fait
+            if (!$quote->getPdfFilename()) {
+                try {
+                    $pdfResult = $this->pdfGeneratorService->generateDevisPdf($quote, true);
+                    $quote->setPdfFilename($pdfResult['filename']);
+                    $quote->setPdfHash($pdfResult['hash']);
+                } catch (\Exception $e) {
+                    $this->logger->error('Erreur lors de la génération du PDF pour le devis', [
+                        'quote_id' => $quote->getId(),
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            
             $this->logStatusChange($quote, $oldStatus, QuoteStatus::SENT, 'send');
-        } else {
-            // Si le devis est déjà envoyé, on ne change pas le statut mais on enregistre juste l'envoi
+        } elseif ($oldStatus === QuoteStatus::SENT) {
+            // Déjà envoyé : simple renvoi, pas de changement de statut
             $this->logStatusChange($quote, $oldStatus, $oldStatus, 'resend');
         }
         
         // Toujours enregistrer la date d'envoi et incrémenter le compteur
         $quote->setDateEnvoi(new \DateTime());
         $quote->incrementSentCount();
-        // Par défaut, le canal est 'email' (peut être modifié plus tard)
+        
+        // Par défaut, le canal est 'email'
         if (!$quote->getDeliveryChannel()) {
             $quote->setDeliveryChannel('email');
         }
@@ -154,7 +173,7 @@ class QuoteService
             'quote_id' => $quote->getId(),
             'quote_number' => $quote->getNumero(),
             'old_status' => $oldStatus?->value,
-            'new_status' => QuoteStatus::SENT->value,
+            'new_status' => $quote->getStatut()->value,
         ]);
     }
 
@@ -434,6 +453,104 @@ class QuoteService
         if ((float) $quote->getMontantTTC() <= 0) {
             throw new \RuntimeException('Un devis ne peut pas être envoyé avec un montant TTC négatif ou nul.');
         }
+    }
+
+    /**
+     * Permet de modifier un devis envoyé en le repassant en DRAFT
+     * Utile si le client demande des modifications après envoi
+     * 
+     * @throws AccessDeniedException si l'utilisateur n'a pas la permission
+     * @throws \RuntimeException si la transition n'est pas possible
+     */
+    public function backToDraft(Quote $quote): void
+    {
+        // Vérifier les permissions
+        if (!$this->authorizationChecker->isGranted('QUOTE_EDIT', $quote)) {
+            throw new AccessDeniedException('Vous n\'avez pas la permission de modifier ce devis.');
+        }
+
+        $currentStatus = $quote->getStatut();
+        
+        // Workflow simplifié : retour en DRAFT uniquement depuis SENT
+        if ($currentStatus !== QuoteStatus::SENT) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Le devis ne peut pas être repassé en brouillon depuis l\'état "%s". Seuls les devis SENT peuvent être modifiés.',
+                    $currentStatus?->getLabel() ?? 'inconnu'
+                )
+            );
+        }
+
+        // Effectuer la transition
+        $oldStatus = $quote->getStatut();
+        $quote->setStatut(QuoteStatus::DRAFT);
+
+        // Enregistrer l'audit
+        $this->logStatusChange($quote, $oldStatus, QuoteStatus::DRAFT, 'back_to_draft', [
+            'reason' => 'Modification demandée après envoi'
+        ]);
+
+        // Persister
+        $this->entityManager->flush();
+
+        $this->logger->info('Devis repassé en brouillon pour modification', [
+            'quote_id' => $quote->getId(),
+            'quote_number' => $quote->getNumero(),
+            'old_status' => $oldStatus?->value,
+            'new_status' => QuoteStatus::DRAFT->value,
+        ]);
+    }
+
+    /**
+     * Envoie un email de relance pour un devis envoyé
+     * Ne change pas le statut, envoie juste un rappel au client
+     * 
+     * @throws AccessDeniedException si l'utilisateur n'a pas la permission
+     * @throws \RuntimeException si la relance n'est pas possible
+     */
+    public function remind(Quote $quote): void
+    {
+        // Vérifier les permissions
+        if (!$this->authorizationChecker->isGranted('QUOTE_SEND', $quote)) {
+            throw new AccessDeniedException('Vous n\'avez pas la permission de relancer ce devis.');
+        }
+
+        // Workflow simplifié : relance uniquement depuis SENT
+        if ($quote->getStatut() !== QuoteStatus::SENT) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Le devis ne peut pas être relancé depuis l\'état "%s". Seuls les devis SENT peuvent être relancés.',
+                    $quote->getStatut()?->getLabel() ?? 'inconnu'
+                )
+            );
+        }
+
+        // Vérifier qu'un client avec email existe
+        if (!$quote->getClient() || !$quote->getClient()->getEmail()) {
+            throw new \RuntimeException('Impossible de relancer le devis : aucun email client configuré.');
+        }
+
+        // Enregistrer l'action de relance dans l'audit
+        $this->logStatusChange(
+            $quote,
+            $quote->getStatut(),
+            $quote->getStatut(),
+            'remind',
+            [
+                'reminder_sent_at' => (new \DateTime())->format('Y-m-d H:i:s'),
+                'client_email' => $quote->getClient()->getEmail()
+            ]
+        );
+
+        // Note : L'envoi de l'email de relance sera géré par le controller
+        // qui appellera EmailService avec un template spécifique de relance
+
+        $this->logger->info('Relance de devis enregistrée', [
+            'quote_id' => $quote->getId(),
+            'quote_number' => $quote->getNumero(),
+            'status' => $quote->getStatut()?->value,
+            'client_email' => $quote->getClient()->getEmail(),
+        ]);
     }
 
     /**
