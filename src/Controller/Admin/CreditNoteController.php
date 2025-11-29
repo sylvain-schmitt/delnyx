@@ -68,90 +68,40 @@ class CreditNoteController extends AbstractController
             return new JsonResponse(['error' => 'Accès refusé'], 403);
         }
 
-        // Charger explicitement les lignes avec une requête séparée pour éviter les problèmes de lazy loading
-        // Utiliser l'ID de la facture au lieu de l'objet pour éviter les problèmes avec les factures ISSUED
+
+        // Charger explicitement les lignes avec une requête SQL directe
+        // C'est la méthode la plus fiable pour tous les statuts de facture
         $invoiceId = $invoice->getId();
-        $invoiceStatut = $invoice->getStatut();
-        
-        // Essayer d'abord de récupérer les lignes depuis la collection de la facture (si elle est chargée)
         $lines = [];
-        $invoiceLines = $invoice->getLines();
         
-        // Forcer l'initialisation de la collection si elle est lazy-loaded
-        if ($invoiceLines instanceof \Doctrine\ORM\PersistentCollection && !$invoiceLines->isInitialized()) {
-            $invoiceLines->initialize();
-        }
+        // Requête SQL directe pour récupérer les lignes
+        $connection = $this->entityManager->getConnection();
+        $sql = 'SELECT id, description, quantity, unit_price, total_ht, tva_rate 
+                FROM invoice_lines 
+                WHERE invoice_id = :invoiceId 
+                ORDER BY id ASC';
+        $stmt = $connection->prepare($sql);
+        $result = $stmt->executeQuery(['invoiceId' => $invoiceId]);
+        $rawLines = $result->fetchAllAssociative();
         
-        // Si la collection contient des lignes, les utiliser
-        if ($invoiceLines->count() > 0) {
-            foreach ($invoiceLines as $line) {
-                $lines[] = [
-                    'id' => $line->getId(),
-                    'description' => $line->getDescription(),
-                    'quantity' => $line->getQuantity(),
-                    'unitPrice' => $line->getUnitPrice(),
-                    'totalHt' => $line->getTotalHt(),
-                    'tvaRate' => $line->getTvaRate(),
-                ];
-            }
-        } else {
-            // Sinon, utiliser une requête séparée
-            $linesData = $this->entityManager->createQueryBuilder()
-                ->select('l.id', 'l.description', 'l.quantity', 'l.unitPrice', 'l.totalHt', 'l.tvaRate')
-                ->from(\App\Entity\InvoiceLine::class, 'l')
-                ->innerJoin('l.invoice', 'i')
-                ->where('i.id = :invoiceId')
-                ->setParameter('invoiceId', $invoiceId)
-                ->orderBy('l.id', 'ASC')
-                ->getQuery()
-                ->getResult();
-
-            // Si toujours aucune ligne, essayer avec une requête SQL brute
-            if (empty($linesData)) {
-                $connection = $this->entityManager->getConnection();
-                $sql = 'SELECT id, description, quantity, unit_price, total_ht, tva_rate 
-                        FROM invoice_lines 
-                        WHERE invoice_id = :invoiceId 
-                        ORDER BY id ASC';
-                $stmt = $connection->prepare($sql);
-                $result = $stmt->executeQuery(['invoiceId' => $invoiceId]);
-                $rawLines = $result->fetchAllAssociative();
-                
-                // Si on trouve des lignes avec SQL brut, les convertir
-                if (!empty($rawLines)) {
-                    foreach ($rawLines as $rawLine) {
-                        $linesData[] = [
-                            'id' => $rawLine['id'],
-                            'description' => $rawLine['description'],
-                            'quantity' => $rawLine['quantity'],
-                            'unitPrice' => $rawLine['unit_price'],
-                            'totalHt' => $rawLine['total_ht'],
-                            'tvaRate' => $rawLine['tva_rate'],
-                        ];
-                    }
-                }
-            }
-            
-            // Convertir les données en format attendu
-            foreach ($linesData as $lineData) {
-                $lines[] = [
-                    'id' => $lineData['id'],
-                    'description' => $lineData['description'],
-                    'quantity' => $lineData['quantity'],
-                    'unitPrice' => $lineData['unitPrice'],
-                    'totalHt' => $lineData['totalHt'],
-                    'tvaRate' => $lineData['tvaRate'],
-                ];
-            }
+       // Convertir les lignes brutes en format attendu
+        foreach ($rawLines as $rawLine) {
+            $lines[] = [
+                'id' => (int) $rawLine['id'],
+                'description' => $rawLine['description'],
+                'quantity' => (float) $rawLine['quantity'],
+                'unitPrice' => (float) $rawLine['unit_price'],
+                'totalHt' => (float) $rawLine['total_ht'],
+                'tvaRate' => (float) $rawLine['tva_rate'],
+            ];
         }
-
 
         return new JsonResponse([
             'id' => $invoice->getId(),
             'numero' => $invoice->getNumero(),
-            'statut' => $invoice->getStatut(), // Ajouter le statut pour debug
+            'statut' => $invoice->getStatut(),
             'lines' => $lines,
-            'linesCount' => count($lines), // Ajouter le nombre de lignes pour debug
+            'linesCount' => count($lines),
             'montantTTCFormate' => $invoice->getMontantTTCFormate(),
         ]);
     }
