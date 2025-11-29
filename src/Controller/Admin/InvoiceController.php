@@ -625,42 +625,34 @@ class InvoiceController extends AbstractController
     }
 
     #[Route('/{id}/cancel', name: 'cancel', requirements: ['id' => '\d+'], methods: ['POST'])]
-    #[IsGranted('INVOICE_EDIT', subject: 'invoice')]
+    #[IsGranted('INVOICE_CANCEL', subject: 'invoice')]
     public function cancel(Request $request, Invoice $invoice): Response
     {
-        // Conformité légale française : on n'efface jamais une facture, on l'annule
-        // Cela préserve la numérotation séquentielle et la traçabilité comptable
-
-        // Vérifier si la facture peut être annulée
-        if (!$invoice->canBeCancelled()) {
-            $this->addFlash('error', 'Cette facture ne peut plus être annulée.');
+        if (!$this->isCsrfTokenValid('invoice_cancel_' . $invoice->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
             return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
         }
 
-        // Vérifier explicitement que la facture n'est pas payée
-        if ($invoice->getStatut() === InvoiceStatus::PAID->value) {
-            $this->addFlash('error', 'Une facture payée ne peut pas être annulée. Créez un avoir pour rembourser.');
-            return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+        try {
+            $reason = $request->request->get('reason');
+            $otherReason = $request->request->get('other_reason');
+            
+            // Si "Autre" est sélectionné, utiliser la raison personnalisée
+            $finalReason = ($reason === 'Autre' && $otherReason) ? $otherReason : $reason;
+            
+            // Vérifier qu'une raison a été fournie
+            if (empty($finalReason)) {
+                $this->addFlash('error', 'Veuillez sélectionner une raison d\'annulation.');
+                return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+            }
+            
+            $this->invoiceService->cancel($invoice, $finalReason);
+            $this->addFlash('success', 'Facture annulée avec succès.');
+        } catch (\Exception $e) {
+            $this->addFlash('error', $e->getMessage());
         }
 
-        // Vérifier si la facture est déjà annulée
-        if ($invoice->getStatut() === InvoiceStatus::CANCELLED->value) {
-            $this->addFlash('info', 'Cette facture est déjà annulée.');
-            return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
-        }
-
-        if ($this->isCsrfTokenValid('invoice_cancel_' . $invoice->getId(), $request->request->get('_token'))) {
-            // Annuler la facture au lieu de la supprimer (conformité légale)
-            $invoice->setStatutEnum(InvoiceStatus::CANCELLED);
-            $invoice->setDateModification(new \DateTime());
-            $this->entityManager->flush();
-
-            $this->addFlash('success', 'Facture annulée avec succès. Le numéro est conservé pour la traçabilité comptable.');
-        } else {
-            $this->addFlash('error', 'Token de sécurité invalide.');
-        }
-
-        return $this->redirectToRoute('admin_invoice_index');
+        return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
     }
 
     #[Route('/generate-from-quote/{id}', name: 'generate_from_quote', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -733,6 +725,37 @@ class InvoiceController extends AbstractController
         return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
     }
 
+    #[Route('/{id}/issue-and-send', name: 'issue_and_send', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('INVOICE_ISSUE', subject: 'invoice')]
+    public function issueAndSend(Request $request, Invoice $invoice): Response
+    {
+        if (!$this->isCsrfTokenValid('invoice_issue_and_send_' . $invoice->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token de sécurité invalide.');
+            return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+        }
+
+        try {
+            $channel = $request->request->get('channel', 'email');
+            $this->invoiceService->issueAndSend($invoice, $channel);
+            
+            // Envoyer l'email après émission et envoi
+            $client = $invoice->getClient();
+            if ($client && $client->getEmail()) {
+                $customMessage = $request->request->get('custom_message');
+                $uploadedFiles = $request->files->get('attachments', []);
+                $this->emailService->sendInvoice($invoice, $customMessage, $uploadedFiles);
+            }
+            
+            $this->addFlash('success', sprintf('Facture %s émise et envoyée avec succès.', $invoice->getNumero() ?? 'N/A'));
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+    }
+
     #[Route('/{id}/send', name: 'send', requirements: ['id' => '\d+'], methods: ['POST'])]
     #[IsGranted('INVOICE_SEND', subject: 'invoice')]
     public function send(Request $request, Invoice $invoice): Response
@@ -745,6 +768,15 @@ class InvoiceController extends AbstractController
         try {
             $channel = $request->request->get('channel', 'email');
             $this->invoiceService->send($invoice, $channel);
+            
+            // Envoyer l'email après envoi
+            $client = $invoice->getClient();
+            if ($client && $client->getEmail()) {
+                $customMessage = $request->request->get('custom_message');
+                $uploadedFiles = $request->files->get('attachments', []);
+                $this->emailService->sendInvoice($invoice, $customMessage, $uploadedFiles);
+            }
+            
             $this->addFlash('success', sprintf('Facture %s envoyée avec succès.', $invoice->getNumero() ?? 'N/A'));
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
             $this->addFlash('error', $e->getMessage());
@@ -854,9 +886,11 @@ class InvoiceController extends AbstractController
         }
 
         try {
-            $customMessage = $request->request->get('custom_message');
+            // Utiliser le service pour envoyer (gère DRAFT → SENT automatiquement)
+            $this->invoiceService->send($invoice, 'email');
             
-            // Récupérer les fichiers uploadés
+            // Envoyer l'email
+            $customMessage = $request->request->get('custom_message');
             $uploadedFiles = $request->files->get('attachments', []);
             
             $emailLog = $this->emailService->sendInvoice($invoice, $customMessage, $uploadedFiles);

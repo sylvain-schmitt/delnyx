@@ -31,6 +31,7 @@ class InvoiceVoter extends Voter
     public const SEND = 'INVOICE_SEND';
     public const MARK_PAID = 'INVOICE_MARK_PAID';
     public const CREATE_CREDITNOTE = 'INVOICE_CREATE_CREDITNOTE';
+    public const CANCEL = 'INVOICE_CANCEL';
     public const VIEW = 'INVOICE_VIEW';
 
     /**
@@ -46,6 +47,7 @@ class InvoiceVoter extends Voter
             self::SEND,
             self::MARK_PAID,
             self::CREATE_CREDITNOTE,
+            self::CANCEL,
             self::VIEW,
         ])) {
             return false;
@@ -84,6 +86,7 @@ class InvoiceVoter extends Voter
             self::SEND => $this->canSend($invoice, $user, $status),
             self::MARK_PAID => $this->canMarkPaid($invoice, $user, $status),
             self::CREATE_CREDITNOTE => $this->canCreateCreditNote($invoice, $user, $status),
+            self::CANCEL => $this->canCancel($invoice, $user, $status),
             default => false,
         };
     }
@@ -137,12 +140,20 @@ class InvoiceVoter extends Voter
 
     /**
      * Vérifie si l'utilisateur peut envoyer la facture
-     * ISSUED → SENT (peut être fait plusieurs fois si PAID)
+     * DRAFT → SENT (direct), ISSUED → SENT, ou SENT → SENT (relance)
      */
     private function canSend(Invoice $invoice, UserInterface $user, InvoiceStatus $status): bool
     {
-        // Seules les factures émises (ISSUED ou PAID) peuvent être envoyées
         return $status->canBeSent();
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut annuler la facture
+     * DRAFT ou ISSUED → CANCELLED
+     */
+    private function canCancel(Invoice $invoice, UserInterface $user, InvoiceStatus $status): bool
+    {
+        return $status->canBeCancelled();
     }
 
     /**

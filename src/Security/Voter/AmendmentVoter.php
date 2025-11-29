@@ -16,11 +16,14 @@ use Symfony\Component\Security\Core\User\UserInterface;
  * Actions disponibles :
  * - EDIT : Modifier un avenant (DRAFT uniquement)
  * - DELETE : Supprimer un avenant (jamais autorisé, archivage 10 ans)
- * - ISSUE : Émettre un avenant (DRAFT → ISSUED)
- * - SEND : Envoyer un avenant (ISSUED → SENT)
+ * - SEND : Envoyer un avenant (DRAFT → SENT, ou SENT → SENT pour relance)
  * - SIGN : Signer un avenant (SENT → SIGNED)
- * - CANCEL : Annuler un avenant (DRAFT → CANCELLED)
+ * - CANCEL : Annuler un avenant (DRAFT ou SENT → CANCELLED)
+ * - BACK_TO_DRAFT : Retour en brouillon (SENT → DRAFT)
+ * - REMIND : Relancer le client (SENT uniquement)
  * - VIEW : Voir un avenant
+ * 
+ * Note : L'action ISSUE a été supprimée (workflow simplifié : DRAFT → SENT directement)
  * 
  * @package App\Security\Voter
  */
@@ -28,10 +31,11 @@ class AmendmentVoter extends Voter
 {
     public const EDIT = 'AMENDMENT_EDIT';
     public const DELETE = 'AMENDMENT_DELETE';
-    public const ISSUE = 'AMENDMENT_ISSUE';
     public const SEND = 'AMENDMENT_SEND';
     public const SIGN = 'AMENDMENT_SIGN';
     public const CANCEL = 'AMENDMENT_CANCEL';
+    public const BACK_TO_DRAFT = 'AMENDMENT_BACK_TO_DRAFT';
+    public const REMIND = 'AMENDMENT_REMIND';
     public const VIEW = 'AMENDMENT_VIEW';
 
     /**
@@ -43,10 +47,11 @@ class AmendmentVoter extends Voter
         if (!in_array($attribute, [
             self::EDIT,
             self::DELETE,
-            self::ISSUE,
             self::SEND,
             self::SIGN,
             self::CANCEL,
+            self::BACK_TO_DRAFT,
+            self::REMIND,
             self::VIEW,
         ])) {
             return false;
@@ -81,10 +86,11 @@ class AmendmentVoter extends Voter
             self::VIEW => $this->canView($amendment, $user),
             self::EDIT => $this->canEdit($amendment, $user, $status),
             self::DELETE => $this->canDelete($amendment, $user, $status),
-            self::ISSUE => $this->canIssue($amendment, $user, $status),
             self::SEND => $this->canSend($amendment, $user, $status),
             self::SIGN => $this->canSign($amendment, $user, $status),
             self::CANCEL => $this->canCancel($amendment, $user, $status),
+            self::BACK_TO_DRAFT => $this->canBackToDraft($amendment, $user, $status),
+            self::REMIND => $this->canRemind($amendment, $user, $status),
             default => false,
         };
     }
@@ -102,7 +108,7 @@ class AmendmentVoter extends Voter
     /**
      * Vérifie si l'utilisateur peut modifier l'avenant
      * Modifiable uniquement si : DRAFT
-     * ISSUED, SENT, SIGNED et CANCELLED sont immuables
+     * SENT, SIGNED et CANCELLED sont immuables (sauf via BACK_TO_DRAFT pour SENT)
      */
     private function canEdit(Amendment $amendment, UserInterface $user, AmendmentStatus $status): bool
     {
@@ -119,17 +125,9 @@ class AmendmentVoter extends Voter
     }
 
     /**
-     * Vérifie si l'utilisateur peut émettre l'avenant
-     * DRAFT → ISSUED
-     */
-    private function canIssue(Amendment $amendment, UserInterface $user, AmendmentStatus $status): bool
-    {
-        return $status->canBeIssued();
-    }
-
-    /**
      * Vérifie si l'utilisateur peut envoyer l'avenant
-     * ISSUED → SENT (ou renvoie si déjà SENT)
+     * DRAFT → SENT (premier envoi, génère PDF + numéro)
+     * SENT → SENT (renvoi/relance)
      */
     private function canSend(Amendment $amendment, UserInterface $user, AmendmentStatus $status): bool
     {
@@ -138,12 +136,11 @@ class AmendmentVoter extends Voter
 
     /**
      * Vérifie si l'utilisateur peut signer l'avenant
-     * ISSUED ou SENT → SIGNED
+     * SENT → SIGNED uniquement
      */
     private function canSign(Amendment $amendment, UserInterface $user, AmendmentStatus $status): bool
     {
-        // Autoriser uniquement depuis SENT
-        if ($status !== AmendmentStatus::SENT) {
+        if (!$status->canBeSigned()) {
             return false;
         }
 
@@ -158,11 +155,34 @@ class AmendmentVoter extends Voter
 
     /**
      * Vérifie si l'utilisateur peut annuler l'avenant
-     * DRAFT → CANCELLED
+     * DRAFT ou SENT → CANCELLED
      */
     private function canCancel(Amendment $amendment, UserInterface $user, AmendmentStatus $status): bool
     {
-        // Autoriser uniquement depuis DRAFT
-        return $status === AmendmentStatus::DRAFT;
+        return $status->canBeCancelled();
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut remettre l'avenant en brouillon
+     * SENT → DRAFT uniquement
+     */
+    private function canBackToDraft(Amendment $amendment, UserInterface $user, AmendmentStatus $status): bool
+    {
+        return $status === AmendmentStatus::SENT;
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut relancer le client
+     * SENT uniquement, et seulement si le client a un email
+     */
+    private function canRemind(Amendment $amendment, UserInterface $user, AmendmentStatus $status): bool
+    {
+        if ($status !== AmendmentStatus::SENT) {
+            return false;
+        }
+
+        // Vérifier que le client a un email
+        $client = $amendment->getQuote()?->getClient();
+        return $client && $client->getEmail();
     }
 }

@@ -38,10 +38,22 @@ class CreditNoteLineType extends AbstractType
                 'required' => false,
                 'placeholder' => 'Nouvelle ligne (pas de correction)',
                 'query_builder' => function (EntityRepository $er) use ($options) {
-                    // Retourner TOUTES les lignes InvoiceLine pour permettre la sélection de n'importe quelle ligne
-                    // Cela permet de contourner les problèmes de validation lorsque la ligne n'est pas dans la facture initiale
-                    return $er->createQueryBuilder('il')
-                        ->orderBy('il.id', 'DESC');
+                    $creditNote = $options['credit_note'] ?? null;
+                    $invoice = $creditNote?->getInvoice();
+                    
+                    $qb = $er->createQueryBuilder('il');
+                    
+                    // Si l'avoir a une facture associée, filtrer par cette facture
+                    if ($invoice) {
+                        $qb->where('il.invoice = :invoice')
+                           ->setParameter('invoice', $invoice)
+                           ->orderBy('il.id', 'ASC');
+                    } else {
+                        // Sinon, retourner toutes les lignes (pour permettre la sélection après sélection de la facture)
+                        $qb->orderBy('il.id', 'DESC');
+                    }
+                    
+                    return $qb;
                 },
                 // Permettre les choix qui ne sont pas dans le query_builder initial
                 // (nécessaire car les lignes sont chargées dynamiquement via JavaScript)

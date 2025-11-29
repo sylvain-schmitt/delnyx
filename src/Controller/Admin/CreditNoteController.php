@@ -42,7 +42,16 @@ class CreditNoteController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function getInvoiceInfo(int $id): JsonResponse
     {
-        $invoice = $this->invoiceRepository->find($id);
+        // Charger la facture avec ses lignes (eager loading)
+        // Utiliser une requête DQL explicite pour forcer le chargement des lignes
+        $invoice = $this->invoiceRepository->createQueryBuilder('i')
+            ->leftJoin('i.lines', 'l')
+            ->addSelect('l')
+            ->where('i.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getOneOrNullResult();
+            
         if (!$invoice) {
             return new JsonResponse(['error' => 'Facture non trouvée'], 404);
         }
@@ -59,22 +68,90 @@ class CreditNoteController extends AbstractController
             return new JsonResponse(['error' => 'Accès refusé'], 403);
         }
 
+        // Charger explicitement les lignes avec une requête séparée pour éviter les problèmes de lazy loading
+        // Utiliser l'ID de la facture au lieu de l'objet pour éviter les problèmes avec les factures ISSUED
+        $invoiceId = $invoice->getId();
+        $invoiceStatut = $invoice->getStatut();
+        
+        // Essayer d'abord de récupérer les lignes depuis la collection de la facture (si elle est chargée)
         $lines = [];
-        foreach ($invoice->getLines() as $line) {
-            $lines[] = [
-                'id' => $line->getId(),
-                'description' => $line->getDescription(),
-                'quantity' => $line->getQuantity(),
-                'unitPrice' => $line->getUnitPrice(),
-                'totalHt' => $line->getTotalHt(),
-                'tvaRate' => $line->getTvaRate(),
-            ];
+        $invoiceLines = $invoice->getLines();
+        
+        // Forcer l'initialisation de la collection si elle est lazy-loaded
+        if ($invoiceLines instanceof \Doctrine\ORM\PersistentCollection && !$invoiceLines->isInitialized()) {
+            $invoiceLines->initialize();
         }
+        
+        // Si la collection contient des lignes, les utiliser
+        if ($invoiceLines->count() > 0) {
+            foreach ($invoiceLines as $line) {
+                $lines[] = [
+                    'id' => $line->getId(),
+                    'description' => $line->getDescription(),
+                    'quantity' => $line->getQuantity(),
+                    'unitPrice' => $line->getUnitPrice(),
+                    'totalHt' => $line->getTotalHt(),
+                    'tvaRate' => $line->getTvaRate(),
+                ];
+            }
+        } else {
+            // Sinon, utiliser une requête séparée
+            $linesData = $this->entityManager->createQueryBuilder()
+                ->select('l.id', 'l.description', 'l.quantity', 'l.unitPrice', 'l.totalHt', 'l.tvaRate')
+                ->from(\App\Entity\InvoiceLine::class, 'l')
+                ->innerJoin('l.invoice', 'i')
+                ->where('i.id = :invoiceId')
+                ->setParameter('invoiceId', $invoiceId)
+                ->orderBy('l.id', 'ASC')
+                ->getQuery()
+                ->getResult();
+
+            // Si toujours aucune ligne, essayer avec une requête SQL brute
+            if (empty($linesData)) {
+                $connection = $this->entityManager->getConnection();
+                $sql = 'SELECT id, description, quantity, unit_price, total_ht, tva_rate 
+                        FROM invoice_lines 
+                        WHERE invoice_id = :invoiceId 
+                        ORDER BY id ASC';
+                $stmt = $connection->prepare($sql);
+                $result = $stmt->executeQuery(['invoiceId' => $invoiceId]);
+                $rawLines = $result->fetchAllAssociative();
+                
+                // Si on trouve des lignes avec SQL brut, les convertir
+                if (!empty($rawLines)) {
+                    foreach ($rawLines as $rawLine) {
+                        $linesData[] = [
+                            'id' => $rawLine['id'],
+                            'description' => $rawLine['description'],
+                            'quantity' => $rawLine['quantity'],
+                            'unitPrice' => $rawLine['unit_price'],
+                            'totalHt' => $rawLine['total_ht'],
+                            'tvaRate' => $rawLine['tva_rate'],
+                        ];
+                    }
+                }
+            }
+            
+            // Convertir les données en format attendu
+            foreach ($linesData as $lineData) {
+                $lines[] = [
+                    'id' => $lineData['id'],
+                    'description' => $lineData['description'],
+                    'quantity' => $lineData['quantity'],
+                    'unitPrice' => $lineData['unitPrice'],
+                    'totalHt' => $lineData['totalHt'],
+                    'tvaRate' => $lineData['tvaRate'],
+                ];
+            }
+        }
+
 
         return new JsonResponse([
             'id' => $invoice->getId(),
             'numero' => $invoice->getNumero(),
+            'statut' => $invoice->getStatut(), // Ajouter le statut pour debug
             'lines' => $lines,
+            'linesCount' => count($lines), // Ajouter le nombre de lignes pour debug
             'montantTTCFormate' => $invoice->getMontantTTCFormate(),
         ]);
     }
@@ -258,7 +335,15 @@ class CreditNoteController extends AbstractController
         }
 
         if ($invoiceId) {
-            $invoice = $this->invoiceRepository->find($invoiceId);
+            // Charger la facture avec ses lignes pour le formulaire
+            $invoice = $this->invoiceRepository->createQueryBuilder('i')
+                ->leftJoin('i.lines', 'l')
+                ->addSelect('l')
+                ->where('i.id = :invoiceId')
+                ->setParameter('invoiceId', $invoiceId)
+                ->getQuery()
+                ->getOneOrNullResult();
+                
             if ($invoice) {
                 // Vérifier le multi-tenant
                 if ($companyId && $invoice->getCompanyId() !== $companyId) {
@@ -482,6 +567,22 @@ class CreditNoteController extends AbstractController
             ], new \Symfony\Component\HttpFoundation\Response(null, 422));
         }
 
+        // S'assurer que la facture est bien chargée avec ses lignes si elle existe
+        $invoice = $creditNote->getInvoice();
+        if ($invoice && !$invoice->getLines()->isInitialized()) {
+            // Recharger la facture avec ses lignes si elles ne sont pas initialisées
+            $invoice = $this->invoiceRepository->createQueryBuilder('i')
+                ->leftJoin('i.lines', 'l')
+                ->addSelect('l')
+                ->where('i.id = :id')
+                ->setParameter('id', $invoice->getId())
+                ->getQuery()
+                ->getOneOrNullResult();
+            if ($invoice) {
+                $creditNote->setInvoice($invoice);
+            }
+        }
+        
         return $this->render('admin/credit_note/form.html.twig', [
             'creditNote' => $creditNote,
             'form' => $form,
@@ -648,6 +749,56 @@ class CreditNoteController extends AbstractController
             'invoice_id' => $invoiceId,
             'invoice' => $creditNote->getInvoice(), // Passer la facture pour afficher ses lignes en lecture seule
         ]);
+    }
+
+    #[Route('/{id}/issue-and-send', name: 'issue_and_send', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('CREDIT_NOTE_ISSUE', subject: 'creditNote')]
+    public function issueAndSend(Request $request, CreditNote $creditNote): Response
+    {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('credit_note_issue_and_send_' . $creditNote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+
+        // Vérifier le multi-tenant
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+
+        if ($companyId && $creditNote->getCompanyId() !== $companyId) {
+            $this->addFlash('error', 'Vous n\'avez pas accès à cet avoir.');
+            return $this->redirectToRoute('admin_credit_note_index');
+        }
+
+        try {
+            $this->creditNoteService->issueAndSend($creditNote);
+            
+            // Vérifier si la facture doit être annulée (avoir total)
+            $invoice = $creditNote->getInvoice();
+            if ($invoice) {
+                $this->entityManager->refresh($invoice);
+                if ($invoice->getStatutEnum() === InvoiceStatus::CANCELLED) {
+                    $this->addFlash('info', sprintf(
+                        'Avoir émis et envoyé avec succès. La facture %s a été automatiquement annulée car le total des avoirs émis annule complètement la facture.',
+                        $invoice->getNumero()
+                    ));
+                } else {
+                    $this->addFlash('success', 'Avoir émis et envoyé avec succès');
+                }
+            } else {
+                $this->addFlash('success', 'Avoir émis et envoyé avec succès');
+            }
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
     }
 
     #[Route('/{id}/issue', name: 'issue', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -849,6 +1000,17 @@ class CreditNoteController extends AbstractController
         // Vérifier le token CSRF
         if (!$this->isCsrfTokenValid('credit_note_send_email_' . $creditNote->getId(), $request->request->get('_token'))) {
             $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+
+        // Envoyer l'avoir (gère automatiquement l'émission si DRAFT)
+        try {
+            $this->creditNoteService->send($creditNote);
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
             return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
         }
 

@@ -95,59 +95,27 @@ class AmendmentService
     /**
      * Émet un avenant (DRAFT → ISSUED)
      * 
+     * Note: Cette méthode est conservée pour backward compatibility
+     * mais n'est plus utilisée dans le workflow simplifié.
+     * Le workflow est maintenant : DRAFT → SENT (via send())
+     * 
+     * @deprecated Utiliser send() à la place
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
     public function issue(Amendment $amendment): void
     {
-        // Vérifier les permissions
-        if (!$this->authorizationChecker->isGranted('AMENDMENT_ISSUE', $amendment)) {
-            throw new AccessDeniedException('Vous n\'avez pas la permission d\'émettre cet avenant.');
-        }
-
-        $status = $amendment->getStatut();
-        if (!$status || !$status->canBeIssued()) {
-            throw new \RuntimeException(
-                sprintf(
-                    'L\'avenant ne peut pas être émis depuis l\'état "%s".',
-                    $status?->getLabel() ?? 'inconnu'
-                )
-            );
-        }
-
-        // Générer et sauvegarder le PDF AVANT de changer le statut
-        try {
-            $pdfResult = $this->pdfGeneratorService->generateAvenantPdf($amendment, true);
-            $amendment->setPdfFilename($pdfResult['filename']);
-            $amendment->setPdfHash($pdfResult['hash']);
-        } catch (\Exception $e) {
-            $this->logger->error('Erreur lors de la génération du PDF pour l\'avenant', [
-                'amendment_id' => $amendment->getId(),
-                'error' => $e->getMessage()
-            ]);
-        }
-
-        // Effectuer la transition
-        $oldStatus = $status;
-        $amendment->setStatut(AmendmentStatus::ISSUED);
-
-        // Enregistrer l'audit
-        $this->logStatusChange($amendment, $oldStatus, AmendmentStatus::ISSUED, 'issue');
-
-        // Persister tout en une seule fois
-        $this->entityManager->flush();
-
-        $this->logger->info('Avenant émis', [
-            'amendment_id' => $amendment->getId(),
-            'amendment_number' => $amendment->getNumero(),
-            'old_status' => $oldStatus?->value,
-            'new_status' => AmendmentStatus::ISSUED->value,
-            'pdf_generated' => $amendment->getPdfFilename() !== null,
-        ]);
+        throw new \RuntimeException(
+            'L\'émission d\'avenant est obsolète. Le workflow est maintenant DRAFT → SENT. Utilisez send() à la place.'
+        );
     }
 
     /**
-     * Envoie un avenant (ISSUED → SENT, ou renvoie si déjà SENT)
+     * Envoie un avenant (DRAFT → SENT, ou renvoie si déjà SENT)
+     * 
+     * Dans le workflow simplifié :
+     * - DRAFT → SENT : Génère le PDF, attribue le numéro, envoie l'email
+     * - SENT → SENT : Renvoie l'email (relance)
      * 
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
@@ -169,20 +137,50 @@ class AmendmentService
             );
         }
 
-        // Effectuer la transition seulement si l'avenant est en ISSUED (ISSUED → SENT)
+        // Valider que l'avenant est prêt à être envoyé
+        $this->validateBeforeSend($amendment);
+
         $oldStatus = $status;
-        if ($status === AmendmentStatus::ISSUED) {
+
+        // Si DRAFT → SENT : Générer le PDF et attribuer le numéro
+        if ($status === AmendmentStatus::DRAFT) {
+            // Générer le numéro si nécessaire
+            if (!$amendment->getNumero()) {
+                $numero = $this->numberGenerator->generate($amendment);
+                $amendment->setNumero($numero);
+            }
+
+            // Générer et sauvegarder le PDF AVANT de changer le statut
+            try {
+                $pdfResult = $this->pdfGeneratorService->generateAvenantPdf($amendment, true);
+                $amendment->setPdfFilename($pdfResult['filename']);
+                $amendment->setPdfHash($pdfResult['hash']);
+            } catch (\Exception $e) {
+                $this->logger->error('Erreur lors de la génération du PDF pour l\'avenant', [
+                    'amendment_id' => $amendment->getId(),
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            // Changer le statut
             $amendment->setStatut(AmendmentStatus::SENT);
-            // Enregistrer l'audit pour le changement de statut
             $this->logStatusChange($amendment, $oldStatus, AmendmentStatus::SENT, 'send');
-        } else {
-            // Si l'avenant est déjà envoyé, on ne change pas le statut mais on enregistre juste l'envoi
+        } elseif ($status === AmendmentStatus::SENT) {
+            // Si déjà SENT, juste enregistrer le renvoi
             $this->logStatusChange($amendment, $oldStatus, $oldStatus, 'resend');
+        } else {
+            throw new \RuntimeException(
+                sprintf(
+                    'L\'avenant ne peut pas être envoyé depuis l\'état "%s".',
+                    $oldStatus?->getLabel() ?? 'inconnu'
+                )
+            );
         }
         
         // Toujours enregistrer la date d'envoi et incrémenter le compteur
         $amendment->setSentAt(new \DateTime());
         $amendment->incrementSentCount();
+        
         // Par défaut, le canal est 'email' (peut être modifié plus tard)
         if (!$amendment->getDeliveryChannel()) {
             $amendment->setDeliveryChannel('email');
@@ -196,11 +194,133 @@ class AmendmentService
             'amendment_number' => $amendment->getNumero(),
             'old_status' => $oldStatus?->value,
             'new_status' => AmendmentStatus::SENT->value,
+            'sent_count' => $amendment->getSentCount(),
         ]);
     }
 
     /**
-     * Signe un avenant (DRAFT/SENT → SIGNED)
+     * Valide qu'un avenant peut être envoyé
+     * 
+     * @throws \RuntimeException si la validation échoue
+     */
+    private function validateBeforeSend(Amendment $amendment): void
+    {
+        // Vérifier qu'il y a au moins une ligne
+        if ($amendment->getLines()->count() === 0) {
+            throw new \RuntimeException('L\'avenant doit contenir au moins une ligne.');
+        }
+
+        // Vérifier que le devis parent existe
+        if (!$amendment->getQuote()) {
+            throw new \RuntimeException('L\'avenant doit être lié à un devis.');
+        }
+
+        // Vérifier que le client a un email
+        $client = $amendment->getQuote()->getClient();
+        if (!$client || !$client->getEmail()) {
+            throw new \RuntimeException('Le client doit avoir une adresse email pour envoyer l\'avenant.');
+        }
+    }
+
+    /**
+     * Remet un avenant en brouillon (SENT → DRAFT)
+     * 
+     * Permet de modifier un avenant déjà envoyé si le client demande des ajustements.
+     * Le PDF sera régénéré lors du prochain envoi.
+     * 
+     * @throws AccessDeniedException si l'utilisateur n'a pas la permission
+     * @throws \RuntimeException si la transition n'est pas possible
+     */
+    public function backToDraft(Amendment $amendment): void
+    {
+        // Vérifier les permissions
+        if (!$this->authorizationChecker->isGranted('AMENDMENT_BACK_TO_DRAFT', $amendment)) {
+            throw new AccessDeniedException('Vous n\'avez pas la permission de modifier cet avenant.');
+        }
+
+        $status = $amendment->getStatut();
+        if ($status !== AmendmentStatus::SENT) {
+            throw new \RuntimeException(
+                sprintf(
+                    'L\'avenant ne peut être remis en brouillon que depuis l\'état "Envoyé". État actuel : "%s".',
+                    $status?->getLabel() ?? 'inconnu'
+                )
+            );
+        }
+
+        // Effectuer la transition
+        $oldStatus = $status;
+        $amendment->setStatut(AmendmentStatus::DRAFT);
+
+        // Enregistrer l'audit
+        $this->logStatusChange($amendment, $oldStatus, AmendmentStatus::DRAFT, 'back_to_draft', [
+            'reason' => 'Retour en brouillon pour modification'
+        ]);
+
+        // Persister
+        $this->entityManager->flush();
+
+        $this->logger->info('Avenant remis en brouillon', [
+            'amendment_id' => $amendment->getId(),
+            'amendment_number' => $amendment->getNumero(),
+            'old_status' => $oldStatus?->value,
+            'new_status' => AmendmentStatus::DRAFT->value,
+        ]);
+    }
+
+    /**
+     * Envoie un email de relance pour un avenant SENT
+     * 
+     * N'enregistre que la relance (l'envoi email est géré par le controller)
+     * 
+     * @throws AccessDeniedException si l'utilisateur n'a pas la permission
+     * @throws \RuntimeException si la transition n'est pas possible
+     */
+    public function remind(Amendment $amendment): void
+    {
+        // Vérifier les permissions
+        if (!$this->authorizationChecker->isGranted('AMENDMENT_REMIND', $amendment)) {
+            throw new AccessDeniedException('Vous n\'avez pas la permission de relancer cet avenant.');
+        }
+
+        $status = $amendment->getStatut();
+        if ($status !== AmendmentStatus::SENT) {
+            throw new \RuntimeException(
+                sprintf(
+                    'L\'avenant ne peut être relancé que depuis l\'état "Envoyé". État actuel : "%s".',
+                    $status?->getLabel() ?? 'inconnu'
+                )
+            );
+        }
+
+        // Vérifier que le client a un email
+        $client = $amendment->getQuote()?->getClient();
+        if (!$client || !$client->getEmail()) {
+            throw new \RuntimeException('Le client doit avoir une adresse email pour envoyer une relance.');
+        }
+
+        // Incrémenter le compteur d'envois
+        $amendment->incrementSentCount();
+
+        // Enregistrer l'audit de relance
+        $this->logStatusChange($amendment, $status, $status, 'remind', [
+            'sent_count' => $amendment->getSentCount(),
+            'recipient' => $client->getEmail()
+        ]);
+
+        // Persister
+        $this->entityManager->flush();
+
+        $this->logger->info('Relance envoyée pour l\'avenant', [
+            'amendment_id' => $amendment->getId(),
+            'amendment_number' => $amendment->getNumero(),
+            'sent_count' => $amendment->getSentCount(),
+            'recipient' => $client->getEmail(),
+        ]);
+    }
+
+    /**
+     * Signe un avenant (SENT → SIGNED)
      * 
      * @param string|null $signatureClient Signature électronique du client (optionnel)
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
@@ -214,10 +334,10 @@ class AmendmentService
         }
 
         $status = $amendment->getStatut();
-        if (!in_array($status, [AmendmentStatus::DRAFT, AmendmentStatus::SENT])) {
+        if ($status !== AmendmentStatus::SENT) {
             throw new \RuntimeException(
                 sprintf(
-                    'L\'avenant ne peut pas être signé depuis l\'état "%s".',
+                    'L\'avenant ne peut être signé que depuis l\'état "Envoyé". État actuel : "%s".',
                     $status?->getLabel() ?? 'inconnu'
                 )
             );
@@ -263,10 +383,10 @@ class AmendmentService
         }
 
         $status = $amendment->getStatut();
-        if (!in_array($status, [AmendmentStatus::DRAFT, AmendmentStatus::SENT])) {
+        if (!$status->canBeCancelled()) {
             throw new \RuntimeException(
                 sprintf(
-                    'L\'avenant ne peut pas être annulé depuis l\'état "%s".',
+                    'L\'avenant ne peut être annulé que depuis les états "Brouillon" ou "Envoyé". État actuel : "%s".',
                     $status?->getLabel() ?? 'inconnu'
                 )
             );

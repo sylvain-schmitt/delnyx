@@ -393,7 +393,7 @@ class PublicDocumentController extends AbstractController
         }
         
         if ($request->isMethod('POST')) {
-            $creditNote->setStatutEnum(CreditNoteStatus::APPLIED);
+            $creditNote->setStatutEnum(CreditNoteStatus::REFUNDED);
             
             $this->auditService->log(
                 entityType: 'CreditNote',

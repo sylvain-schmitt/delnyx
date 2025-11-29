@@ -101,11 +101,12 @@ enum InvoiceStatus: string
 
     /**
      * Vérifie si la facture peut être envoyée
-     * Peut être envoyée sauf si DRAFT ou CANCELLED
+     * DRAFT → SENT (direct) ou ISSUED → SENT ou SENT → SENT (relance)
+     * Ne peut pas être envoyée si CANCELLED
      */
     public function canBeSent(): bool
     {
-        return !in_array($this, [self::DRAFT, self::CANCELLED]);
+        return !in_array($this, [self::CANCELLED]);
     }
 
     /**
@@ -128,12 +129,12 @@ enum InvoiceStatus: string
 
     /**
      * Vérifie si la facture peut être annulée
-     * DRAFT peut être annulée manuellement
-     * ISSUED/PAID doivent être annulées via avoir total
+     * SEULEMENT DRAFT peut être annulée directement
+     * ISSUED/SENT/PAID doivent être annulées via avoir total (document comptable légal)
      */
     public function canBeCancelled(): bool
     {
-        return $this === self::DRAFT; // Seulement les brouillons peuvent être annulés manuellement
+        return $this === self::DRAFT;
     }
 
     /**

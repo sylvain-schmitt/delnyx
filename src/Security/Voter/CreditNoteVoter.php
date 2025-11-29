@@ -145,22 +145,20 @@ class CreditNoteVoter extends Voter
 
     /**
      * Vérifie si l'utilisateur peut envoyer l'avoir
-     * ISSUED → SENT (répétable)
+     * DRAFT → SENT (avec émission auto), ISSUED → SENT, ou SENT → SENT (relance)
      */
     private function canSend(CreditNote $creditNote, UserInterface $user, CreditNoteStatus $status): bool
     {
-        // Autoriser depuis ISSUED et SENT (pour permettre les renvois)
-        return in_array($status, [CreditNoteStatus::ISSUED, CreditNoteStatus::SENT]);
+        return $status->canBeSent();
     }
 
     /**
      * Vérifie si l'utilisateur peut annuler l'avoir
-     * DRAFT → CANCELLED ou ISSUED → CANCELLED
+     * DRAFT, ISSUED ou SENT → CANCELLED
      */
     private function canCancel(CreditNote $creditNote, UserInterface $user, CreditNoteStatus $status): bool
     {
-        // Autoriser depuis DRAFT ou ISSUED
-        return in_array($status, [CreditNoteStatus::DRAFT, CreditNoteStatus::ISSUED]);
+        return $status->canBeCancelled();
     }
 
     /**

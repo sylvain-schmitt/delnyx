@@ -10,7 +10,6 @@ namespace App\Entity;
 enum AmendmentStatus: string
 {
     case DRAFT = 'draft';
-    case ISSUED = 'issued';
     case SENT = 'sent';
     case SIGNED = 'signed';
     case CANCELLED = 'cancelled';
@@ -22,7 +21,6 @@ enum AmendmentStatus: string
     {
         return match ($this) {
             self::DRAFT => 'Brouillon',
-            self::ISSUED => 'Émis',
             self::SENT => 'Envoyé',
             self::SIGNED => 'Signé',
             self::CANCELLED => 'Annulé',
@@ -36,7 +34,6 @@ enum AmendmentStatus: string
     {
         return match ($this) {
             self::DRAFT => 'warning',
-            self::ISSUED => 'info',
             self::SENT => 'info',
             self::SIGNED => 'success',
             self::CANCELLED => 'dark',
@@ -48,7 +45,7 @@ enum AmendmentStatus: string
      */
     public function isFinal(): bool
     {
-        return in_array($this, [self::ISSUED, self::SIGNED, self::CANCELLED]);
+        return in_array($this, [self::SENT, self::SIGNED, self::CANCELLED]);
     }
 
     /**
@@ -61,20 +58,22 @@ enum AmendmentStatus: string
     }
 
     /**
-     * Détermine si l'avenant est émis (immutable)
+     * Détermine si l'avenant est émis (immutable après envoi)
+     * Un avenant SENT a un PDF généré et un numéro attribué
      */
     public function isEmitted(): bool
     {
-        return in_array($this, [self::ISSUED, self::SENT, self::SIGNED, self::CANCELLED]);
+        return in_array($this, [self::SENT, self::SIGNED, self::CANCELLED]);
     }
 
     /**
      * Vérifie si l'avenant peut être émis
-     * DRAFT → ISSUED
+     * Note : Workflow simplifié - L'émission se fait lors de l'envoi
+     * Cette méthode est conservée pour backward compatibility mais retourne false
      */
     public function canBeIssued(): bool
     {
-        return $this === self::DRAFT;
+        return false; // Workflow simplifié : pas d'étape ISSUED intermédiaire
     }
 
     /**
@@ -91,11 +90,30 @@ enum AmendmentStatus: string
 
     /**
      * Vérifie si l'avenant peut être envoyé
-     * Peut être envoyé sauf si DRAFT ou CANCELLED
+     * DRAFT → SENT (premier envoi, génère PDF)
+     * SENT → SENT (renvoi/relance)
      */
     public function canBeSent(): bool
     {
-        return !in_array($this, [self::DRAFT, self::CANCELLED]);
+        return $this === self::DRAFT || $this === self::SENT;
+    }
+
+    /**
+     * Vérifie si l'avenant peut être signé
+     * SENT → SIGNED uniquement
+     */
+    public function canBeSigned(): bool
+    {
+        return $this === self::SENT;
+    }
+
+    /**
+     * Vérifie si l'avenant peut être annulé
+     * DRAFT ou SENT → CANCELLED
+     */
+    public function canBeCancelled(): bool
+    {
+        return in_array($this, [self::DRAFT, self::SENT]);
     }
 }
 

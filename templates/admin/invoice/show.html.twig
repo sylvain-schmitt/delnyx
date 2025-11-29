@@ -40,8 +40,19 @@
 			</div>
 		</div>
 
+		{# Alerte si facture annulée #}
+		{% if invoice.statutEnum.value == 'cancelled' %}
+			<div class="bg-red-500/20 border border-red-500/30 rounded-xl p-4 scroll-animate">
+				<div class="flex items-start gap-3">
+					{{ ux_icon('lucide:x-circle', {class: 'w-5 h-5 text-red-400 mt-0.5'}) }}
+					<div class="flex-1">
+						<p class="text-red-300 font-medium mb-1">Facture annulée</p>
+						<p class="text-red-200/80 text-sm">Cette facture a été annulée. Voir la section "Conditions et notes" pour la raison.</p>
+					</div>
+				</div>
+			</div>
 		{# Alerte immutabilité si facture émise #}
-		{% if invoice.statutEnum and invoice.statutEnum.isEmitted() %}
+		{% elseif invoice.statutEnum and invoice.statutEnum.isEmitted() %}
 			<div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 scroll-animate">
 				<div class="flex items-start gap-3">
 					{{ ux_icon('lucide:lock', {class: 'w-5 h-5 text-blue-400 mt-0.5'}) }}
@@ -322,7 +333,7 @@
 				{% endif %}
 
 				{# Conditions et notes #}
-				{% if invoice.conditionsPaiement or invoice.delaiPaiement or invoice.penalitesRetard or invoice.notes %}
+				{% if invoice.conditionsPaiement or invoice.delaiPaiement or invoice.penalitesRetard or invoice.notes or invoice.statutEnum.value == 'cancelled' %}
 					<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
 						<h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
 							{{ ux_icon('lucide:info', {class: 'w-5 h-5'}) }}
@@ -360,7 +371,15 @@
 							{% if invoice.notes %}
 								<div>
 									<p class="text-sm text-white/60 mb-1">Notes</p>
-									<p class="text-white">{{ invoice.notes }}</p>
+									<p class="text-white whitespace-pre-line">{{ invoice.notes }}</p>
+								</div>
+							{% endif %}
+							
+							{# Si annulée mais pas de notes, afficher un message #}
+							{% if invoice.statutEnum.value == 'cancelled' and not invoice.notes %}
+								<div>
+									<p class="text-sm text-white/60 mb-1">Raison d'annulation</p>
+									<p class="text-white italic">Aucune raison spécifiée</p>
 								</div>
 							{% endif %}
 						</div>
@@ -527,4 +546,7 @@
 	
 	{# Modal d'envoi d'email #}
 	{{ component('EmailModal') }}
+	
+	{# Modal d'annulation #}
+	{{ component('CancelModal') }}
 {% endblock %}

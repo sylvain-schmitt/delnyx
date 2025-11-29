@@ -36,17 +36,29 @@
 		</div>
 
 		{# Alerte immutabilité si devis émis ou signé #}
-		{% if quote.statut.value in ['issued', 'sent', 'signed', 'refused', 'expired', 'cancelled'] %}
-			<div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 scroll-animate">
-				<div class="flex items-start gap-3">
-					{{ ux_icon('lucide:lock', {class: 'w-5 h-5 text-blue-400 mt-0.5'}) }}
-					<div class="flex-1">
-						<p class="text-blue-300 font-medium mb-1">Document immuable</p>
-						<p class="text-blue-200/80 text-sm">Ce devis est {% if quote.statut.value == 'signed' %}signé{% else %}émis{% endif %} et ne peut plus être modifié.{% if quote.statut.value == 'signed' %} Pour apporter des modifications, créez un avenant.{% endif %}</p>
-					</div>
+	{# Alerte si devis annulé #}
+	{% if quote.statut.value == 'cancelled' %}
+		<div class="bg-red-500/20 border border-red-500/30 rounded-xl p-4 scroll-animate">
+			<div class="flex items-start gap-3">
+				{{ ux_icon('lucide:x-circle', {class: 'w-5 h-5 text-red-400 mt-0.5'}) }}
+				<div class="flex-1">
+					<p class="text-red-300 font-medium mb-1">Devis annulé</p>
+					<p class="text-red-200/80 text-sm">Ce devis a été annulé. Voir la section "Conditions et notes" pour la raison.</p>
 				</div>
 			</div>
-		{% endif %}
+		</div>
+	{# Alerte pour les autres statuts (émis, signé, etc.) #}
+	{% elseif quote.statut.value in ['sent', 'signed', 'refused', 'expired'] %}
+		<div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 scroll-animate">
+			<div class="flex items-start gap-3">
+				{{ ux_icon('lucide:lock', {class: 'w-5 h-5 text-blue-400 mt-0.5'}) }}
+				<div class="flex-1">
+					<p class="text-blue-300 font-medium mb-1">Document immuable</p>
+					<p class="text-blue-200/80 text-sm">Ce devis est {% if quote.statut.value == 'signed' %}signé{% else %}émis{% endif %} et ne peut plus être modifié.{% if quote.statut.value == 'signed' %} Pour apporter des modifications, créez un avenant.{% endif %}</p>
+				</div>
+			</div>
+		</div>
+	{% endif %}
 
 		{# Informations principales #}
 		<div
@@ -279,7 +291,7 @@
 				{% endif %}
 
 				{# Conditions et notes #}
-				{% if quote.conditionsPaiement or quote.delaiLivraison or quote.notes %}
+				{% if quote.conditionsPaiement or quote.delaiLivraison or quote.notes or quote.statut.value == 'cancelled' %}
 					<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
 						<h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
 							{{ ux_icon('lucide:info', {class: 'w-5 h-5'}) }}
@@ -304,7 +316,15 @@
 							{% if quote.notes %}
 								<div>
 									<p class="text-sm text-white/60 mb-1">Notes</p>
-									<p class="text-white">{{ quote.notes }}</p>
+									<p class="text-white whitespace-pre-line">{{ quote.notes }}</p>
+								</div>
+							{% endif %}
+							
+							{# Si annulé mais pas de notes, afficher un message #}
+							{% if quote.statut.value == 'cancelled' and not quote.notes %}
+								<div>
+									<p class="text-sm text-white/60 mb-1">Raison d'annulation</p>
+									<p class="text-white italic">Aucune raison spécifiée</p>
 								</div>
 							{% endif %}
 						</div>
@@ -469,9 +489,5 @@
 	{{ component('EmailModal') }}
 	
 	{# Modal d'annulation avec raisons #}
-	{{ component('CancelModal', {
-		entity: quote,
-		entityType: 'quote',
-		cancelRoute: path('admin_quote_cancel', {id: quote.id})
-	}) }}
+	{{ component('CancelModal') }}
 {% endblock %}

@@ -121,8 +121,43 @@ class InvoiceService
     }
 
     /**
-     * Envoie une facture au client (ISSUED ou PAID → SEND)
+     * Émet et envoie une facture en une seule action (DRAFT → ISSUED → SENT)
      * 
+     * Raccourci pour émettre et envoyer directement une facture en brouillon
+     * 
+     * @param string|null $channel Canal d'envoi ('email', 'pdp', 'both'). Si null, utilise 'email' par défaut
+     * @throws AccessDeniedException si l'utilisateur n'a pas la permission
+     * @throws \RuntimeException si la transition n'est pas possible
+     */
+    public function issueAndSend(Invoice $invoice, ?string $channel = 'email'): void
+    {
+        // Vérifier les permissions
+        if (!$this->authorizationChecker->isGranted('INVOICE_ISSUE', $invoice)) {
+            throw new AccessDeniedException('Vous n\'avez pas la permission d\'émettre cette facture.');
+        }
+
+        // Vérifier que la facture peut être émise
+        $statutEnum = $invoice->getStatutEnum();
+        if (!$statutEnum || !$statutEnum->canBeIssued()) {
+            throw new \RuntimeException(
+                sprintf(
+                    'La facture ne peut pas être émise depuis l\'état "%s".',
+                    $statutEnum?->getLabel() ?? 'inconnu'
+                )
+            );
+        }
+
+        // Émettre d'abord (DRAFT → ISSUED)
+        $this->issue($invoice);
+
+        // Puis envoyer (ISSUED → SENT)
+        $this->send($invoice, $channel);
+    }
+
+    /**
+     * Envoie une facture au client (DRAFT → SENT direct, ISSUED → SENT, ou SENT → SENT pour relance)
+     * 
+     * Si DRAFT, émet automatiquement la facture avant d'envoyer
      * Peut être fait plusieurs fois (relances)
      * Envoie par email et/ou PDP selon la configuration
      * 
@@ -137,7 +172,7 @@ class InvoiceService
             throw new AccessDeniedException('Vous n\'avez pas la permission d\'envoyer cette facture.');
         }
 
-        // Vérifier que la facture peut être envoyée (sauf si DRAFT)
+        // Vérifier que la facture peut être envoyée
         $statutEnum = $invoice->getStatutEnum();
         if (!$statutEnum || !$statutEnum->canBeSent()) {
             throw new \RuntimeException(
@@ -146,6 +181,15 @@ class InvoiceService
                     $statutEnum?->getLabel() ?? 'inconnu'
                 )
             );
+        }
+
+        // Si DRAFT, émettre automatiquement avant d'envoyer
+        if ($statutEnum === InvoiceStatus::DRAFT) {
+            // Vérifier la permission d'émission
+            if (!$this->authorizationChecker->isGranted('INVOICE_ISSUE', $invoice)) {
+                throw new AccessDeniedException('Vous n\'avez pas la permission d\'émettre cette facture.');
+            }
+            $this->issue($invoice);
         }
 
         // Vérifier que le client a une adresse email
@@ -195,7 +239,7 @@ class InvoiceService
             $invoice->setDeliveryChannel($deliveryChannel);
         }
 
-        // Changer le statut seulement si la facture est ISSUED (ISSUED → SENT)
+        // Changer le statut si nécessaire (ISSUED → SENT)
         $oldStatus = $invoice->getStatutEnum();
         if ($invoice->getStatutEnum() === InvoiceStatus::ISSUED) {
             $invoice->setStatutEnum(InvoiceStatus::SENT);
@@ -205,8 +249,8 @@ class InvoiceService
                 'recipient' => $invoice->getClient()->getEmail(),
                 'sent_count' => $invoice->getSentCount(),
             ]);
-        } else {
-            // Si la facture est déjà envoyée, on ne change pas le statut mais on enregistre juste l'envoi
+        } elseif ($invoice->getStatutEnum() === InvoiceStatus::SENT) {
+            // Si la facture est déjà envoyée, on ne change pas le statut mais on enregistre juste l'envoi (relance)
             $this->logStatusChange($invoice, $oldStatus, $oldStatus, 'resend', [
                 'channel' => $deliveryChannel,
                 'recipient' => $invoice->getClient()->getEmail(),
@@ -329,6 +373,64 @@ class InvoiceService
             'invoice_number' => $invoice->getNumero(),
             'amount_paid' => $montantPaye,
             'total_amount' => $montantTTC,
+        ]);
+    }
+
+    /**
+     * Annule une facture (DRAFT ou ISSUED → CANCELLED)
+     * 
+     * @throws AccessDeniedException si l'utilisateur n'a pas la permission
+     * @throws \RuntimeException si la transition n'est pas possible
+     */
+    public function cancel(Invoice $invoice, ?string $reason = null): void
+    {
+        // Vérifier les permissions
+        if (!$this->authorizationChecker->isGranted('INVOICE_CANCEL', $invoice)) {
+            throw new AccessDeniedException('Vous n\'avez pas la permission d\'annuler cette facture.');
+        }
+
+        // Vérifier que la transition est possible
+        $statutEnum = $invoice->getStatutEnum();
+        if (!$statutEnum || !$statutEnum->canBeCancelled()) {
+            throw new \RuntimeException(
+                sprintf(
+                    'La facture ne peut pas être annulée depuis l\'état "%s".',
+                    $statutEnum?->getLabel() ?? 'inconnu'
+                )
+            );
+        }
+
+        // Vérifier explicitement que la facture n'est pas payée
+        if ($statutEnum === InvoiceStatus::PAID) {
+            throw new \RuntimeException('Une facture payée ne peut pas être annulée. Créez un avoir pour rembourser.');
+        }
+
+        // Effectuer la transition
+        $oldStatus = $statutEnum;
+        $invoice->setStatutEnum(InvoiceStatus::CANCELLED);
+        $invoice->setDateModification(new \DateTime());
+
+        // Enregistrer la raison dans les notes si fournie
+        if (!empty($reason)) {
+            $currentNotes = $invoice->getNotes() ?? '';
+            $invoice->setNotes(
+                ($currentNotes ? $currentNotes . "\n\n" : '') .
+                "Annulation le " . date('d/m/Y H:i') . " : " . $reason
+            );
+        }
+
+        // Enregistrer l'audit
+        $this->logStatusChange($invoice, $oldStatus, InvoiceStatus::CANCELLED, 'cancel', ['reason' => $reason]);
+
+        // Persister
+        $this->entityManager->flush();
+
+        $this->logger->info('Facture annulée', [
+            'invoice_id' => $invoice->getId(),
+            'invoice_number' => $invoice->getNumero(),
+            'old_status' => $oldStatus?->value,
+            'new_status' => InvoiceStatus::CANCELLED->value,
+            'reason' => $reason,
         ]);
     }
 

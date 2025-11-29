@@ -50,11 +50,36 @@ export default class extends Controller {
         // Attendre un peu que le DOM soit complètement chargé
         setTimeout(() => {
             const invoiceSelect = this.element.querySelector('select[name*="[invoice]"]')
+            const invoiceHidden = this.element.querySelector('input[type="hidden"][name*="[invoice]"]')
+            const invoiceHiddenById = this.element.querySelector('input[type="hidden"][id*="invoice"][id*="hidden"]')
 
-            // Si le select est désactivé, c'est qu'on est en édition ou que l'avoir est verrouillé
-            // Dans ce cas, l'affichage statique (Twig) prend le relais
-            if (invoiceSelect?.disabled) {
+            // Récupérer l'ID de la facture depuis le select ou le champ caché
+            let invoiceId = null
+            if (invoiceSelect && invoiceSelect.value) {
+                invoiceId = invoiceSelect.value
+            } else if (invoiceHidden && invoiceHidden.value) {
+                invoiceId = invoiceHidden.value
+            } else if (invoiceHiddenById && invoiceHiddenById.value) {
+                invoiceId = invoiceHiddenById.value
+            }
+
+            // Si le select est désactivé mais qu'une facture est sélectionnée, charger les lignes
+            if (invoiceSelect?.disabled && invoiceId) {
+                // Charger les lignes pour la facture pré-sélectionnée
+                this.currentInvoiceId = invoiceId
+                // Attendre un peu pour que le DOM soit complètement prêt
+                setTimeout(() => {
+                    this.handleInvoiceChange({ target: { value: invoiceId } })
+                }, 500)
                 return
+            }
+
+            // Si une facture est déjà sélectionnée (même si le select n'est pas désactivé), charger les lignes
+            if (invoiceId && !this.currentInvoiceId) {
+                this.currentInvoiceId = invoiceId
+                setTimeout(() => {
+                    this.handleInvoiceChange({ target: { value: invoiceId } })
+                }, 500)
             }
 
             // Écouter les changements sur le select facture
@@ -109,6 +134,10 @@ export default class extends Controller {
                     this.currentInvoiceId = invoiceSelectForListener.value
                     this.handleInvoiceChange({ target: invoiceSelectForListener })
                 }
+            } else if (invoiceId) {
+                // Si le select est désactivé mais qu'une facture est sélectionnée, charger les lignes
+                this.currentInvoiceId = invoiceId
+                this.handleInvoiceChange({ target: { value: invoiceId } })
             }
         }, 100)
     }
@@ -117,7 +146,7 @@ export default class extends Controller {
      * Affiche les lignes de la facture quand une facture est sélectionnée
      */
     async handleInvoiceChange(event) {
-        const invoiceId = event.target.value
+        const invoiceId = event.target?.value || event.target
 
         // Supprimer l'affichage existant
         this.removeExistingLinesDisplay()
@@ -132,11 +161,20 @@ export default class extends Controller {
             // Récupérer les détails de la facture via API
             const response = await fetch(`/admin/credit-note/api/invoice/${invoiceId}`)
             if (!response.ok) {
+                console.warn(`Erreur API pour la facture ${invoiceId}:`, response.status)
                 return
             }
 
             const data = await response.json()
             this.currentInvoiceData = data
+
+            // Debug: afficher les données reçues
+            console.log('CreditNoteFormController: Données facture reçues:', {
+                invoiceId: data.id,
+                statut: data.statut,
+                linesCount: data.linesCount,
+                lines: data.lines
+            })
 
             // Afficher les lignes de la facture
             if (data.lines && data.lines.length > 0) {
@@ -144,6 +182,7 @@ export default class extends Controller {
                 // Mettre à jour les selects existants
                 this.updateAllSourceLineSelects(data.lines)
             } else {
+                console.warn(`CreditNoteFormController: Aucune ligne trouvée pour la facture ${invoiceId} (statut: ${data.statut})`)
                 this.updateAllSourceLineSelects([])
             }
 
@@ -305,7 +344,18 @@ export default class extends Controller {
         const invoiceSelect = this.element.querySelector('select[name*="[invoice]"]')
         const generalInfoBlock = invoiceSelect?.closest('.space-y-4')
 
-        if (generalInfoBlock) {
+        // Vérifier s'il y a déjà un affichage statique des lignes
+        const staticLines = this.element.querySelector('[data-static-invoice-lines]')
+        const placeholder = this.element.querySelector('[data-dynamic-invoice-lines-placeholder]')
+
+        if (staticLines) {
+            // Remplacer l'affichage statique par l'affichage dynamique
+            staticLines.replaceWith(container)
+        } else if (placeholder) {
+            // Remplacer le placeholder par l'affichage dynamique
+            placeholder.replaceWith(container)
+        } else if (generalInfoBlock) {
+            // Insérer après le bloc d'informations générales
             generalInfoBlock.parentNode.insertBefore(container, generalInfoBlock.nextSibling)
         } else {
             // Fallback: insérer au début du formulaire
@@ -317,9 +367,15 @@ export default class extends Controller {
      * Supprime l'affichage dynamique des lignes
      */
     removeExistingLinesDisplay() {
+        // Supprimer l'affichage dynamique
         const existing = this.element.querySelector('[data-dynamic-invoice-lines]')
         if (existing) {
             existing.remove()
+        }
+        // Supprimer aussi le placeholder si présent
+        const placeholder = this.element.querySelector('[data-dynamic-invoice-lines-placeholder]')
+        if (placeholder) {
+            placeholder.remove()
         }
     }
 }

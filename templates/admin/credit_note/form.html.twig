@@ -106,42 +106,45 @@
 				{{ form_macros.simple_field(form, 'reason', 'textarea', {'disabled': isReadOnly}) }}
 			</div>
 
-			{# Lignes de la facture d'origine (lecture seule) - Affichage statique uniquement si la facture est verrouillée #}
+			{# Lignes de la facture d'origine (lecture seule) - Affichage statique si la facture est verrouillée #}
 			{# Sinon, l'affichage dynamique via JavaScript prendra le relais #}
-			{% if creditNote.invoice and creditNote.invoice.lines|length > 0 and (invoice_locked|default(false) or isReadOnly) %}
-				<div class="space-y-4" data-static-invoice-lines>
-					<h3 class="text-lg font-semibold text-white flex items-center gap-2">
-						{{ ux_icon('lucide:file-text', {class: 'w-5 h-5'}) }}
-						Lignes de la facture d'origine (référence - lecture seule)
-					</h3>
-					<div class="bg-white/5 border border-white/20 rounded-lg p-4">
-						<div class="space-y-3">
-							{% for invoiceLine in creditNote.invoice.lines %}
-								<div class="flex items-center justify-between text-sm py-2 border-b border-white/10 last:border-0">
-									<div class="flex-1">
-										<p class="text-white font-medium">{{ invoiceLine.description }}</p>
-										<p class="text-white/60 text-xs">
-											Qté: {{ invoiceLine.quantity }} × {{ invoiceLine.unitPrice|number_format(2, ',', ' ') }} €
-											{% if creditNote.invoice.quote and creditNote.invoice.quote.usePerLineTva and invoiceLine.tvaRate %}
-												(TVA {{ invoiceLine.tvaRate }}%)
-											{% endif %}
-										</p>
+			{% if creditNote.invoice and invoice_locked|default(false) %}
+				{# Afficher les lignes si elles sont chargées, sinon le JavaScript les chargera #}
+				{% if creditNote.invoice.lines|length > 0 %}
+					<div class="space-y-4" data-static-invoice-lines>
+						<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+							{{ ux_icon('lucide:file-text', {class: 'w-5 h-5'}) }}
+							Lignes de la facture d'origine (référence - lecture seule)
+						</h3>
+						<div class="bg-white/5 border border-white/20 rounded-lg p-4">
+							<div class="space-y-3">
+								{% for invoiceLine in creditNote.invoice.lines %}
+									<div class="flex items-center justify-between text-sm py-2 border-b border-white/10 last:border-0">
+										<div class="flex-1">
+											<p class="text-white font-medium">{{ invoiceLine.description }}</p>
+											<p class="text-white/60 text-xs">
+												Qté: {{ invoiceLine.quantity }} × {{ invoiceLine.unitPrice|number_format(2, ',', ' ') }} €
+												{% if creditNote.invoice.quote and creditNote.invoice.quote.usePerLineTva and invoiceLine.tvaRate %}
+													(TVA {{ invoiceLine.tvaRate }}%)
+												{% endif %}
+											</p>
+										</div>
+										<div class="text-right">
+											<p class="text-white font-semibold">{{ invoiceLine.totalHt|number_format(2, ',', ' ') }} €</p>
+											<p class="text-white/60 text-xs">HT</p>
+										</div>
 									</div>
-									<div class="text-right">
-										<p class="text-white font-semibold">{{ invoiceLine.totalHt|number_format(2, ',', ' ') }} €</p>
-										<p class="text-white/60 text-xs">HT</p>
+								{% endfor %}
+								<div class="pt-2 border-t border-white/20 mt-2">
+									<div class="flex items-center justify-between">
+										<span class="text-white font-semibold">Total facture initial</span>
+										<span class="text-white font-bold">{{ creditNote.invoice.montantTTCFormate }}</span>
 									</div>
-								</div>
-							{% endfor %}
-							<div class="pt-2 border-t border-white/20 mt-2">
-								<div class="flex items-center justify-between">
-									<span class="text-white font-semibold">Total facture initial</span>
-									<span class="text-white font-bold">{{ creditNote.invoice.montantTTCFormate }}</span>
 								</div>
 							</div>
 						</div>
 					</div>
-				</div>
+				{% endif %}
 			{% endif %}
 
 			{# Lignes d'ajustement (avoir) #}

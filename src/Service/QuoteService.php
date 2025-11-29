@@ -317,7 +317,7 @@ class QuoteService
         $quote->setStatut(QuoteStatus::CANCELLED);
 
         // Enregistrer la raison dans les notes si fournie
-        if ($reason !== null) {
+        if (!empty($reason)) {
             $currentNotes = $quote->getNotes() ?? '';
             $quote->setNotes(
                 ($currentNotes ? $currentNotes . "\n\n" : '') .

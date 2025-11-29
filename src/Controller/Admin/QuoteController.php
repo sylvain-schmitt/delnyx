@@ -454,11 +454,17 @@ class QuoteController extends AbstractController
         }
 
         try {
-            $reason = $request->request->get('cancel_reason');
-            $customReason = $request->request->get('custom_reason');
+            $reason = $request->request->get('reason');
+            $otherReason = $request->request->get('other_reason');
             
             // Si "Autre" est sélectionné, utiliser la raison personnalisée
-            $finalReason = $reason === 'other' ? $customReason : $reason;
+            $finalReason = ($reason === 'Autre' && $otherReason) ? $otherReason : $reason;
+            
+            // Vérifier qu'une raison a été fournie
+            if (empty($finalReason)) {
+                $this->addFlash('error', 'Veuillez sélectionner une raison d\'annulation.');
+                return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+            }
             
             $this->quoteService->cancel($quote, $finalReason);
             $this->addFlash('success', 'Devis annulé avec succès.');

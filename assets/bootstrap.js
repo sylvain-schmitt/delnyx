@@ -15,6 +15,8 @@ import ConfirmModalController from './controllers/confirm_modal_controller.js';
 import TechnologyPreviewController from './controllers/technology_preview_controller.js';
 import TvaSettingsController from './controllers/tva_settings_controller.js';
 import InvoiceFormController from './controllers/invoice_form_controller.js';
+import CancelModalController from './controllers/cancel_modal_controller.js';
+import CancelModalTriggerController from './controllers/cancel_modal_trigger_controller.js';
 
 // Enregistrement des contrôleurs
 app.register('portfolio', PortfolioController);
@@ -23,3 +25,5 @@ app.register('confirm-modal', ConfirmModalController);
 app.register('technology-preview', TechnologyPreviewController);
 app.register('tva-settings', TvaSettingsController);
 app.register('invoice-form', InvoiceFormController);
+app.register('cancel-modal', CancelModalController);
+app.register('cancel-modal-trigger', CancelModalTriggerController);

@@ -12,7 +12,7 @@ enum CreditNoteStatus: string
     case DRAFT = 'draft';
     case ISSUED = 'issued';
     case SENT = 'sent';
-    case APPLIED = 'applied';
+    case REFUNDED = 'refunded';
     case CANCELLED = 'cancelled';
 
     /**
@@ -24,7 +24,7 @@ enum CreditNoteStatus: string
             self::DRAFT => 'Brouillon',
             self::ISSUED => 'Émis',
             self::SENT => 'Envoyé',
-            self::APPLIED => 'Appliqué',
+            self::REFUNDED => 'Remboursé',
             self::CANCELLED => 'Annulé',
         };
     }
@@ -38,7 +38,7 @@ enum CreditNoteStatus: string
             self::DRAFT => 'warning',
             self::ISSUED => 'info',
             self::SENT => 'primary',
-            self::APPLIED => 'success',
+            self::REFUNDED => 'success',
             self::CANCELLED => 'dark',
         };
     }
@@ -48,7 +48,7 @@ enum CreditNoteStatus: string
      */
     public function isFinal(): bool
     {
-        return in_array($this, [self::ISSUED, self::SENT, self::APPLIED, self::CANCELLED]);
+        return in_array($this, [self::ISSUED, self::SENT, self::REFUNDED, self::CANCELLED]);
     }
 
     /**
@@ -64,25 +64,27 @@ enum CreditNoteStatus: string
      */
     public function isEmitted(): bool
     {
-        return in_array($this, [self::ISSUED, self::SENT, self::APPLIED]);
+        return in_array($this, [self::ISSUED, self::SENT, self::REFUNDED]);
     }
 
     /**
      * Vérifie si l'avoir peut être envoyé
-     * Peut être envoyé sauf si DRAFT ou CANCELLED
+     * DRAFT → SENT (direct) ou ISSUED → SENT ou SENT → SENT (relance)
+     * Ne peut pas être envoyé si CANCELLED ou REFUNDED
      */
     public function canBeSent(): bool
     {
-        return !in_array($this, [self::DRAFT, self::CANCELLED]);
+        return !in_array($this, [self::CANCELLED, self::REFUNDED]);
     }
 
     /**
      * Vérifie si l'avoir peut être annulé
-     * Un avoir peut être annulé s'il est en brouillon (DRAFT) ou émis (ISSUED)
+     * SEULEMENT DRAFT peut être annulé directement
+     * ISSUED/SENT doivent être annulés via avoir total (document comptable légal)
      */
     public function canBeCancelled(): bool
     {
-        return in_array($this, [self::DRAFT, self::ISSUED]);
+        return $this === self::DRAFT;
     }
 
     /**

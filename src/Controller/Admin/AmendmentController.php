@@ -466,12 +466,29 @@ class AmendmentController extends AbstractController
         ]);
     }
 
+    /**
+     * Route obsolète - Conservée pour backward compatibility
+     * Dans le workflow simplifié, l'émission se fait automatiquement lors de l'envoi
+     * 
+     * @deprecated Utilisez sendEmail() à la place
+     */
     #[Route('/{id}/issue', name: 'issue', requirements: ['id' => '\d+'], methods: ['POST'])]
-    #[IsGranted('AMENDMENT_ISSUE', subject: 'amendment')]
     public function issue(Request $request, Amendment $amendment): Response
     {
+        $this->addFlash('error', 'L\'émission d\'avenant est obsolète. Utilisez "Envoyer" pour envoyer l\'avenant au client.');
+        return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
+    }
+
+    /**
+     * Remet un avenant en brouillon (SENT → DRAFT)
+     * Permet de modifier un avenant déjà envoyé
+     */
+    #[Route('/{id}/back-to-draft', name: 'back_to_draft', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('AMENDMENT_BACK_TO_DRAFT', subject: 'amendment')]
+    public function backToDraft(Request $request, Amendment $amendment): Response
+    {
         // Vérifier le token CSRF
-        if (!$this->isCsrfTokenValid('amendment_issue_' . $amendment->getId(), $request->request->get('_token'))) {
+        if (!$this->isCsrfTokenValid('amendment_back_to_draft_' . $amendment->getId(), $request->request->get('_token'))) {
             $this->addFlash('error', 'Token CSRF invalide.');
             return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
         }
@@ -490,23 +507,26 @@ class AmendmentController extends AbstractController
         }
 
         try {
-            $this->amendmentService->issue($amendment);
-            $this->addFlash('success', 'Avenant émis avec succès.');
+            $this->amendmentService->backToDraft($amendment);
+            $this->addFlash('success', 'Avenant remis en brouillon. Vous pouvez maintenant le modifier.');
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
             $this->addFlash('error', $e->getMessage());
         } catch (\RuntimeException $e) {
             $this->addFlash('error', $e->getMessage());
         }
 
-        return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
+        return $this->redirectToRoute('admin_amendment_edit', ['id' => $amendment->getId()]);
     }
 
-    #[Route('/{id}/send', name: 'send', requirements: ['id' => '\d+'], methods: ['POST'])]
-    #[IsGranted('AMENDMENT_SEND', subject: 'amendment')]
-    public function send(Request $request, Amendment $amendment): Response
+    /**
+     * Envoie un email de relance pour un avenant SENT
+     */
+    #[Route('/{id}/remind', name: 'remind', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('AMENDMENT_REMIND', subject: 'amendment')]
+    public function remind(Request $request, Amendment $amendment): Response
     {
         // Vérifier le token CSRF
-        if (!$this->isCsrfTokenValid('amendment_send_' . $amendment->getId(), $request->request->get('_token'))) {
+        if (!$this->isCsrfTokenValid('amendment_remind_' . $amendment->getId(), $request->request->get('_token'))) {
             $this->addFlash('error', 'Token CSRF invalide.');
             return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
         }
@@ -525,8 +545,18 @@ class AmendmentController extends AbstractController
         }
 
         try {
-            $this->amendmentService->send($amendment);
-            $this->addFlash('success', 'Avenant envoyé au client');
+            // Enregistrer la relance
+            $this->amendmentService->remind($amendment);
+
+            // Envoyer l'email de relance
+            $customMessage = 'Relance concernant l\'avenant ' . $amendment->getNumero();
+            $emailLog = $this->emailService->sendAmendment(
+                $amendment,
+                $customMessage,
+                [] // Pas de pièces jointes supplémentaires
+            );
+
+            $this->addFlash('success', 'Email de relance envoyé avec succès au client.');
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
             $this->addFlash('error', $e->getMessage());
         } catch (\RuntimeException $e) {
@@ -597,7 +627,12 @@ class AmendmentController extends AbstractController
 
         try {
             $reason = $request->request->get('reason');
-            $this->amendmentService->cancel($amendment, $reason);
+            $otherReason = $request->request->get('other_reason');
+            
+            // Si "Autre" est sélectionné, utiliser la raison personnalisée
+            $finalReason = ($reason === 'Autre' && $otherReason) ? $otherReason : $reason;
+            
+            $this->amendmentService->cancel($amendment, $finalReason);
             $this->addFlash('success', 'Avenant annulé');
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
             $this->addFlash('error', $e->getMessage());
@@ -665,6 +700,7 @@ class AmendmentController extends AbstractController
 
     /**
      * Envoie l'avenant par email
+     * Dans le workflow simplifié, cela envoie l'avenant et change le statut DRAFT → SENT
      */
     #[Route('/{id}/send-email', name: 'send_email', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function sendEmail(Request $request, Amendment $amendment): Response
@@ -685,9 +721,12 @@ class AmendmentController extends AbstractController
         }
 
         try {
+            // Workflow simplifié : L'envoi d'email change le statut (DRAFT → SENT ou SENT → SENT)
+            // Cela génère aussi le PDF et le numéro si nécessaire
+            $this->amendmentService->send($amendment);
+
+            // Envoyer l'email
             $customMessage = $request->request->get('custom_message');
-            
-            // Récupérer les fichiers uploadés
             $uploadedFiles = $request->files->get('attachments', []);
             
             $emailLog = $this->emailService->sendAmendment($amendment, $customMessage, $uploadedFiles);

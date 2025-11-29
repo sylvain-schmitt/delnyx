@@ -67,7 +67,7 @@
                             {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
                             {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
                             {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
-                            {% elseif status.value == 'applied' %}bg-green-500/20 text-green-300
+                            {% elseif status.value == 'refunded' %}bg-green-500/20 text-green-300
                             {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
                             {% else %}bg-gray-500/20 text-gray-300{% endif %}">
                             {{ status.label }}
@@ -260,5 +260,8 @@
 
 {# Modal d'envoi d'email #}
 {{ component('EmailModal') }}
+
+{# Modal d'annulation #}
+{{ component('CancelModal') }}
 
 {% endblock %}

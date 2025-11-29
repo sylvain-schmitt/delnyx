@@ -19,7 +19,7 @@
                     {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
                     {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
                     {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
-                    {% elseif status.value == 'applied' %}bg-green-500/20 text-green-300
+                    {% elseif status.value == 'refunded' %}bg-green-500/20 text-green-300
                     {% elseif status.value == 'cancelled' %}bg-red-500/20 text-red-300
                     {% else %}bg-gray-500/20 text-gray-300{% endif %}">
                     {{ status.label }}
@@ -105,11 +105,11 @@
             {{ ux_icon('lucide:check-circle', {class: 'w-5 h-5 inline mr-2'}) }}
             Appliquer cet avoir
         </a>
-    {% elseif creditNote.statutEnum.value == 'applied' %}
+    {% elseif creditNote.statutEnum.value == 'refunded' %}
         <div class="bg-green-500/20 border border-green-500/30 rounded-lg p-4 text-center">
             <p class="text-green-300 font-medium">
                 {{ ux_icon('lucide:check-circle-2', {class: 'w-5 h-5 inline mr-2'}) }}
-                Cet avoir a été appliqué !
+                Cet avoir a été remboursé !
             </p>
         </div>
     {% endif %}

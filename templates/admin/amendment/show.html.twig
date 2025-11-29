@@ -28,6 +28,30 @@
         </div>
     </div>
 
+    {# Alerte si avenant annulé avec raison #}
+    {% if amendment.statut.value == 'cancelled' %}
+        <div class="bg-red-500/20 border border-red-500/30 rounded-xl p-4 scroll-animate">
+            <div class="flex items-start gap-3">
+                {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5 text-red-400 mt-0.5'}) }}
+                <div class="flex-1">
+                    <p class="text-red-300 font-medium mb-1">Avenant annulé</p>
+                    <p class="text-red-200/80 text-sm">Cet avenant a été annulé. Voir la section "Informations" pour la raison.</p>
+                </div>
+            </div>
+        </div>
+    {# Alerte si avenant signé (immuable) #}
+    {% elseif amendment.statut.value == 'signed' %}
+        <div class="bg-green-500/20 border border-green-500/30 rounded-xl p-4 scroll-animate">
+            <div class="flex items-start gap-3">
+                {{ ux_icon('lucide:lock', {class: 'w-5 h-5 text-green-400 mt-0.5'}) }}
+                <div class="flex-1">
+                    <p class="text-green-300 font-medium mb-1">Avenant signé</p>
+                    <p class="text-green-200/80 text-sm">Cet avenant est signé et ne peut plus être modifié.</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
     {# Informations principales #}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -115,6 +139,13 @@
                     </div>
                 {% endif %}
 
+                {% if amendment.notes %}
+                    <div class="mt-6">
+                        <p class="text-sm text-white/60 mb-2">Notes</p>
+                        <p class="text-white whitespace-pre-line">{{ amendment.notes }}</p>
+                    </div>
+                {% endif %}
+
                 {% if amendment.quote %}
                     <div class="mt-6 pt-6 border-t border-white/20">
                         <div class="flex justify-between items-center text-sm mb-2">
@@ -185,17 +216,6 @@
                     <p class="text-white/60 text-center py-8">Aucune ligne dans cet avenant</p>
                 {% endif %}
             </div>
-
-            {# Notes #}
-            {% if amendment.notes %}
-                <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
-                    <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                        {{ ux_icon('lucide:sticky-note', {class: 'w-5 h-5'}) }}
-                        Notes
-                    </h2>
-                    <p class="text-white whitespace-pre-line">{{ amendment.notes }}</p>
-                </div>
-            {% endif %}
         </div>
 
         {# Colonne latérale #}
@@ -274,7 +294,7 @@
             </div>
 
             {# Magic Links - Liens signés pour le client #}
-            {% if amendment.statut.value in ['issued', 'sent'] %}
+            {% if amendment.statut.value in ['sent'] %}
                 <div class="scroll-animate animate-delay-300">
                     {{ component('MagicLinks', {
                         entity: amendment,
@@ -289,5 +309,8 @@
 
 {# Modal d'envoi d'email #}
 {{ component('EmailModal') }}
+
+{# Modal d'annulation avec raisons #}
+{{ component('CancelModal') }}
 
 {% endblock %}

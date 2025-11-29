@@ -124,6 +124,13 @@
                                             layout: 'inline'
                                         }) }}
 
+											{# Bouton Créer un avenant : visible si SIGNED #}
+											{% if quote.statut.value == 'signed' %}
+												<a href="{{ path('admin_amendment_new', {quote_id: quote.id}) }}" class="text-purple-400 hover:text-purple-300 transition-colors duration-200" title="Créer un avenant">
+													{{ ux_icon('lucide:file-edit', {class: 'w-4 h-4'}) }}
+												</a>
+											{% endif %}
+
 											{# Bouton Générer facture : visible si SIGNED et pas de facture existante #}
 											{% if quote.statut.value == 'signed' and not quote.invoice %}
 												<form action="{{ path('admin_quote_generate_invoice', {id: quote.id}) }}" method="POST" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Générer une facture depuis ce devis signé ?" data-confirm-modal-title="Confirmer la génération" data-confirm-modal-button="Générer">
@@ -202,7 +209,26 @@
 							</div>
 						</div>
 
-						<div class="pt-3 border-t border-white/10">
+						<div class="pt-3 border-t border-white/10 space-y-2">
+							{# Bouton Créer un avenant : visible si SIGNED #}
+							{% if quote.statut.value == 'signed' %}
+								<a href="{{ path('admin_amendment_new', {quote_id: quote.id}) }}" class="w-full btn-secondary flex items-center justify-center gap-2">
+									{{ ux_icon('lucide:file-edit', {class: 'w-4 h-4'}) }}
+									Créer un avenant
+								</a>
+							{% endif %}
+
+							{# Bouton Générer facture : visible si SIGNED et pas de facture existante #}
+							{% if quote.statut.value == 'signed' and not quote.invoice %}
+								<form action="{{ path('admin_quote_generate_invoice', {id: quote.id}) }}" method="POST" class="w-full" data-action="submit->confirm-modal#open" data-confirm-modal-message="Générer une facture depuis ce devis signé ?" data-confirm-modal-title="Confirmer la génération" data-confirm-modal-button="Générer">
+									<input type="hidden" name="_token" value="{{ csrf_token('quote_generate_invoice_' ~ quote.id) }}">
+									<button type="submit" class="w-full btn-success flex items-center justify-center gap-2">
+										{{ ux_icon('lucide:receipt', {class: 'w-4 h-4'}) }}
+										Générer une facture
+									</button>
+								</form>
+							{% endif %}
+
 							{{ component('EntityActions', { 
                             entity: quote, 
                             type: 'quote',
@@ -235,4 +261,7 @@
 	
 	{# Modal d'envoi d'email #}
 	{{ component('EmailModal') }}
+	
+	{# Modal d'annulation #}
+	{{ component('CancelModal') }}
 {% endblock %}

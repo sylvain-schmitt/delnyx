@@ -171,7 +171,7 @@ class CreditNoteService
     }
 
     /**
-     * Envoie un avoir (ISSUED → SENT, répétable)
+     * Envoie un avoir (DRAFT → SENT avec émission auto, ou ISSUED → SENT, ou SENT → SENT pour relance)
      * 
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
@@ -193,7 +193,14 @@ class CreditNoteService
             );
         }
 
+        // Si DRAFT, émettre automatiquement avant d'envoyer
+        if ($status === CreditNoteStatus::DRAFT) {
+            $this->issue($creditNote);
+            $status = CreditNoteStatus::ISSUED; // Mettre à jour le statut après émission
+        }
+
         // Effectuer la transition seulement si l'avoir est en ISSUED (ISSUED → SENT)
+        // Si déjà SENT, reste SENT (pour permettre les relances)
         $oldStatus = $status;
         if ($status === CreditNoteStatus::ISSUED) {
             $creditNote->setStatut(CreditNoteStatus::SENT);
@@ -277,8 +284,8 @@ class CreditNoteService
     }
 
     /**
-     * Applique un avoir (ISSUED/SENT → APPLIED)
-     * Signifie que l'avoir a été utilisé (remboursé ou déduit)
+     * Applique un avoir (ISSUED/SENT → REFUNDED)
+     * Signifie que l'avoir a été remboursé au client
      */
     public function apply(CreditNote $creditNote): void
     {
@@ -298,17 +305,29 @@ class CreditNoteService
         }
 
         $oldStatus = $status;
-        $creditNote->setStatut(CreditNoteStatus::APPLIED);
+        $creditNote->setStatut(CreditNoteStatus::REFUNDED);
 
-        $this->logStatusChange($creditNote, $oldStatus, CreditNoteStatus::APPLIED, 'apply');
+        $this->logStatusChange($creditNote, $oldStatus, CreditNoteStatus::REFUNDED, 'apply');
         $this->entityManager->flush();
 
-        $this->logger->info('Avoir appliqué', [
+        $this->logger->info('Avoir remboursé', [
             'credit_note_id' => $creditNote->getId(),
             'credit_note_number' => $creditNote->getNumber(),
             'old_status' => $oldStatus?->value,
-            'new_status' => CreditNoteStatus::APPLIED->value,
+            'new_status' => CreditNoteStatus::REFUNDED->value,
         ]);
+    }
+
+    /**
+     * Émet et envoie un avoir en une seule action (DRAFT → ISSUED → SENT)
+     */
+    public function issueAndSend(CreditNote $creditNote): void
+    {
+        // Émettre d'abord (DRAFT → ISSUED)
+        $this->issue($creditNote);
+        
+        // Puis envoyer (ISSUED → SENT)
+        $this->send($creditNote);
     }
 
     /**
