@@ -1,17 +1,21 @@
 framework:
     messenger:
-        # Uncomment this (and the failed transport below) to send failed messages to this transport for later handling.
-        # failure_transport: failed
+        # Transport pour les messages échoués
+        failure_transport: failed
 
         transports:
-            # https://symfony.com/doc/current/messenger.html#transport-configuration
-            # async: '%env(MESSENGER_TRANSPORT_DSN)%'
-            # failed: 'doctrine://default?queue_name=failed'
+            # Transport asynchrone pour les tâches en arrière-plan (régénération PDF, etc.)
+            async:
+                dsn: 'doctrine://default?queue_name=async'
+            # Transport pour les messages échoués
+            failed:
+                dsn: 'doctrine://default?queue_name=failed'
+            # Transport synchrone (par défaut pour les messages non routés)
             sync: 'sync://'
 
         routing:
-            # Route your messages to the transports
-            # 'App\Message\YourMessage': async
+            # Route les messages de régénération PDF vers le transport asynchrone
+            'App\Message\RegeneratePdfMessage': async
 
 # when@test:
 #    framework:

@@ -34,16 +34,8 @@ class PdfGeneratorService
 
         $dompdf = new Dompdf($options);
 
-        // Conversion du logo SVG en base64 (meilleure qualité)
-        $logoPath = $this->kernel->getProjectDir() . '/assets/images/logo-delnyx.svg';
-        $logoBase64 = '';
-
-        if (file_exists($logoPath)) {
-            $logoData = file_get_contents($logoPath);
-            $logoBase64 = 'data:image/svg+xml;base64,' . base64_encode($logoData);
-        }
-
-        $data['logo_base64'] = $logoBase64;
+        // Récupérer le logo (entreprise ou par défaut)
+        $data['logo_base64'] = $this->getLogoBase64($data['company'] ?? null);
 
         // Rendu du template Twig
         $html = $this->twig->render($template, $data);
@@ -86,16 +78,8 @@ class PdfGeneratorService
 
         $dompdf = new Dompdf($options);
 
-        // Conversion du logo SVG en base64
-        $logoPath = $this->kernel->getProjectDir() . '/assets/images/logo-delnyx.svg';
-        $logoBase64 = '';
-
-        if (file_exists($logoPath)) {
-            $logoData = file_get_contents($logoPath);
-            $logoBase64 = 'data:image/svg+xml;base64,' . base64_encode($logoData);
-        }
-
-        $data['logo_base64'] = $logoBase64;
+        // Récupérer le logo (entreprise ou par défaut)
+        $data['logo_base64'] = $this->getLogoBase64($data['company'] ?? null);
 
         // Rendu du template Twig
         $html = $this->twig->render($template, $data);
@@ -260,5 +244,46 @@ class PdfGeneratorService
         }
 
         return $this->generatePdf('pdf/avoir.html.twig', $data);
+    }
+
+    /**
+     * Récupère le logo en base64 (entreprise ou par défaut)
+     * 
+     * @param mixed $company CompanySettings ou null
+     * @return string Logo en base64 ou chaîne vide
+     */
+    private function getLogoBase64($company): string
+    {
+        $logoPath = null;
+        
+        // Priorité au logo de l'entreprise s'il existe
+        if ($company && method_exists($company, 'getLogoPath') && $company->getLogoPath()) {
+            $logoPath = $this->kernel->getProjectDir() . '/public' . $company->getLogoPath();
+        }
+        
+        // Fallback sur le logo par défaut
+        if (!$logoPath || !file_exists($logoPath)) {
+            $logoPath = $this->kernel->getProjectDir() . '/assets/images/logo-delnyx.svg';
+        }
+        
+        if (!file_exists($logoPath)) {
+            return '';
+        }
+        
+        // Lire le fichier et déterminer le type MIME
+        $logoData = file_get_contents($logoPath);
+        $extension = strtolower(pathinfo($logoPath, PATHINFO_EXTENSION));
+        
+        // Déterminer le type MIME selon l'extension
+        $mimeType = match ($extension) {
+            'svg' => 'image/svg+xml',
+            'png' => 'image/png',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            default => 'image/svg+xml', // Par défaut SVG
+        };
+        
+        return 'data:' . $mimeType . ';base64,' . base64_encode($logoData);
     }
 }
