@@ -1,3 +1,8 @@
 framework:
     mailer:
-        dsn: '%env(MAILER_DSN)%'
+        transports:
+            # Transport principal pour le formulaire de contact
+            main: '%env(MAILER_DSN)%'
+            
+            # Transport pour les documents commerciaux (devis, factures, avoirs, avenants)
+            documents: '%env(MAILER_DSN_DOCUMENTS)%'

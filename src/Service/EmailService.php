@@ -312,6 +312,9 @@ class EmailService
                 }
             }
 
+            // Forcer le transport "documents"
+            $email->getHeaders()->addTextHeader('X-Transport', 'documents');
+
             // Envoyer
             $this->mailer->send($email);
 
