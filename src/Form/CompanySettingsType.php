@@ -75,15 +75,15 @@ class CompanySettingsType extends AbstractType
                 'label' => 'Logo de l\'entreprise',
                 'required' => false,
                 'mapped' => false,
-                'attr' => ['class' => 'form-input', 'accept' => 'image/*'],
+                'attr' => ['class' => 'form-input', 'accept' => 'image/jpeg, image/png'],
                 'constraints' => [
                     new Image([
                         'maxSize' => '2M',
-                        'mimeTypes' => ['image/jpeg', 'image/png', 'image/svg+xml'],
-                        'mimeTypesMessage' => 'Le logo doit être une image (JPEG, PNG ou SVG)',
+                        'mimeTypes' => ['image/jpeg', 'image/png'],
+                        'mimeTypesMessage' => 'Le logo doit être une image (JPEG ou PNG)',
                     ])
                 ],
-                'help' => 'Format accepté : JPEG, PNG ou SVG (max 2Mo). Le logo apparaîtra sur vos devis et factures.',
+                'help' => 'Format accepté : JPEG ou PNG (max 2Mo). Le logo apparaîtra sur vos devis et factures.',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
 
