@@ -51,7 +51,7 @@
 					</div>
 				</div>
 			</div>
-		{# Alerte immutabilité si facture émise #}
+			{# Alerte immutabilité si facture émise #}
 		{% elseif invoice.statutEnum and invoice.statutEnum.isEmitted() %}
 			<div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 scroll-animate">
 				<div class="flex items-start gap-3">
@@ -84,10 +84,12 @@
 							<p class="text-sm text-white/60 mb-1">Client</p>
 							{% if invoice.client.companyName %}
 								<p class="text-white font-medium">{{ invoice.client.companyName }}</p>
-								<p class="text-sm text-white/80">{{ invoice.client.prenom }} {{ invoice.client.nom }}</p>
+								<p class="text-sm text-white/80">{{ invoice.client.prenom }}
+									{{ invoice.client.nom }}</p>
 								<p class="text-sm text-white/60">{{ invoice.client.email }}</p>
 							{% else %}
-								<p class="text-white font-medium">{{ invoice.client.prenom }} {{ invoice.client.nom }}</p>
+								<p class="text-white font-medium">{{ invoice.client.prenom }}
+									{{ invoice.client.nom }}</p>
 								<p class="text-sm text-white/60">{{ invoice.client.email }}</p>
 							{% endif %}
 						</div>
@@ -96,12 +98,12 @@
 							<p class="text-sm text-white/60 mb-1">Statut</p>
 							{% set status = invoice.statutEnum %}
 							<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-																											                            {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-																											                            {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
-																											                            {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
-																											                            {% elseif status.value == 'paid' %}bg-green-500/20 text-green-300
-																											                            {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
-																											                            {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+																																				                            {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+																																				                            {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
+																																				                            {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
+																																				                            {% elseif status.value == 'paid' %}bg-green-500/20 text-green-300
+																																				                            {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+																																				                            {% else %}bg-gray-500/20 text-gray-300{% endif %}">
 								{{ status.label }}
 							</span>
 						</div>
@@ -286,11 +288,11 @@
 												</a>
 												{% set status = creditNote.statutEnum %}
 												<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-													{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-													{% elseif status.value == 'issued' %}bg-green-500/20 text-green-300
-													{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
-													{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
-													{% else %}bg-gray-500/20 text-gray-300{% endif %}">
+																											{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+																											{% elseif status.value == 'issued' %}bg-green-500/20 text-green-300
+																											{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+																											{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+																											{% else %}bg-gray-500/20 text-gray-300{% endif %}">
 													{{ status.label }}
 												</span>
 											</div>
@@ -374,7 +376,7 @@
 									<p class="text-white whitespace-pre-line">{{ invoice.notes }}</p>
 								</div>
 							{% endif %}
-							
+
 							{# Si annulée mais pas de notes, afficher un message #}
 							{% if invoice.statutEnum.value == 'cancelled' and not invoice.notes %}
 								<div>
@@ -500,13 +502,15 @@
 								<div class="flex justify-between items-center mb-2">
 									<span class="text-white/60">Acompte</span>
 									<span class="text-white font-semibold">
-										{{ invoice.montantAcompte|number_format(2, ',', ' ') }} €
+										{{ invoice.montantAcompte|number_format(2, ',', ' ') }}
+										€
 									</span>
 								</div>
 								<div class="flex justify-between items-center">
 									<span class="text-white font-medium">Reste à payer</span>
 									<span class="text-white font-bold">
-										{{ resteAPayer|number_format(2, ',', ' ') }} €
+										{{ resteAPayer|number_format(2, ',', ' ') }}
+										€
 									</span>
 								</div>
 							</div>
@@ -530,7 +534,7 @@
 					</div>
 				</div>
 
-				{# Magic Links - Liens signés pour le client #}
+				{# Liens rapides - Liens signés pour le client #}
 				{% if invoice.statutEnum.value in ['issued', 'sent'] %}
 					<div class="scroll-animate animate-delay-300">
 						{{ component('MagicLinks', {
@@ -543,10 +547,10 @@
 			</div>
 		</div>
 	</div>
-	
+
 	{# Modal d'envoi d'email #}
 	{{ component('EmailModal') }}
-	
+
 	{# Modal d'annulation #}
 	{{ component('CancelModal') }}
 {% endblock %}

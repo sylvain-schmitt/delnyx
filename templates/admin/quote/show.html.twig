@@ -26,7 +26,8 @@
 					<span class="text-white">{{ quote.numero }}</span>
 				</nav>
 			</div>
-			<div class="flex gap-3 flex-wrap">
+			<div
+				class="flex gap-3 flex-wrap">
 				{# Bouton Retour #}
 				<a href="{{ path('admin_quote_index') }}" class="btn-secondary flex items-center gap-2">
 					{{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
@@ -36,29 +37,36 @@
 		</div>
 
 		{# Alerte immutabilité si devis émis ou signé #}
-	{# Alerte si devis annulé #}
-	{% if quote.statut.value == 'cancelled' %}
-		<div class="bg-red-500/20 border border-red-500/30 rounded-xl p-4 scroll-animate">
-			<div class="flex items-start gap-3">
-				{{ ux_icon('lucide:x-circle', {class: 'w-5 h-5 text-red-400 mt-0.5'}) }}
-				<div class="flex-1">
-					<p class="text-red-300 font-medium mb-1">Devis annulé</p>
-					<p class="text-red-200/80 text-sm">Ce devis a été annulé. Voir la section "Conditions et notes" pour la raison.</p>
+		{# Alerte si devis annulé #}
+		{% if quote.statut.value == 'cancelled' %}
+			<div class="bg-red-500/20 border border-red-500/30 rounded-xl p-4 scroll-animate">
+				<div class="flex items-start gap-3">
+					{{ ux_icon('lucide:x-circle', {class: 'w-5 h-5 text-red-400 mt-0.5'}) }}
+					<div class="flex-1">
+						<p class="text-red-300 font-medium mb-1">Devis annulé</p>
+						<p class="text-red-200/80 text-sm">Ce devis a été annulé. Voir la section "Conditions et notes" pour la raison.</p>
+					</div>
 				</div>
 			</div>
-		</div>
-	{# Alerte pour les autres statuts (émis, signé, etc.) #}
-	{% elseif quote.statut.value in ['sent', 'signed', 'refused', 'expired'] %}
-		<div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 scroll-animate">
-			<div class="flex items-start gap-3">
-				{{ ux_icon('lucide:lock', {class: 'w-5 h-5 text-blue-400 mt-0.5'}) }}
-				<div class="flex-1">
-					<p class="text-blue-300 font-medium mb-1">Document immuable</p>
-					<p class="text-blue-200/80 text-sm">Ce devis est {% if quote.statut.value == 'signed' %}signé{% else %}émis{% endif %} et ne peut plus être modifié.{% if quote.statut.value == 'signed' %} Pour apporter des modifications, créez un avenant.{% endif %}</p>
+			{# Alerte pour les autres statuts (émis, signé, etc.) #}
+		{% elseif quote.statut.value in ['sent', 'signed', 'refused', 'expired'] %}
+			<div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 scroll-animate">
+				<div class="flex items-start gap-3">
+					{{ ux_icon('lucide:lock', {class: 'w-5 h-5 text-blue-400 mt-0.5'}) }}
+					<div class="flex-1">
+						<p class="text-blue-300 font-medium mb-1">Document immuable</p>
+						<p class="text-blue-200/80 text-sm">Ce devis est
+							{% if quote.statut.value == 'signed' %}signé{% else %}émis
+							{% endif %}
+							et ne peut plus être modifié.
+							{% if quote.statut.value == 'signed' %}
+								Pour apporter des modifications, créez un avenant.
+							{% endif %}
+						</p>
+					</div>
 				</div>
 			</div>
-		</div>
-	{% endif %}
+		{% endif %}
 
 		{# Informations principales #}
 		<div
@@ -80,10 +88,12 @@
 							<p class="text-sm text-white/60 mb-1">Client</p>
 							{% if quote.client.companyName %}
 								<p class="text-white font-medium">{{ quote.client.companyName }}</p>
-								<p class="text-sm text-white/80">{{ quote.client.prenom }} {{ quote.client.nom }}</p>
+								<p class="text-sm text-white/80">{{ quote.client.prenom }}
+									{{ quote.client.nom }}</p>
 								<p class="text-sm text-white/60">{{ quote.client.email }}</p>
 							{% else %}
-								<p class="text-white font-medium">{{ quote.client.prenom }} {{ quote.client.nom }}</p>
+								<p class="text-white font-medium">{{ quote.client.prenom }}
+									{{ quote.client.nom }}</p>
 								<p class="text-sm text-white/60">{{ quote.client.email }}</p>
 							{% endif %}
 						</div>
@@ -92,14 +102,14 @@
 							<p class="text-sm text-white/60 mb-1">Statut</p>
 							{% set status = quote.statut %}
 							<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-								{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-								{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
-								{% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
-								{% elseif status.value == 'accepted' %}bg-green-500/20 text-green-300
-								{% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
-								{% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
-								{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
-								{% else %}bg-gray-500/20 text-gray-300{% endif %}">
+																	{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+																	{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+																	{% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
+																	{% elseif status.value == 'accepted' %}bg-green-500/20 text-green-300
+																	{% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
+																	{% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
+																	{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+																	{% else %}bg-gray-500/20 text-gray-300{% endif %}">
 								{{ status.label }}
 							</span>
 						</div>
@@ -180,7 +190,8 @@
 										<tr>
 											<td class="px-4 py-3 text-white">{{ line.description }}</td>
 											<td class="px-4 py-3 text-right text-white">{{ line.quantity }}</td>
-											<td class="px-4 py-3 text-right text-white">{{ line.unitPrice|number_format(2, ',', ' ') }} €</td>
+											<td class="px-4 py-3 text-right text-white">{{ line.unitPrice|number_format(2, ',', ' ') }}
+												€</td>
 											{% if companySettings and companySettings.isTvaEnabled() %}
 												<td class="px-4 py-3 text-right text-white">
 													{% if quote.usePerLineTva and line.tvaRate %}
@@ -191,7 +202,8 @@
 														{{ quote.tauxTVA }}%
 													{% endif %}
 												</td>
-												<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }} €</td>
+												<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }}
+													€</td>
 											{% endif %}
 											<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalTtcFormatted }}</td>
 										</tr>
@@ -214,7 +226,8 @@
 										</div>
 										<div class="flex justify-between">
 											<span class="text-white/60">Prix unitaire</span>
-											<span class="text-white">{{ line.unitPrice|number_format(2, ',', ' ') }} €</span>
+											<span class="text-white">{{ line.unitPrice|number_format(2, ',', ' ') }}
+												€</span>
 										</div>
 										{% if companySettings and companySettings.isTvaEnabled() %}
 											<div class="flex justify-between">
@@ -231,7 +244,8 @@
 											</div>
 											<div class="flex justify-between pt-2 border-t border-white/10">
 												<span class="text-white/60">Total HT</span>
-												<span class="text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }} €</span>
+												<span class="text-white font-medium">{{ line.totalHt|number_format(2, ',', ' ') }}
+													€</span>
 											</div>
 										{% endif %}
 										<div class="flex justify-between {% if companySettings and companySettings.isTvaEnabled() %}{% else %}pt-2 border-t border-white/10{% endif %}">
@@ -266,11 +280,11 @@
 												</a>
 												{% set status = amendment.statutEnum %}
 												<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-													{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-													{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
-													{% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
-													{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
-													{% else %}bg-gray-500/20 text-gray-300{% endif %}">
+																											{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+																											{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+																											{% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
+																											{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+																											{% else %}bg-gray-500/20 text-gray-300{% endif %}">
 													{{ status.label }}
 												</span>
 											</div>
@@ -278,7 +292,8 @@
 											<div class="flex items-center gap-4 text-xs text-white/60">
 												<span>{{ amendment.dateCreation|date('d/m/Y') }}</span>
 												{% if amendment.dateSignature %}
-													<span>Signé le {{ amendment.dateSignature|date('d/m/Y') }}</span>
+													<span>Signé le
+														{{ amendment.dateSignature|date('d/m/Y') }}</span>
 												{% endif %}
 												<span class="font-medium text-white">{{ amendment.montantTTCFormate }}</span>
 											</div>
@@ -319,7 +334,7 @@
 									<p class="text-white whitespace-pre-line">{{ quote.notes }}</p>
 								</div>
 							{% endif %}
-							
+
 							{# Si annulé mais pas de notes, afficher un message #}
 							{% if quote.statut.value == 'cancelled' and not quote.notes %}
 								<div>
@@ -404,12 +419,15 @@
 									{% set totalAvenants = totalAvenants + (amendment.montantTTC|number_format(2, '.', '')) %}
 									<div class="flex justify-between items-center text-sm mb-1">
 										<span class="text-white/60">{{ amendment.numero }}</span>
-										<span class="text-white">+ {{ amendment.montantTTCFormate }}</span>
+										<span class="text-white">+
+											{{ amendment.montantTTCFormate }}</span>
 									</div>
 								{% endfor %}
 								<div class="pt-2 border-t border-white/10 flex justify-between items-center mt-2">
 									<span class="text-white/60 font-medium">Total avenants</span>
-									<span class="text-white font-semibold">+ {{ totalAvenants|number_format(2, ',', ' ') }} €</span>
+									<span class="text-white font-semibold">+
+										{{ totalAvenants|number_format(2, ',', ' ') }}
+										€</span>
 								</div>
 							</div>
 						{% endif %}
@@ -420,7 +438,8 @@
 								{% if avenantsSignes|length > 0 %}
 									{% set montantInitial = quote.montantTTC|number_format(2, '.', '') %}
 									{% set totalFinal = montantInitial + totalAvenants %}
-									{{ totalFinal|number_format(2, ',', ' ') }} €
+									{{ totalFinal|number_format(2, ',', ' ') }}
+									€
 								{% else %}
 									{{ quote.montantTTCFormate }}
 								{% endif %}
@@ -445,7 +464,8 @@
 								<div class="flex justify-between items-center">
 									<span class="text-white font-medium">Reste à payer</span>
 									<span class="text-white font-bold">
-										{{ resteAPayer|number_format(2, ',', ' ') }} €
+										{{ resteAPayer|number_format(2, ',', ' ') }}
+										€
 									</span>
 								</div>
 							</div>
@@ -460,18 +480,19 @@
 						Actions
 					</h2>
 
-					<div class="space-y-3">
+					<div
+						class="space-y-3">
 						{# Composant Actions #}
 						{{ component('EntityActions', { 
 							entity: quote, 
 							type: 'quote',
 							layout: 'vertical'
 						}) }}
-						
+
 					</div>
 				</div>
 
-				{# Magic Links - Liens signés pour le client #}
+				{# Liens rapides - Liens signés pour le client #}
 				{% if quote.statut.value in ['issued', 'sent'] %}
 					<div class="scroll-animate animate-delay-300">
 						{{ component('MagicLinks', {
@@ -484,10 +505,10 @@
 			</div>
 		</div>
 	</div>
-	
+
 	{# Modal d'envoi d'email #}
 	{{ component('EmailModal') }}
-	
+
 	{# Modal d'annulation avec raisons #}
 	{{ component('CancelModal') }}
 {% endblock %}
