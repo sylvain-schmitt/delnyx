@@ -37,7 +37,7 @@ class EmailService
     /**
      * Récupère les informations d'expéditeur depuis les paramètres de l'entreprise
      * 
-     * @return array{email: string, name: string}
+     * @return array{email: string, name: string, settings: ?CompanySettings}
      */
     private function getSenderInfo(): array
     {
@@ -46,14 +46,16 @@ class EmailService
         if ($settings) {
             return [
                 'email' => $settings->getEmail() ?: 'contact@delnyx.com',
-                'name' => $settings->getRaisonSociale() ?: 'Delnyx'
+                'name' => $settings->getRaisonSociale() ?: 'Delnyx',
+                'settings' => $settings
             ];
         }
 
         // Fallback si pas de settings configurés
         return [
             'email' => 'contact@delnyx.com',
-            'name' => 'Delnyx'
+            'name' => 'Delnyx',
+            'settings' => null
         ];
     }
 
@@ -74,6 +76,7 @@ class EmailService
             'client' => $client,
             'customMessage' => $customMessage,
             'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
         ]);
 
         // Générer le PDF
@@ -119,6 +122,7 @@ class EmailService
             'client' => $client,
             'customMessage' => $customMessage,
             'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
         ]);
 
         // Générer le PDF
@@ -170,6 +174,7 @@ class EmailService
             'client' => $client,
             'customMessage' => $customMessage,
             'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
         ]);
 
         // Générer le PDF
@@ -221,6 +226,7 @@ class EmailService
             'client' => $client,
             'customMessage' => $customMessage,
             'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
         ]);
 
         // Générer le PDF

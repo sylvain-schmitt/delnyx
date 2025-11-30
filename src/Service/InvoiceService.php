@@ -202,16 +202,9 @@ class InvoiceService
 
         // Envoi par email (toujours disponible)
         if ($channel === 'email' || $channel === 'both') {
-            try {
-                $this->sendByEmail($invoice);
-                $channels[] = 'email';
-            } catch (\Exception $e) {
-                $this->logger->error('Erreur lors de l\'envoi de la facture par email', [
-                    'invoice_id' => $invoice->getId(),
-                    'error' => $e->getMessage(),
-                ]);
-                throw new \RuntimeException('Erreur lors de l\'envoi par email : ' . $e->getMessage());
-            }
+            // L'envoi de l'email est géré par le contrôleur via EmailService
+            // Ici on note juste que le canal choisi est l'email
+            $channels[] = 'email';
         }
 
         // Envoi via PDP (si activé et demandé)
@@ -271,47 +264,7 @@ class InvoiceService
         ]);
     }
 
-    /**
-     * Envoie la facture par email
-     */
-    private function sendByEmail(Invoice $invoice): void
-    {
-        $client = $invoice->getClient();
-        $clientEmail = $client->getEmail();
-        $clientName = $client->getNomComplet();
 
-        // TODO: Générer le PDF si nécessaire
-        // Pour l'instant, on envoie juste un email avec les informations
-        $email = (new Email())
-            ->from(new Address('factures@delnyx.fr', 'Delnyx - Facturation'))
-            ->to(new Address($clientEmail, $clientName))
-            ->subject(sprintf('Facture %s - %s', $invoice->getNumero(), $invoice->getClient()->getNomComplet()))
-            ->html($this->renderInvoiceEmail($invoice));
-
-        $this->mailer->send($email);
-    }
-
-    /**
-     * Rend le template email pour la facture
-     * TODO: Créer un vrai template Twig
-     */
-    private function renderInvoiceEmail(Invoice $invoice): string
-    {
-        return sprintf(
-            '<html><body>
-                <h1>Facture %s</h1>
-                <p>Bonjour %s,</p>
-                <p>Veuillez trouver ci-joint votre facture n°%s d\'un montant de %s.</p>
-                <p>Date d\'échéance : %s</p>
-                <p>Cordialement,<br>L\'équipe Delnyx</p>
-            </body></html>',
-            $invoice->getNumero(),
-            $invoice->getClient()->getNomComplet(),
-            $invoice->getNumero(),
-            $invoice->getMontantTTCFormate(),
-            $invoice->getDateEcheance()?->format('d/m/Y') ?? 'N/A'
-        );
-    }
 
     /**
      * Marque une facture comme payée (ISSUED → PAID)
