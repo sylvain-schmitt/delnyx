@@ -18,28 +18,28 @@ WORKDIR /var/www/html
 
 COPY . .
 
-RUN mkdir -p var/cache var/log public/bundles public/build public/uploads/projects \
-    && chmod -R 777 var/ public/build public/bundles public/uploads/projects
+# Création des dossiers nécessaires, dont uploads/projects
+RUN mkdir -p var/cache var/log public/bundles public/build public/uploads/projects public/uploads/projects/thumbnails \
+    && chmod -R 777 var/ public/build public/bundles public/uploads
 
 RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction \
     && composer dump-autoload --optimize
 
-# Builds assets (désactivé si tu préfères faire localement)
+# Builds assets (optionnel)
 RUN php bin/console importmap:install || true
 RUN php bin/console tailwind:build --minify || true
 RUN php bin/console asset-map:compile || true
 
-# Permissions finales
+# Permissions finales sur var et public
 RUN chmod -R 777 var/ public/
 
-# OPCache config
 RUN echo "opcache.enable=1\n\
 opcache.memory_consumption=128\n\
 opcache.max_accelerated_files=10000\n\
 opcache.validate_timestamps=0" > /usr/local/etc/php/conf.d/opcache.ini
 
-# PHP-FPM écoute sur 0.0.0.0:9000 par défaut, pas besoin de changer
+ENV APP_ENV=prod
 
-EXPOSE 8001
+EXPOSE 9000
 
-CMD ["php-fpm"]
+CMD ["php", "-S", "0.0.0.0:9000", "-t", "public"]
