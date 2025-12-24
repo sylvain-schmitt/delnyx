@@ -32,6 +32,7 @@ RUN php bin/console asset-map:compile || true
 
 # Permissions finales sur var et public
 RUN chmod -R 777 var/ public/
+RUN chown -R www-data:www-data public/uploads
 
 RUN echo "opcache.enable=1\n\
 opcache.memory_consumption=128\n\
