@@ -1,16 +1,24 @@
 # see https://symfony.com/doc/current/reference/configuration/framework.html
 framework:
     secret: '%env(APP_SECRET)%'
+        # ...
+    # the IP address (or range) of your proxy
+    trusted_proxies: '127.0.0.1,::1,10.0.1.6'
+    # shortcut for private IP address ranges of your proxy
+    trusted_proxies: 'private_ranges'
+    # trust *all* "X-Forwarded-*" headers
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix']
+    # or, if your proxy instead uses the "Forwarded" header
+    trusted_headers: ['forwarded']
 
-    session:
-        cookie_secure: auto
-        cookie_samesite: lax
+    # Note that the session will be started ONLY if you read or write from it.
+    session: true
 
     #esi: true
     #fragments: true
 
-    scheduler:
-        enabled: true
+    property_info:
+        with_constructor_extractor: false
 
 when@test:
     framework:
