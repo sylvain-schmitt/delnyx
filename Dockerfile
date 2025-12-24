@@ -42,4 +42,4 @@ ENV APP_ENV=prod
 
 EXPOSE 9000
 
-CMD ["php", "-S", "0.0.0.0:9000", "-t", "public"]
+CMD ["php-fpm"]
