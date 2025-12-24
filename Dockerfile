@@ -40,6 +40,6 @@ opcache.validate_timestamps=0" > /usr/local/etc/php/conf.d/opcache.ini
 
 # PHP-FPM écoute sur 0.0.0.0:9000 par défaut, pas besoin de changer
 
-EXPOSE 9000
+EXPOSE 8001
 
 CMD ["php-fpm"]
