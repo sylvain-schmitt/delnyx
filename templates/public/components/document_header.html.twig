@@ -1,0 +1,46 @@
+{# 
+  Composant : En-tête de document public
+  Usage : {% include 'public/components/document_header.html.twig' with {
+      title: 'Devis',
+      numero: quote.numero,
+      client: quote.client,
+      status: quote.statut
+  } %}
+#}
+
+<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-8 mb-6">
+	<div class="flex items-start justify-between mb-6">
+		<div>
+			<h1 class="text-3xl font-bold text-white mb-2">{{ title }}</h1>
+			<p class="text-xl text-white/80">{{ numero }}</p>
+		</div>
+		{% if status is defined %}
+			<div class="text-right">
+				<span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium
+						                    {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+						                    {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
+						                    {% elseif status.value == 'sent' %} text-purple-300
+						                    {% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
+						                    {% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
+						                    {% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
+						                    {% elseif status.value == 'paid' %}bg-emerald-500/20 text-emerald-300
+						                    {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+					{{ status.label }}
+				</span>
+			</div>
+		{% endif %}
+	</div>
+
+	{% if client is defined %}
+		<div class="border-t border-white/10 pt-4">
+			<h2 class="text-sm font-semibold text-white/60 uppercase mb-2">Client</h2>
+			<p class="text-white font-medium">{{ client.nomComplet }}</p>
+			{% if client.email %}
+				<p class="text-white/80 text-sm">{{ client.email }}</p>
+			{% endif %}
+			{% if client.telephone %}
+				<p class="text-white/80 text-sm">{{ client.telephone }}</p>
+			{% endif %}
+		</div>
+	{% endif %}
+</div>

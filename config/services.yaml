@@ -44,3 +44,17 @@ services:
     App\Service\MagicLinkService:
         arguments:
             $appSecret: '%env(APP_SECRET)%'
+
+    App\Service\PaymentService:
+        arguments:
+            $stripeSecretKey: '%env(default::STRIPE_SECRET_KEY)%'
+
+    App\Controller\StripeWebhookController:
+        arguments:
+            $stripeWebhookSecret: '%env(default::STRIPE_WEBHOOK_SECRET)%'
+
+    App\Controller\Public\DebugMagicLinkController:
+        arguments:
+            $appSecret: '%env(APP_SECRET)%'
+
+

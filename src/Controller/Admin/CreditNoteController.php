@@ -12,6 +12,7 @@ use App\Form\CreditNoteType;
 use App\Repository\CreditNoteRepository;
 use App\Repository\InvoiceRepository;
 use App\Repository\CompanySettingsRepository;
+use App\Repository\TariffRepository;
 use App\Service\CreditNoteService;
 use App\Service\PdfGeneratorService;
 use App\Service\EmailService;
@@ -32,6 +33,7 @@ class CreditNoteController extends AbstractController
         private CreditNoteRepository $creditNoteRepository,
         private InvoiceRepository $invoiceRepository,
         private CompanySettingsRepository $companySettingsRepository,
+        private TariffRepository $tariffRepository,
         private EntityManagerInterface $entityManager,
         private CreditNoteService $creditNoteService,
         private PdfGeneratorService $pdfGeneratorService,
@@ -51,7 +53,7 @@ class CreditNoteController extends AbstractController
             ->setParameter('id', $id)
             ->getQuery()
             ->getOneOrNullResult();
-            
+
         if (!$invoice) {
             return new JsonResponse(['error' => 'Facture non trouvée'], 404);
         }
@@ -73,18 +75,18 @@ class CreditNoteController extends AbstractController
         // C'est la méthode la plus fiable pour tous les statuts de facture
         $invoiceId = $invoice->getId();
         $lines = [];
-        
+
         // Requête SQL directe pour récupérer les lignes
         $connection = $this->entityManager->getConnection();
-        $sql = 'SELECT id, description, quantity, unit_price, total_ht, tva_rate 
-                FROM invoice_lines 
-                WHERE invoice_id = :invoiceId 
+        $sql = 'SELECT id, description, quantity, unit_price, total_ht, tva_rate
+                FROM invoice_lines
+                WHERE invoice_id = :invoiceId
                 ORDER BY id ASC';
         $stmt = $connection->prepare($sql);
         $result = $stmt->executeQuery(['invoiceId' => $invoiceId]);
         $rawLines = $result->fetchAllAssociative();
-        
-       // Convertir les lignes brutes en format attendu
+
+        // Convertir les lignes brutes en format attendu
         foreach ($rawLines as $rawLine) {
             $lines[] = [
                 'id' => (int) $rawLine['id'],
@@ -131,7 +133,8 @@ class CreditNoteController extends AbstractController
         foreach ($invoice->getLines() as $line) {
             $lines[] = [
                 'id' => $line->getId(),
-                'label' => sprintf('%s - %s × %s € = %s € HT', 
+                'label' => sprintf(
+                    '%s - %s × %s € = %s € HT',
                     $line->getDescription(),
                     $line->getQuantity(),
                     number_format((float)$line->getUnitPrice(), 2, ',', ' '),
@@ -293,7 +296,7 @@ class CreditNoteController extends AbstractController
                 ->setParameter('invoiceId', $invoiceId)
                 ->getQuery()
                 ->getOneOrNullResult();
-                
+
             if ($invoice) {
                 // Vérifier le multi-tenant
                 if ($companyId && $invoice->getCompanyId() !== $companyId) {
@@ -332,7 +335,7 @@ class CreditNoteController extends AbstractController
             // S'assurer que la facture est bien associée si sélectionnée dans le formulaire
             // Récupérer depuis le formulaire d'abord
             $invoiceData = $form->get('invoice')->getData();
-            
+
             // Si le champ est désactivé, Symfony ne le traite pas, récupérer depuis la requête
             if (!$invoiceData) {
                 $invoiceIdFromRequest = $request->request->get('credit_note')['invoice'] ?? null;
@@ -343,7 +346,7 @@ class CreditNoteController extends AbstractController
                     }
                 }
             }
-            
+
             // Vérifier que la facture est émise
             if (!$creditNote->getInvoice()) {
                 $this->addFlash('error', 'Un avoir doit être lié à une facture.');
@@ -532,7 +535,7 @@ class CreditNoteController extends AbstractController
                 $creditNote->setInvoice($invoice);
             }
         }
-        
+
         return $this->render('admin/credit_note/form.html.twig', [
             'creditNote' => $creditNote,
             'form' => $form,
@@ -541,6 +544,7 @@ class CreditNoteController extends AbstractController
             'invoice_locked' => $invoiceId !== null, // Verrouiller le champ si on vient d'une facture
             'invoice_id' => $invoiceId, // Passer l'ID directement pour le champ hidden
             'invoice' => $creditNote->getInvoice(), // Passer la facture pour afficher ses lignes en lecture seule
+            'tariffs' => $this->tariffRepository->findBy(['actif' => true], ['ordre' => 'ASC', 'nom' => 'ASC']),
         ]);
     }
 
@@ -698,6 +702,7 @@ class CreditNoteController extends AbstractController
             'invoice_locked' => false,
             'invoice_id' => $invoiceId,
             'invoice' => $creditNote->getInvoice(), // Passer la facture pour afficher ses lignes en lecture seule
+            'tariffs' => $this->tariffRepository->findBy(['actif' => true], ['ordre' => 'ASC', 'nom' => 'ASC']),
         ]);
     }
 
@@ -726,7 +731,7 @@ class CreditNoteController extends AbstractController
 
         try {
             $this->creditNoteService->issueAndSend($creditNote);
-            
+
             // Vérifier si la facture doit être annulée (avoir total)
             $invoice = $creditNote->getInvoice();
             if ($invoice) {
@@ -776,7 +781,7 @@ class CreditNoteController extends AbstractController
 
         try {
             $this->creditNoteService->issue($creditNote);
-            
+
             // Vérifier si la facture doit être annulée (avoir total)
             $invoice = $creditNote->getInvoice();
             if ($invoice) {
@@ -917,12 +922,12 @@ class CreditNoteController extends AbstractController
             // Si le PDF n'a pas encore été généré, le générer et sauvegarder
             if (!$creditNote->getPdfFilename()) {
                 $result = $this->pdfGeneratorService->generateCreditNotePdf($creditNote, true);
-                
+
                 // Sauvegarder le nom de fichier et le hash dans l'entité
                 $creditNote->setPdfFilename($result['filename']);
                 $creditNote->setPdfHash($result['hash']);
                 $this->entityManager->flush();
-                
+
                 return new Response(
                     $result['pdf'],
                     200,
@@ -932,7 +937,7 @@ class CreditNoteController extends AbstractController
                     ]
                 );
             }
-            
+
             // Sinon, retourner le PDF existant
             return $this->pdfGeneratorService->generateCreditNotePdf($creditNote, false);
         } catch (\Exception $e) {
@@ -967,7 +972,7 @@ class CreditNoteController extends AbstractController
         // Vérifier que l'avoir a un client avec un email
         $invoice = $creditNote->getInvoice();
         $client = $invoice?->getClient();
-        
+
         if (!$client || !$client->getEmail()) {
             $this->addFlash('error', 'Impossible d\'envoyer l\'avoir : aucun email client configuré.');
             return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
@@ -975,12 +980,12 @@ class CreditNoteController extends AbstractController
 
         try {
             $customMessage = $request->request->get('custom_message');
-            
+
             // Récupérer les fichiers uploadés
             $uploadedFiles = $request->files->get('attachments', []);
-            
+
             $emailLog = $this->emailService->sendCreditNote($creditNote, $customMessage, $uploadedFiles);
-            
+
             if ($emailLog->getStatus() === 'sent') {
                 $this->addFlash('success', sprintf('Avoir envoyé avec succès à %s', $client->getEmail()));
             } else {

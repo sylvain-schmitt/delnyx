@@ -134,6 +134,27 @@ class CompanySettings
     #[Groups(['company_settings:read', 'company_settings:write'])]
     private ?string $logoPath = null; // Chemin vers le fichier logo
 
+    // ===== MENTIONS LÉGALES OBLIGATOIRES =====
+
+    #[ORM\Column(type: Types::STRING, length: 100, options: ['default' => 'Auto-entrepreneur'])]
+    #[Assert\NotBlank(message: 'La forme juridique est obligatoire')]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private string $formeJuridique = 'Auto-entrepreneur';
+
+    #[ORM\Column(type: Types::STRING, length: 10, nullable: true)]
+    #[Assert\Length(max: 10, maxMessage: 'Le code APE ne peut pas dépasser {{ limit }} caractères')]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?string $codeAPE = null; // Code NAF/APE de l'activité
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?string $assuranceRCPro = null; // Nom et coordonnées de l'assurance RC Pro
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, options: ['default' => '40.00'])]
+    #[Assert\PositiveOrZero(message: 'L\'indemnité forfaitaire ne peut pas être négative')]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private string $indemniteForfaitaireRecouvrement = '40.00'; // Montant légal minimum : 40€
+
     public function getId(): ?int
     {
         return $this->id;
@@ -387,5 +408,63 @@ class CompanySettings
             $this->codePostal ?? '',
             $this->ville ?? ''
         );
+    }
+
+    // ===== GETTERS/SETTERS MENTIONS LÉGALES =====
+
+    public function getFormeJuridique(): string
+    {
+        return $this->formeJuridique;
+    }
+
+    public function setFormeJuridique(string $formeJuridique): self
+    {
+        $this->formeJuridique = $formeJuridique;
+
+        return $this;
+    }
+
+    public function getCodeAPE(): ?string
+    {
+        return $this->codeAPE;
+    }
+
+    public function setCodeAPE(?string $codeAPE): self
+    {
+        $this->codeAPE = $codeAPE;
+
+        return $this;
+    }
+
+    public function getAssuranceRCPro(): ?string
+    {
+        return $this->assuranceRCPro;
+    }
+
+    public function setAssuranceRCPro(?string $assuranceRCPro): self
+    {
+        $this->assuranceRCPro = $assuranceRCPro;
+
+        return $this;
+    }
+
+    public function getIndemniteForfaitaireRecouvrement(): string
+    {
+        return $this->indemniteForfaitaireRecouvrement;
+    }
+
+    public function setIndemniteForfaitaireRecouvrement(string $indemniteForfaitaireRecouvrement): self
+    {
+        $this->indemniteForfaitaireRecouvrement = $indemniteForfaitaireRecouvrement;
+
+        return $this;
+    }
+
+    /**
+     * Retourne l'indemnité forfaitaire formatée pour affichage
+     */
+    public function getIndemniteForfaitaireRecouvrementFormatee(): string
+    {
+        return number_format((float) $this->indemniteForfaitaireRecouvrement, 2, ',', ' ') . ' €';
     }
 }

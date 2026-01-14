@@ -12,9 +12,14 @@
 				box-sizing: border-box;
 			}
 
+			@page {
+				size: A4;
+				margin: 15mm;
+			}
+
 			body {
 				font-family: 'Arial', sans-serif;
-				font-size: 12px;
+				font-size: 11px;
 				line-height: 1.4;
 				color: #333;
 				background: white;
@@ -24,26 +29,34 @@
 			.document {
 				max-width: 210mm;
 				margin: 0 auto;
-				padding: 20mm;
+				padding: 15mm;
 				background: white;
 			}
 
 			/* En-tête */
 			.header {
-				display: flex;
-				justify-content: space-between;
-				align-items: flex-start;
-				margin-bottom: 30px;
+				display: table;
+				width: 100%;
+				margin-bottom: 25px;
 				border-bottom: 2px solid #2563eb;
-				padding-bottom: 20px;
+				padding-bottom: 15px;
 			}
 
 			.company-info {
-				flex: 1;
+				display: table-cell;
+				width: 60%;
+				vertical-align: top;
+			}
+
+			.document-info {
+				display: table-cell;
+				width: 40%;
+				text-align: right;
+				vertical-align: top;
 			}
 
 			.company-logo {
-				margin-bottom: 10px;
+				margin-bottom: 8px;
 				background-color: #0f172a;
 				padding: 8px 12px;
 				border-radius: 6px;
@@ -57,74 +70,73 @@
 			}
 
 			.company-details {
-				font-size: 11px;
+				font-size: 10px;
 				color: #666;
-			}
-
-			.document-info {
-				text-align: right;
-				flex: 1;
+				line-height: 1.5;
 			}
 
 			.document-title {
-				font-size: 28px;
+				font-size: 26px;
 				font-weight: bold;
 				color: #2563eb;
-				margin-bottom: 10px;
+				margin-bottom: 8px;
 			}
 
 			.document-number {
-				font-size: 14px;
+				font-size: 13px;
 				font-weight: bold;
 				color: #333;
 			}
 
 			.document-date {
-				font-size: 11px;
+				font-size: 10px;
 				color: #666;
 				margin-top: 5px;
 			}
 
 			/* Informations client */
 			.client-section {
-				display: flex;
-				justify-content: space-between;
-				margin-bottom: 30px;
+				display: table;
 				width: 100%;
+				margin-bottom: 20px;
 			}
 
 			.client-info,
 			.company-billing {
-				flex: 1;
-				padding: 15px;
+				display: table-cell;
+				vertical-align: top;
+				padding: 12px;
 				background: #f8fafc;
 				border: 1px solid #e2e8f0;
 				border-radius: 4px;
 			}
 
 			.client-info {
-				margin-right: 15px;
-				width:95%;
-				margin-bottom: 15px;
+				width: 55%;
+			}
+
+			.company-billing {
+				width: 42%;
+				margin-left: 3%;
 			}
 
 			.section-title {
-				font-size: 14px;
+				font-size: 12px;
 				font-weight: bold;
 				color: #2563eb;
-				margin-bottom: 10px;
+				margin-bottom: 8px;
 				text-transform: uppercase;
 			}
 
 			.client-name {
-				font-size: 16px;
+				font-size: 14px;
 				font-weight: bold;
 				color: #333;
-				margin-bottom: 8px;
+				margin-bottom: 6px;
 			}
 
 			.client-details {
-				font-size: 11px;
+				font-size: 10px;
 				color: #666;
 				line-height: 1.5;
 			}
@@ -133,12 +145,12 @@
 			.services-table {
 				width: 100%;
 				border-collapse: collapse;
-				margin-bottom: 30px;
+				margin-bottom: 20px;
 			}
 
 			.services-table th,
 			.services-table td {
-				padding: 12px 8px;
+				padding: 10px 6px;
 				text-align: left;
 				border-bottom: 1px solid #e2e8f0;
 			}
@@ -147,12 +159,12 @@
 				background: #f1f5f9;
 				font-weight: bold;
 				color: #334155;
-				font-size: 11px;
+				font-size: 10px;
 				text-transform: uppercase;
 			}
 
 			.services-table td {
-				font-size: 11px;
+				font-size: 10px;
 				color: #333;
 			}
 
@@ -166,20 +178,21 @@
 
 			/* Totaux */
 			.totals {
-				display: flex;
-				justify-content: flex-end;
-				margin-bottom: 30px;
+				display: table;
+				width: 100%;
+				margin-bottom: 20px;
 			}
 
 			.totals-table {
-				width: 300px;
+				width: 280px;
+				margin-left: auto;
 				border-collapse: collapse;
 			}
 
 			.totals-table td {
-				padding: 8px 12px;
+				padding: 8px 10px;
 				border-bottom: 1px solid #e2e8f0;
-				font-size: 11px;
+				font-size: 10px;
 			}
 
 			.totals-table .label {
@@ -198,70 +211,102 @@
 				background: #f1f5f9;
 				font-weight: bold;
 				color: #2563eb;
-				font-size: 12px;
+				font-size: 11px;
 			}
 
 			/* Conditions et notes */
 			.conditions-section {
-				margin-bottom: 30px;
+				margin-bottom: 20px;
+				page-break-inside: avoid;
 			}
 
 			.conditions-title {
-				font-size: 14px;
+				font-size: 12px;
 				font-weight: bold;
 				color: #2563eb;
-				margin-bottom: 10px;
+				margin-bottom: 8px;
 			}
 
 			.conditions-content {
-				font-size: 10px;
+				font-size: 9px;
 				color: #666;
 				line-height: 1.5;
 				background: #f8fafc;
-				padding: 15px;
+				padding: 12px;
 				border-radius: 4px;
-				border-left: 4px solid #2563eb;
+				border-left: 3px solid #2563eb;
 				border: 1px solid #e2e8f0;
+			}
+
+			.notes-section {
+				margin-bottom: 15px;
+				font-size: 10px;
+				color: #555;
+				page-break-inside: avoid;
 			}
 
 			/* Pied de page */
 			.footer {
-				margin-top: 40px;
-				padding-top: 20px;
+				margin-top: 30px;
+				padding-top: 15px;
 				border-top: 1px solid #e2e8f0;
 				text-align: center;
 				font-size: 9px;
 				color: #666;
+				page-break-inside: avoid;
 			}
 
 			/* Mentions légales */
 			.legal-mentions {
 				font-size: 8px;
-				color: #999;
-				line-height: 1.3;
-				margin-top: 20px;
-				padding: 15px;
+				color: #888;
+				line-height: 1.4;
+				margin-top: 15px;
+				padding: 12px;
 				background: #f8fafc;
 				border-radius: 4px;
 				border: 1px solid #e2e8f0;
+				page-break-inside: avoid;
 			}
 
-			/* Responsive pour impression */
-			@media print {
-				.document {
-					padding: 15mm;
-				}
-
-				.header {
-					page-break-inside: avoid;
-				}
-
-				.services-table {
-					page-break-inside: avoid;
-				}
+			/* ========== PAGINATION ========== */
+			/* Éviter les coupures au milieu des éléments */
+			.no-break {
+				page-break-inside: avoid;
 			}
 
-			/* Styles spécifiques pour les statuts */
+			/* Le tableau peut se couper mais pas les lignes */
+			.services-table {
+				page-break-inside: auto;
+			}
+
+			.services-table tr {
+				page-break-inside: avoid;
+				page-break-after: auto;
+			}
+
+			.services-table thead {
+				display: table-header-group;
+			}
+
+			/* Garder les totaux ensemble */
+			.totals {
+				page-break-inside: avoid;
+			}
+
+			/* Garder les conditions et mentions ensemble */
+			.conditions-section,
+			.legal-mentions,
+			.footer {
+				page-break-inside: avoid;
+			}
+
+			/* Forcer un saut de page si nécessaire */
+			.page-break {
+				page-break-after: always;
+			}
+
+			/* Styles pour les statuts */
 			.status-badge {
 				display: inline-block;
 				padding: 4px 8px;
@@ -287,9 +332,13 @@
 				background: #fee2e2;
 				color: #991b1b;
 			}
-			.status-expire {
-				background: #f3f4f6;
-				color: #374151;
+
+			/* Impression */
+			@media print {
+				body {
+					-webkit-print-color-adjust: exact;
+					print-color-adjust: exact;
+				}
 			}
 		</style>
 	</head>

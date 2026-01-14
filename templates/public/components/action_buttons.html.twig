@@ -1,0 +1,35 @@
+{#
+  Composant : Boutons d'action pour les documents
+  Usage : {% include 'public/components/action_buttons.html.twig' with {
+      buttons: [
+          {label: 'Retour', url: path(...), style: 'secondary'},
+          {label: 'Signer', url: path(...), style: 'primary', icon: 'check-circle'}
+      ]
+  } %}
+#}
+
+<div class="flex flex-col sm:flex-row gap-4">
+	{% for button in buttons %}
+		{% if button.type is defined and button.type == 'submit' %}
+			<button type="submit" {% if button.id is defined %} id="{{ button.id }}" {% endif %} class="flex-1 px-6 py-3 rounded-lg font-semibold transition-colors text-center
+					                    {% if button.style == 'primary' %}bg-blue-600 hover:bg-blue-700 text-white
+					                    {% elseif button.style == 'danger' %}bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-white
+					                    {% else %}bg-white/10 hover:bg-white/20 border border-white/20 text-white{% endif %}">
+				{% if button.icon is defined %}
+					{{ ux_icon('lucide:' ~ button.icon, {class: 'w-5 h-5 inline mr-2'}) }}
+				{% endif %}
+				{{ button.label }}
+			</button>
+		{% else %}
+			<a href="{{ button.url }}" class="flex-1 px-6 py-3 rounded-lg font-semibold transition-colors text-center
+					                    {% if button.style == 'primary' %}bg-blue-600 hover:bg-blue-700 text-white
+					                    {% elseif button.style == 'danger' %}bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-white
+					                    {% else %}bg-white/10 hover:bg-white/20 border border-white/20 text-white{% endif %}">
+				{% if button.icon is defined %}
+					{{ ux_icon('lucide:' ~ button.icon, {class: 'w-5 h-5 inline mr-2'}) }}
+				{% endif %}
+				{{ button.label }}
+			</a>
+		{% endif %}
+	{% endfor %}
+</div>

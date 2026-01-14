@@ -8,6 +8,7 @@ use App\Entity\Invoice;
 use App\Entity\CreditNote;
 use App\Entity\QuoteStatus;
 use App\Entity\InvoiceStatus;
+use App\Entity\AmendmentStatus;
 use App\Entity\CreditNoteStatus;
 use App\Repository\QuoteRepository;
 use App\Repository\AmendmentRepository;
@@ -17,10 +18,13 @@ use App\Service\MagicLinkService;
 use App\Service\AuditService;
 use App\Service\QuoteService;
 use App\Service\InvoiceService;
+use App\Service\SignatureService;
+use App\Service\PaymentService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -68,37 +72,99 @@ class PublicDocumentController extends AbstractController
         ]);
     }
 
+
     public function signQuote(
         int $id,
         Request $request,
-        QuoteRepository $repository
+        QuoteRepository $repository,
+        SignatureService $signatureService
     ): Response {
         $quote = $this->verifyAndGetDocument($repository, $id, 'quote', 'sign', $request);
         
-        // Vérifier que le devis peut être signé
-        if (!in_array($quote->getStatut(), [QuoteStatus::ISSUED, QuoteStatus::SENT], true)) {
+        // Vérifier que le devis peut être signé (DRAFT ou SENT)
+        if (!in_array($quote->getStatut(), [QuoteStatus::DRAFT, QuoteStatus::SENT], true)) {
             throw new AccessDeniedHttpException('Ce devis ne peut plus être signé.');
         }
         
         if ($request->isMethod('POST')) {
-            // Traiter la signature
+            // Récupérer la méthode de signature
+            $signatureMethod = $request->request->get('signature_method', 'text');
             $signatureName = $request->request->get('signature_name');
-            $signatureDate = new \DateTimeImmutable();
+            $signatureData = [];
+            $uploadedFile = null;
             
-            if (empty($signatureName)) {
-                $this->addFlash('error', 'Veuillez saisir votre nom pour signer.');
-            } else {
-                // Changer le statut à SIGNED
-                $this->quoteService->sign($quote, $signatureName);
+            // Validation selon la méthode
+            $isValid = false;
+            
+            if ($signatureMethod === 'text') {
+                if (empty($signatureName)) {
+                    $this->addFlash('error', 'Veuillez saisir votre nom pour signer.');
+                } else {
+                    $signatureData = ['name' => $signatureName];
+                    $isValid = true;
+                }
+            } elseif ($signatureMethod === 'draw') {
+                $dataJson = $request->request->get('signature_data');
+                if (!empty($dataJson)) {
+                    $data = json_decode($dataJson, true);
+                    if (isset($data['data']) && str_starts_with($data['data'], 'data:image/png')) {
+                        $signatureData = $data;
+                        $isValid = true;
+                    } else {
+                        $this->addFlash('error', 'Données de signature invalides.');
+                    }
+                } else {
+                    $this->addFlash('error', 'Veuillez dessiner votre signature.');
+                }
+            } elseif ($signatureMethod === 'upload') {
+                $uploadedFile = $request->files->get('signature_file');
+                if ($uploadedFile && $uploadedFile->isValid()) {
+                    // Valider le type MIME
+                    if (!in_array($uploadedFile->getMimeType(), ['image/png', 'image/jpeg'], true)) {
+                        $this->addFlash('error', 'Seuls les fichiers PNG et JPEG sont acceptés.');
+                    } elseif ($uploadedFile->getSize() > 500 * 1024) { // 500 Ko
+                        $this->addFlash('error', 'Le fichier ne doit pas dépasser 500 Ko.');
+                    } else {
+                        // Lire le fichier et le convertir en base64
+                        $fileContent = file_get_contents($uploadedFile->getPathname());
+                        $signatureData = [
+                            'filename' => $uploadedFile->getClientOriginalName(),
+                            'data' => 'data:' . $uploadedFile->getMimeType() . ';base64,' . base64_encode($fileContent)
+                        ];
+                        $isValid = true;
+                    }
+                } else {
+                    $this->addFlash('error', 'Veuillez sélectionner une image de signature.');
+                }
+            }
+            
+            if ($isValid && !empty($signatureData)) {
+                // Créer la signature avec SignatureService
+                $signerInfo = [
+                    'name' => $signatureName ?: $quote->getClient()->getNomComplet(),
+                    'email' => $quote->getClient()->getEmail(),
+                    'ip' => $request->getClientIp(),
+                    'userAgent' => $request->headers->get('User-Agent'),
+                ];
                 
-                // Enregistrer les informations de signature
+                $signature = $signatureService->createSignature(
+                    $quote,
+                    $signatureData,
+                    $signerInfo,
+                    $signatureMethod
+                );
+                
+                // Changer le statut du devis à SIGNED
+                $this->quoteService->sign($quote, $signerInfo['name']);
+                
+                // Enregistrer l'audit
                 $this->auditService->log(
                     entityType: 'Quote',
                     entityId: $quote->getId(),
                     action: 'sign_by_client',
                     metadata: [
-                        'method' => 'magic_link',
-                        'signature_name' => $signatureName,
+                        'method' => $signatureMethod,
+                        'signature_id' => $signature->getId(),
                         'ip' => $request->getClientIp(),
                         'user_agent' => $request->headers->get('User-Agent')
                     ]
@@ -128,7 +194,7 @@ class PublicDocumentController extends AbstractController
         $quote = $this->verifyAndGetDocument($repository, $id, 'quote', 'refuse', $request);
         
         // Vérifier que le devis peut être refusé
-        if (!in_array($quote->getStatut(), [QuoteStatus::ISSUED, QuoteStatus::SENT], true)) {
+        if ($quote->getStatut() !== QuoteStatus::SENT) {
             throw new AccessDeniedHttpException('Ce devis ne peut plus être refusé.');
         }
         
@@ -195,29 +261,100 @@ class PublicDocumentController extends AbstractController
     public function signAmendment(
         int $id,
         Request $request,
-        AmendmentRepository $repository
+        AmendmentRepository $repository,
+        SignatureService $signatureService
     ): Response {
         $amendment = $this->verifyAndGetDocument($repository, $id, 'amendment', 'sign', $request);
         
-        if (!in_array($amendment->getStatut(), [QuoteStatus::ISSUED, QuoteStatus::SENT], true)) {
+        // Vérifier que l'avenant peut être signé (DRAFT ou SENT)
+        if (!in_array($amendment->getStatut(), [AmendmentStatus::DRAFT, AmendmentStatus::SENT], true)) {
             throw new AccessDeniedHttpException('Cet avenant ne peut plus être signé.');
         }
         
         if ($request->isMethod('POST')) {
+            // Récupérer la méthode de signature
+            $signatureMethod = $request->request->get('signature_method', 'text');
             $signatureName = $request->request->get('signature_name');
+            $signatureData = [];
+            $uploadedFile = null;
             
-            if (empty($signatureName)) {
-                $this->addFlash('error', 'Veuillez saisir votre nom pour signer.');
-            } else {
-                $amendment->setStatut(QuoteStatus::SIGNED);
+            // Validation selon la méthode
+            $isValid = false;
+            
+            if ($signatureMethod === 'text') {
+                if (empty($signatureName)) {
+                    $this->addFlash('error', 'Veuillez saisir votre nom pour signer.');
+                } else {
+                    $signatureData = ['name' => $signatureName];
+                    $isValid = true;
+                }
+            } elseif ($signatureMethod === 'draw') {
+                $dataJson = $request->request->get('signature_data');
+                if (!empty($dataJson)) {
+                    $data = json_decode($dataJson, true);
+                    if (isset($data['data']) && str_starts_with($data['data'], 'data:image/png')) {
+                        $signatureData = $data;
+                        $isValid = true;
+                    } else {
+                        $this->addFlash('error', 'Données de signature invalides.');
+                    }
+                } else {
+                    $this->addFlash('error', 'Veuillez dessiner votre signature.');
+                }
+            } elseif ($signatureMethod === 'upload') {
+                $uploadedFile = $request->files->get('signature_file');
+                if ($uploadedFile && $uploadedFile->isValid()) {
+                    // Valider le type MIME
+                    if (!in_array($uploadedFile->getMimeType(), ['image/png', 'image/jpeg'], true)) {
+                        $this->addFlash('error', 'Seuls les fichiers PNG et JPEG sont acceptés.');
+                    } elseif ($uploadedFile->getSize() > 500 * 1024) { // 500 Ko
+                        $this->addFlash('error', 'Le fichier ne doit pas dépasser 500 Ko.');
+                    } else {
+                        // Lire le fichier et le convertir en base64
+                        $fileContent = file_get_contents($uploadedFile->getPathname());
+                        $signatureData = [
+                            'filename' => $uploadedFile->getClientOriginalName(),
+                            'data' => 'data:' . $uploadedFile->getMimeType() . ';base64,' . base64_encode($fileContent)
+                        ];
+                        $isValid = true;
+                    }
+                } else {
+                    $this->addFlash('error', 'Veuillez sélectionner une image de signature.');
+                }
+            }
+            
+            if ($isValid && !empty($signatureData)) {
+                // Créer la signature avec SignatureService
+                // Note: Amendment n'a pas forcément de méthode getClient() directe comme Quote, 
+                // il faut passer par le devis lié : $amendment->getQuote()->getClient()
+                $client = $amendment->getQuote()->getClient();
                 
+                $signerInfo = [
+                    'name' => $signatureName ?: $client->getNomComplet(),
+                    'email' => $client->getEmail(),
+                    'ip' => $request->getClientIp(),
+                    'userAgent' => $request->headers->get('User-Agent'),
+                ];
+                
+                $signature = $signatureService->createSignature(
+                    $amendment,
+                    $signatureData,
+                    $signerInfo,
+                    $signatureMethod
+                );
+                
+                // Changer le statut de l'avenant à SIGNED
+                $amendment->setStatut(AmendmentStatus::SIGNED);
+                $amendment->setDateSignature(new \DateTimeImmutable());
+                
+                // Enregistrer l'audit
                 $this->auditService->log(
                     entityType: 'Amendment',
                     entityId: $amendment->getId(),
                     action: 'sign_by_client',
                     metadata: [
-                        'method' => 'magic_link',
-                        'signature_name' => $signatureName,
+                        'method' => $signatureMethod,
+                        'signature_id' => $signature->getId(),
                         'ip' => $request->getClientIp(),
                         'user_agent' => $request->headers->get('User-Agent')
                     ]
@@ -246,7 +383,7 @@ class PublicDocumentController extends AbstractController
     ): Response {
         $amendment = $this->verifyAndGetDocument($repository, $id, 'amendment', 'refuse', $request);
         
-        if (!in_array($amendment->getStatut(), [QuoteStatus::ISSUED, QuoteStatus::SENT], true)) {
+        if ($amendment->getStatut() !== AmendmentStatus::SENT) {
             throw new AccessDeniedHttpException('Cet avenant ne peut plus être refusé.');
         }
         
@@ -311,46 +448,54 @@ class PublicDocumentController extends AbstractController
     public function payInvoice(
         int $id,
         Request $request,
-        InvoiceRepository $repository
+        InvoiceRepository $repository,
+        PaymentService $paymentService
     ): Response {
         $invoice = $this->verifyAndGetDocument($repository, $id, 'invoice', 'pay', $request);
         
         if (!in_array($invoice->getStatutEnum(), [InvoiceStatus::ISSUED, InvoiceStatus::SENT], true)) {
-            throw new AccessDeniedHttpException('Cette facture ne peut plus être marquée comme payée.');
+            throw new AccessDeniedHttpException('Cette facture ne peut plus être payée.');
         }
         
         if ($request->isMethod('POST')) {
-            // Dans une vraie application, ici vous intégreriez un système de paiement (Stripe, PayPal, etc.)
-            // Pour l'instant, on simule simplement le marquage comme payé
-            
-            $paymentMethod = $request->request->get('payment_method', 'non spécifié');
-            
-            // Changer le statut à PAID
-            $this->invoiceService->markPaid($invoice);
-            
-            $this->auditService->log(
-                entityType: 'Invoice',
-                entityId: $invoice->getId(),
-                action: 'pay_by_client',
-                metadata: [
-                    'method' => 'magic_link',
-                    'payment_method' => $paymentMethod,
-                    'ip' => $request->getClientIp(),
-                    'user_agent' => $request->headers->get('User-Agent')
-                ]
-            );
-            $this->entityManager->flush();
-            
-            $this->addFlash('success', 'Paiement enregistré avec succès !');
-            
-            return $this->redirectToRoute('public_invoice_view', [
+            // Générer les URLs de retour pour Stripe
+            $successUrl = $this->generateUrl('public_invoice_payment_success', [
                 'id' => $id,
                 'expires' => $request->query->get('expires'),
                 'signature' => $request->query->get('signature'),
-            ]);
+                'session_id' => '{CHECKOUT_SESSION_ID}', // Placeholder Stripe
+            ], UrlGeneratorInterface::ABSOLUTE_URL);
+
+            $cancelUrl = $this->generateUrl('public_invoice_view', [
+                'id' => $id,
+                'expires' => $request->query->get('expires'),
+                'signature' => $request->query->get('signature'),
+            ], UrlGeneratorInterface::ABSOLUTE_URL);
+
+            try {
+                // Créer la session Stripe et rediriger
+                $checkoutUrl = $paymentService->createPaymentIntent($invoice, $successUrl, $cancelUrl);
+                return $this->redirect($checkoutUrl);
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erreur lors de l\'initialisation du paiement : ' . $e->getMessage());
+            }
         }
         
         return $this->render('public/invoice/pay.html.twig', [
+            'invoice' => $invoice,
+        ]);
+    }
+
+    #[Route('/public/invoice/{id}/payment/success', name: 'public_invoice_payment_success')]
+    public function paymentSuccess(
+        int $id,
+        Request $request,
+        InvoiceRepository $repository
+    ): Response {
+        // On utilise l'action 'pay' car c'est la suite logique et la signature est la même
+        $invoice = $this->verifyAndGetDocument($repository, $id, 'invoice', 'pay', $request);
+        
+        return $this->render('public/invoice/payment_success.html.twig', [
             'invoice' => $invoice,
         ]);
     }

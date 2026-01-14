@@ -18,8 +18,74 @@ export default class extends Controller {
             }
         }
 
+        // Écouter les changements sur les selects tariff pour auto-remplir
+        this.setupTariffListeners()
+
         // Note: La gestion de l'affichage/masquage des champs tvaRate est maintenant gérée par le contrôleur tva-per-line
         // On garde cette méthode pour compatibilité mais elle ne sera plus utilisée si tva-per-line est présent
+    }
+
+    /**
+     * Configure les écouteurs pour les selects de tariff
+     */
+    setupTariffListeners() {
+        const tariffSelects = this.element.querySelectorAll('select[name*="[tariff]"]')
+        tariffSelects.forEach(select => {
+            if (!select.hasAttribute('data-tariff-listener')) {
+                select.addEventListener('change', (e) => this.handleTariffChange(e))
+                select.setAttribute('data-tariff-listener', 'true')
+            }
+        })
+    }
+
+    /**
+     * Remplit automatiquement la description et le prix quand un tarif est sélectionné
+     */
+    async handleTariffChange(event) {
+        const tariffId = event.target.value
+        const lineElement = event.target.closest('[data-line-index]')
+
+        if (!lineElement) return
+
+        const descriptionInput = lineElement.querySelector('input[name*="[description]"]')
+        const unitPriceInput = lineElement.querySelector('input[name*="[unitPrice]"]')
+        const quantityInput = lineElement.querySelector('input[name*="[quantity]"]')
+
+        // Si aucun tarif sélectionné, ne pas vider les champs (permet la saisie personnalisée)
+        if (!tariffId) {
+            return
+        }
+
+        try {
+            const response = await fetch(`/admin/tariff/api/${tariffId}`)
+            if (!response.ok) {
+                console.error('Erreur lors de la récupération du tarif')
+                return
+            }
+
+            const data = await response.json()
+
+            // Pré-remplir la description
+            if (descriptionInput && data.nom) {
+                descriptionInput.value = data.nom
+                descriptionInput.dispatchEvent(new Event('input', { bubbles: true }))
+            }
+
+            // Pré-remplir le prix unitaire
+            if (unitPriceInput && data.prix) {
+                unitPriceInput.value = parseFloat(data.prix).toFixed(2)
+                unitPriceInput.dispatchEvent(new Event('input', { bubbles: true }))
+            }
+
+            // Mettre la quantité à 1 si elle est vide ou à 0
+            if (quantityInput && (!quantityInput.value || quantityInput.value === '0')) {
+                quantityInput.value = '1'
+                quantityInput.dispatchEvent(new Event('input', { bubbles: true }))
+            }
+
+        } catch (error) {
+            console.error('Erreur lors du chargement du tarif:', error)
+        }
     }
 
     /**
@@ -123,6 +189,9 @@ export default class extends Controller {
 
         // Connecter les nouveaux champs au contrôleur de validation
         this.connectValidationToNewFields(newLineElement)
+
+        // Connecter les selects tariff de la nouvelle ligne
+        this.setupTariffListeners()
 
         // Note: L'état de usePerLineTva est maintenant géré par le contrôleur tva-per-line
         // qui observe les changements dans le DOM et met à jour automatiquement les nouvelles lignes

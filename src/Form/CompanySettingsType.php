@@ -87,6 +87,45 @@ class CompanySettingsType extends AbstractType
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
 
+            // ===== MENTIONS LÉGALES OBLIGATOIRES =====
+            ->add('formeJuridique', ChoiceType::class, [
+                'label' => 'Forme juridique',
+                'required' => true,
+                'choices' => [
+                    'Micro-entrepreneur' => 'Micro-entrepreneur',
+                    'Entreprise individuelle (EI)' => 'Entreprise individuelle',
+                    'EURL' => 'EURL',
+                    'SASU' => 'SASU',
+                    'SARL' => 'SARL',
+                    'SAS' => 'SAS',
+                ],
+                'attr' => ['class' => 'form-select'],
+                'help' => 'Apparaît sur vos documents officiels',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('codeAPE', TextType::class, [
+                'label' => 'Code APE / NAF',
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'placeholder' => 'Ex: 6201Z'],
+                'help' => 'Code d\'activité principale (5 caractères)',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('assuranceRCPro', TextareaType::class, [
+                'label' => 'Assurance RC Professionnelle',
+                'required' => false,
+                'attr' => ['class' => 'form-textarea', 'rows' => 2, 'placeholder' => 'Nom de l\'assureur, numéro de contrat...'],
+                'help' => 'Obligatoire pour certaines professions réglementées',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('indemniteForfaitaireRecouvrement', NumberType::class, [
+                'label' => 'Indemnité forfaitaire de recouvrement (€)',
+                'required' => true,
+                'scale' => 2,
+                'attr' => ['class' => 'form-input', 'min' => 40],
+                'help' => 'Minimum légal : 40 € (art. D.441-5 du Code de commerce)',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+
             // ===== CONFIGURATION TVA =====
             ->add('tvaEnabled', CheckboxType::class, [
                 'label' => 'TVA activée',
@@ -166,7 +205,7 @@ class CompanySettingsType extends AbstractType
 
             $tvaEnabled = array_key_exists('tvaEnabled', $data) ? (bool) $data['tvaEnabled'] : false;
             $tvaEnabled = array_key_exists('tvaEnabled', $data) ? (bool) $data['tvaEnabled'] : false;
-            
+
             if (!$tvaEnabled) {
                 // Si TVA désactivée, on force à 0.00
                 $data['tauxTVADefaut'] = '0.00';
@@ -174,7 +213,7 @@ class CompanySettingsType extends AbstractType
                 // Si TVA activée mais pas de taux choisi, on met 20% par défaut
                 $data['tauxTVADefaut'] = '20.00';
             }
-            
+
             $event->setData($data);
         });
     }

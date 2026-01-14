@@ -81,16 +81,33 @@ class MagicLinkService
         int $expires,
         string $signature
     ): bool {
+        // DEBUG: Log des paramètres reçus
+        error_log("=== DEBUG MagicLink Verify ===");
+        error_log("Entity Type: " . $entityType);
+        error_log("Document ID: " . $documentId);
+        error_log("Action: " . $action);
+        error_log("Expires: " . $expires . " (currently: " . time() . ")");
+        error_log("Signature reçue: " . $signature);
+        error_log("APP_SECRET length: " . strlen($this->appSecret));
+        error_log("APP_SECRET (10 first): " . substr($this->appSecret, 0, 10));
+        
         // Vérifier l'expiration
         if (time() > $expires) {
+            error_log("RESULT: Expiré");
             return false;
         }
         
         // Générer la signature attendue
         $expectedSignature = $this->generateSignature($entityType, $documentId, $action, $expires);
+        error_log("Signature attendue: " . $expectedSignature);
+        error_log("Signatures identiques: " . ($expectedSignature === $signature ? 'OUI' : 'NON'));
         
         // Comparer de manière sécurisée (protection contre timing attacks)
-        return hash_equals($expectedSignature, $signature);
+        $result = hash_equals($expectedSignature, $signature);
+        error_log("RESULT: " . ($result ? 'VALID' : 'INVALID'));
+        error_log("=== END DEBUG ===");
+        
+        return $result;
     }
 
     /**

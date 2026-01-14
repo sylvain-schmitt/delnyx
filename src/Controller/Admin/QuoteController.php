@@ -11,6 +11,7 @@ use App\Repository\QuoteRepository;
 use App\Repository\ClientRepository;
 use App\Repository\CompanySettingsRepository;
 use App\Repository\AmendmentRepository;
+use App\Repository\TariffRepository;
 use App\Service\QuoteService;
 use App\Service\InvoiceService;
 use App\Service\EmailService;
@@ -33,6 +34,7 @@ class QuoteController extends AbstractController
         private ClientRepository $clientRepository,
         private CompanySettingsRepository $companySettingsRepository,
         private AmendmentRepository $amendmentRepository,
+        private TariffRepository $tariffRepository,
         private EntityManagerInterface $entityManager,
         private QuoteService $quoteService,
         private InvoiceService $invoiceService,
@@ -297,11 +299,15 @@ class QuoteController extends AbstractController
             $title = 'Modifier le devis ' . $quote->getNumero();
         }
 
+        // Récupérer les tarifs actifs pour le template des nouvelles lignes
+        $tariffs = $this->tariffRepository->findBy(['actif' => true], ['ordre' => 'ASC', 'nom' => 'ASC']);
+
         return $this->render('admin/quote/form.html.twig', [
             'quote' => $quote,
             'form' => $form,
             'title' => $title,
             'companySettings' => $companySettings,
+            'tariffs' => $tariffs,
         ]);
     }
 
@@ -436,11 +442,15 @@ class QuoteController extends AbstractController
             $title = 'Modifier le devis ' . $quote->getNumero();
         }
 
+        // Récupérer les tarifs actifs pour le template des nouvelles lignes
+        $tariffs = $this->tariffRepository->findBy(['actif' => true], ['ordre' => 'ASC', 'nom' => 'ASC']);
+
         return $this->render('admin/quote/form.html.twig', [
             'quote' => $quote,
             'form' => $form,
             'title' => $title,
             'companySettings' => $companySettings,
+            'tariffs' => $tariffs,
         ]);
     }
 
@@ -456,16 +466,16 @@ class QuoteController extends AbstractController
         try {
             $reason = $request->request->get('reason');
             $otherReason = $request->request->get('other_reason');
-            
+
             // Si "Autre" est sélectionné, utiliser la raison personnalisée
             $finalReason = ($reason === 'Autre' && $otherReason) ? $otherReason : $reason;
-            
+
             // Vérifier qu'une raison a été fournie
             if (empty($finalReason)) {
                 $this->addFlash('error', 'Veuillez sélectionner une raison d\'annulation.');
                 return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
             }
-            
+
             $this->quoteService->cancel($quote, $finalReason);
             $this->addFlash('success', 'Devis annulé avec succès.');
         } catch (\Exception $e) {
@@ -512,13 +522,13 @@ class QuoteController extends AbstractController
         try {
             // Enregistrer la relance
             $this->quoteService->remind($quote);
-            
+
             // Envoyer l'email de relance (avec template spécifique)
             $customMessage = $request->request->get('custom_message', 'Nous vous rappelons que ce devis est en attente de votre retour.');
             $uploadedFiles = $request->files->get('attachments', []);
-            
+
             $emailLog = $this->emailService->sendQuote($quote, $customMessage, $uploadedFiles);
-            
+
             if ($emailLog->getStatus() === 'sent') {
                 $this->addFlash('success', sprintf('Relance envoyée avec succès à %s', $quote->getClient()->getEmail()));
             } else {
@@ -686,26 +696,26 @@ class QuoteController extends AbstractController
             // Si le PDF n'a pas encore été généré, le générer et sauvegarder
             if (!$quote->getPdfFilename()) {
                 $result = $this->pdfGeneratorService->generateDevisPdf($quote, true);
-                
+
                 // Sauvegarder le nom de fichier et le hash dans l'entité
                 $quote->setPdfFilename($result['filename']);
                 $quote->setPdfHash($result['hash']);
                 $this->entityManager->flush();
-                
+
                 // Retourner la réponse PDF
                 return $result['response'];
             }
 
             // Si le PDF existe déjà, le retourner depuis le fichier sauvegardé
             $filePath = $this->getParameter('kernel.project_dir') . '/var/generated_pdfs/' . $quote->getPdfFilename();
-            
+
             if (!file_exists($filePath)) {
                 // Le fichier n'existe plus, régénérer
                 $result = $this->pdfGeneratorService->generateDevisPdf($quote, true);
                 $quote->setPdfFilename($result['filename']);
                 $quote->setPdfHash($result['hash']);
                 $this->entityManager->flush();
-                
+
                 return $result['response'];
             }
 
@@ -733,7 +743,7 @@ class QuoteController extends AbstractController
             // Créer la facture depuis le devis en statut brouillon (DRAFT)
             // L'utilisateur pourra ensuite l'émettre manuellement quand il le souhaite
             $invoice = $this->invoiceService->createFromQuote($quote, false);
-            
+
             $this->addFlash('success', sprintf('Facture créée avec succès : %s', $invoice->getNumero() ?? 'N/A'));
             return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
@@ -760,7 +770,7 @@ class QuoteController extends AbstractController
 
         // Vérifier que le devis a un client avec un email
         $client = $quote->getClient();
-        
+
         if (!$client || !$client->getEmail()) {
             $this->addFlash('error', 'Impossible d\'envoyer le devis : aucun email client configuré.');
             return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
@@ -779,13 +789,13 @@ class QuoteController extends AbstractController
                     'error' => $e->getMessage()
                 ]);
             }
-            
+
             // 2. Envoyer l'email
             $customMessage = $request->request->get('custom_message');
             $uploadedFiles = $request->files->get('attachments', []);
-            
+
             $emailLog = $this->emailService->sendQuote($quote, $customMessage, $uploadedFiles);
-            
+
             if ($emailLog->getStatus() === 'sent') {
                 $this->addFlash('success', sprintf('Devis envoyé avec succès à %s', $client->getEmail()));
             } else {

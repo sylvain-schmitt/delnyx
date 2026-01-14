@@ -14,6 +14,7 @@ use App\Repository\QuoteRepository;
 use App\Repository\ClientRepository;
 use App\Repository\CompanySettingsRepository;
 use App\Repository\AmendmentRepository;
+use App\Repository\TariffRepository;
 use App\Service\InvoiceService;
 use App\Service\EmailService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -36,6 +37,7 @@ class InvoiceController extends AbstractController
         private ClientRepository $clientRepository,
         private CompanySettingsRepository $companySettingsRepository,
         private AmendmentRepository $amendmentRepository,
+        private TariffRepository $tariffRepository,
         private EntityManagerInterface $entityManager,
         private InvoiceService $invoiceService,
         private \App\Service\PdfGeneratorService $pdfGeneratorService,
@@ -129,7 +131,7 @@ class InvoiceController extends AbstractController
             $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
             $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
         }
-        
+
         if ($companyId && $quote->getCompanyId() !== $companyId) {
             return new JsonResponse(['error' => 'Accès non autorisé'], 403);
         }
@@ -233,41 +235,42 @@ class InvoiceController extends AbstractController
         // Pré-remplir depuis un devis si fourni en paramètre
         $quoteId = $request->query->get('quote_id');
         \error_log(sprintf('[InvoiceController] quote_id dans la requête: %s', $quoteId ?: 'NULL'));
-        
+
         if ($quoteId) {
             $quote = $this->quoteRepository->find($quoteId);
-            \error_log(sprintf('[InvoiceController] Devis trouvé: %s, statut: %s, a déjà une facture: %s', 
+            \error_log(sprintf(
+                '[InvoiceController] Devis trouvé: %s, statut: %s, a déjà une facture: %s',
                 $quote ? 'OUI' : 'NON',
                 $quote ? $quote->getStatut() : 'N/A',
                 $quote && $quote->getInvoice() ? 'OUI' : 'NON'
             ));
-            
+
             if ($quote && $quote->getStatut() === \App\Entity\QuoteStatus::SIGNED && !$quote->getInvoice()) {
                 $invoice->setQuote($quote);
                 $invoice->setClient($quote->getClient());
-                
+
                 // Pré-remplir la date d'échéance (30 jours par défaut)
                 $dateEcheance = new \DateTime();
                 $dateEcheance->modify('+30 days');
                 $invoice->setDateEcheance($dateEcheance);
-                
+
                 // Copier les conditions de paiement
                 if ($quote->getConditionsPaiement()) {
                     $invoice->setConditionsPaiement($quote->getConditionsPaiement());
-                    
+
                     // Essayer d'extraire le délai de paiement depuis les conditions de paiement
                     $delaiPaiement = $this->extractDelaiPaiement($quote->getConditionsPaiement());
                     if ($delaiPaiement !== null) {
                         $invoice->setDelaiPaiement($delaiPaiement);
                     }
                 }
-                
+
                 // Pré-remplir le montant d'accompte depuis le devis
                 $montantAcompte = $quote->getMontantAcompte();
                 if ($montantAcompte) {
                     $invoice->setMontantAcompte($montantAcompte);
                 }
-                
+
                 // Copier les lignes du devis vers la facture
                 foreach ($quote->getLines() as $quoteLine) {
                     $invoiceLine = new \App\Entity\InvoiceLine();
@@ -279,10 +282,10 @@ class InvoiceController extends AbstractController
                     $invoiceLine->setTariff($quoteLine->getTariff());
                     $invoice->addLine($invoiceLine);
                 }
-                
+
                 // Recalculer les totaux
                 $invoice->recalculateTotalsFromLines();
-                
+
                 // Debug: vérifier que les lignes sont bien dans la collection
                 \error_log(sprintf('[InvoiceController] Lignes ajoutées: %d lignes dans la collection', $invoice->getLines()->count()));
             }
@@ -294,7 +297,7 @@ class InvoiceController extends AbstractController
         $form = $this->createForm(InvoiceType::class, $invoice, [
             'company_settings' => $companySettings,
         ]);
-        
+
         // Debug: vérifier le nombre de lignes dans le formulaire
         \error_log(sprintf('[InvoiceController] Après création formulaire: %d lignes dans form.lines', $form->get('lines')->count()));
         $form->handleRequest($request);
@@ -303,7 +306,7 @@ class InvoiceController extends AbstractController
         if ($form->isSubmitted()) {
             \error_log(sprintf('[InvoiceController] Formulaire soumis. Valide: %s', $form->isValid() ? 'OUI' : 'NON'));
             \error_log(sprintf('[InvoiceController] Nombre de lignes après soumission: %d', $invoice->getLines()->count()));
-            
+
             if (!$form->isValid()) {
                 foreach ($form->getErrors(true) as $error) {
                     \error_log(sprintf('[InvoiceController] Erreur: %s', $error->getMessage()));
@@ -322,7 +325,7 @@ class InvoiceController extends AbstractController
                     // S'assurer que le devis est bien associé si sélectionné dans le formulaire
                     // Récupérer depuis le formulaire d'abord
                     $quoteData = $form->get('quote')->getData();
-                    
+
                     // Si le champ est désactivé, Symfony ne le traite pas, récupérer depuis la requête
                     if (!$quoteData) {
                         $invoiceData = $request->request->all('invoice');
@@ -334,7 +337,7 @@ class InvoiceController extends AbstractController
                             }
                         }
                     }
-                    
+
                     // Associer le devis si trouvé
                     if ($quoteData) {
                         if ($quoteData instanceof \App\Entity\Quote) {
@@ -350,7 +353,7 @@ class InvoiceController extends AbstractController
                             }
                         }
                     }
-                    
+
                     // Pré-remplir le client depuis le devis si présent
                     if ($invoice->getQuote() && !$invoice->getClient()) {
                         $invoice->setClient($invoice->getQuote()->getClient());
@@ -464,6 +467,7 @@ class InvoiceController extends AbstractController
             'title' => $title,
             'companySettings' => $companySettings,
             'hasQuote' => $hasQuote,
+            'tariffs' => $this->tariffRepository->findBy(['actif' => true], ['ordre' => 'ASC', 'nom' => 'ASC']),
         ]);
     }
 
@@ -503,7 +507,7 @@ class InvoiceController extends AbstractController
                     // S'assurer que le devis est bien associé si sélectionné dans le formulaire
                     // Récupérer depuis le formulaire d'abord
                     $quoteData = $form->get('quote')->getData();
-                    
+
                     // Si le champ est désactivé, Symfony ne le traite pas, récupérer depuis la requête
                     if (!$quoteData) {
                         $invoiceData = $request->request->all('invoice');
@@ -515,7 +519,7 @@ class InvoiceController extends AbstractController
                             }
                         }
                     }
-                    
+
                     // Associer le devis si trouvé
                     if ($quoteData) {
                         if ($quoteData instanceof \App\Entity\Quote) {
@@ -531,7 +535,7 @@ class InvoiceController extends AbstractController
                             }
                         }
                     }
-                    
+
                     // Pré-remplir le client depuis le devis si présent
                     if ($invoice->getQuote() && !$invoice->getClient()) {
                         $invoice->setClient($invoice->getQuote()->getClient());
@@ -621,6 +625,7 @@ class InvoiceController extends AbstractController
             'title' => $title,
             'companySettings' => $companySettings,
             'hasQuote' => $hasQuote,
+            'tariffs' => $this->tariffRepository->findBy(['actif' => true], ['ordre' => 'ASC', 'nom' => 'ASC']),
         ]);
     }
 
@@ -636,16 +641,16 @@ class InvoiceController extends AbstractController
         try {
             $reason = $request->request->get('reason');
             $otherReason = $request->request->get('other_reason');
-            
+
             // Si "Autre" est sélectionné, utiliser la raison personnalisée
             $finalReason = ($reason === 'Autre' && $otherReason) ? $otherReason : $reason;
-            
+
             // Vérifier qu'une raison a été fournie
             if (empty($finalReason)) {
                 $this->addFlash('error', 'Veuillez sélectionner une raison d\'annulation.');
                 return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
             }
-            
+
             $this->invoiceService->cancel($invoice, $finalReason);
             $this->addFlash('success', 'Facture annulée avec succès.');
         } catch (\Exception $e) {
@@ -737,7 +742,7 @@ class InvoiceController extends AbstractController
         try {
             $channel = $request->request->get('channel', 'email');
             $this->invoiceService->issueAndSend($invoice, $channel);
-            
+
             // Envoyer l'email après émission et envoi
             $client = $invoice->getClient();
             if ($client && $client->getEmail()) {
@@ -745,7 +750,7 @@ class InvoiceController extends AbstractController
                 $uploadedFiles = $request->files->get('attachments', []);
                 $this->emailService->sendInvoice($invoice, $customMessage, $uploadedFiles);
             }
-            
+
             $this->addFlash('success', sprintf('Facture %s émise et envoyée avec succès.', $invoice->getNumero() ?? 'N/A'));
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
             $this->addFlash('error', $e->getMessage());
@@ -768,7 +773,7 @@ class InvoiceController extends AbstractController
         try {
             $channel = $request->request->get('channel', 'email');
             $this->invoiceService->send($invoice, $channel);
-            
+
             // Envoyer l'email après envoi
             $client = $invoice->getClient();
             if ($client && $client->getEmail()) {
@@ -776,7 +781,7 @@ class InvoiceController extends AbstractController
                 $uploadedFiles = $request->files->get('attachments', []);
                 $this->emailService->sendInvoice($invoice, $customMessage, $uploadedFiles);
             }
-            
+
             $this->addFlash('success', sprintf('Facture %s envoyée avec succès.', $invoice->getNumero() ?? 'N/A'));
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
             $this->addFlash('error', $e->getMessage());
@@ -811,26 +816,26 @@ class InvoiceController extends AbstractController
             // Si le PDF n'a pas encore été généré, le générer et sauvegarder
             if (!$invoice->getPdfFilename()) {
                 $result = $this->pdfGeneratorService->generateFacturePdf($invoice, true);
-                
+
                 // Sauvegarder le nom de fichier et le hash dans l'entité
                 $invoice->setPdfFilename($result['filename']);
                 $invoice->setPdfHash($result['hash']);
                 $this->entityManager->flush();
-                
+
                 // Retourner la réponse PDF
                 return $result['response'];
             }
 
             // Si le PDF existe déjà, le retourner depuis le fichier sauvegardé
             $filePath = $this->getParameter('kernel.project_dir') . '/var/generated_pdfs/' . $invoice->getPdfFilename();
-            
+
             if (!file_exists($filePath)) {
                 // Le fichier n'existe plus, régénérer
                 $result = $this->pdfGeneratorService->generateFacturePdf($invoice, true);
                 $invoice->setPdfFilename($result['filename']);
                 $invoice->setPdfHash($result['hash']);
                 $this->entityManager->flush();
-                
+
                 return $result['response'];
             }
 
@@ -879,7 +884,7 @@ class InvoiceController extends AbstractController
 
         // Vérifier que la facture a un client avec un email
         $client = $invoice->getClient();
-        
+
         if (!$client || !$client->getEmail()) {
             $this->addFlash('error', 'Impossible d\'envoyer la facture : aucun email client configuré.');
             return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
@@ -888,13 +893,13 @@ class InvoiceController extends AbstractController
         try {
             // Utiliser le service pour envoyer (gère DRAFT → SENT automatiquement)
             $this->invoiceService->send($invoice, 'email');
-            
+
             // Envoyer l'email
             $customMessage = $request->request->get('custom_message');
             $uploadedFiles = $request->files->get('attachments', []);
-            
+
             $emailLog = $this->emailService->sendInvoice($invoice, $customMessage, $uploadedFiles);
-            
+
             if ($emailLog->getStatus() === 'sent') {
                 $this->addFlash('success', sprintf('Facture envoyée avec succès à %s', $client->getEmail()));
             } else {
@@ -907,4 +912,3 @@ class InvoiceController extends AbstractController
         return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
     }
 }
-

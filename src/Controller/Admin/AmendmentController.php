@@ -12,6 +12,7 @@ use App\Form\AmendmentType;
 use App\Repository\AmendmentRepository;
 use App\Repository\QuoteRepository;
 use App\Repository\CompanySettingsRepository;
+use App\Repository\TariffRepository;
 use App\Service\AmendmentService;
 use App\Service\EmailService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,6 +33,7 @@ class AmendmentController extends AbstractController
         private AmendmentRepository $amendmentRepository,
         private QuoteRepository $quoteRepository,
         private CompanySettingsRepository $companySettingsRepository,
+        private TariffRepository $tariffRepository,
         private EntityManagerInterface $entityManager,
         private AmendmentService $amendmentService,
         private \App\Service\PdfGeneratorService $pdfGeneratorService,
@@ -392,6 +394,7 @@ class AmendmentController extends AbstractController
             'quote_locked' => $quoteId !== null, // Verrouiller le champ si on vient d'un devis
             'quote_id' => $quoteId, // Passer l'ID directement pour le champ hidden
             'quote' => $amendment->getQuote(), // Passer le devis pour afficher ses lignes
+            'tariffs' => $this->tariffRepository->findBy(['actif' => true], ['ordre' => 'ASC', 'nom' => 'ASC']),
         ]);
     }
 
@@ -463,13 +466,14 @@ class AmendmentController extends AbstractController
             'title' => 'Modifier l\'Avenant ' . ($amendment->getNumero() ?? ''),
             'companySettings' => $companySettings,
             'quote' => $amendment->getQuote(), // Passer le devis pour afficher ses lignes
+            'tariffs' => $this->tariffRepository->findBy(['actif' => true], ['ordre' => 'ASC', 'nom' => 'ASC']),
         ]);
     }
 
     /**
      * Route obsolète - Conservée pour backward compatibility
      * Dans le workflow simplifié, l'émission se fait automatiquement lors de l'envoi
-     * 
+     *
      * @deprecated Utilisez sendEmail() à la place
      */
     #[Route('/{id}/issue', name: 'issue', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -628,10 +632,10 @@ class AmendmentController extends AbstractController
         try {
             $reason = $request->request->get('reason');
             $otherReason = $request->request->get('other_reason');
-            
+
             // Si "Autre" est sélectionné, utiliser la raison personnalisée
             $finalReason = ($reason === 'Autre' && $otherReason) ? $otherReason : $reason;
-            
+
             $this->amendmentService->cancel($amendment, $finalReason);
             $this->addFlash('success', 'Avenant annulé');
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
@@ -667,26 +671,26 @@ class AmendmentController extends AbstractController
             // Si le PDF n'a pas encore été généré, le générer et sauvegarder
             if (!$amendment->getPdfFilename()) {
                 $result = $this->pdfGeneratorService->generateAvenantPdf($amendment, true);
-                
+
                 // Sauvegarder le nom de fichier et le hash dans l'entité
                 $amendment->setPdfFilename($result['filename']);
                 $amendment->setPdfHash($result['hash']);
                 $this->entityManager->flush();
-                
+
                 // Retourner la réponse PDF
                 return $result['response'];
             }
 
             // Si le PDF existe déjà, le retourner depuis le fichier sauvegardé
             $filePath = $this->getParameter('kernel.project_dir') . '/var/generated_pdfs/' . $amendment->getPdfFilename();
-            
+
             if (!file_exists($filePath)) {
                 // Le fichier n'existe plus, régénérer
                 $result = $this->pdfGeneratorService->generateAvenantPdf($amendment, true);
                 $amendment->setPdfFilename($result['filename']);
                 $amendment->setPdfHash($result['hash']);
                 $this->entityManager->flush();
-                
+
                 return $result['response'];
             }
 
@@ -714,7 +718,7 @@ class AmendmentController extends AbstractController
         // Vérifier que l'avenant a un client avec un email
         $quote = $amendment->getQuote();
         $client = $quote?->getClient();
-        
+
         if (!$client || !$client->getEmail()) {
             $this->addFlash('error', 'Impossible d\'envoyer l\'avenant : aucun email client configuré.');
             return $this->redirectToRoute('admin_amendment_show', ['id' => $amendment->getId()]);
@@ -728,9 +732,9 @@ class AmendmentController extends AbstractController
             // Envoyer l'email
             $customMessage = $request->request->get('custom_message');
             $uploadedFiles = $request->files->get('attachments', []);
-            
+
             $emailLog = $this->emailService->sendAmendment($amendment, $customMessage, $uploadedFiles);
-            
+
             if ($emailLog->getStatus() === 'sent') {
                 $this->addFlash('success', sprintf('Avenant envoyé avec succès à %s', $client->getEmail()));
             } else {

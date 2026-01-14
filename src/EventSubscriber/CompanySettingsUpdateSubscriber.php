@@ -14,7 +14,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * EventSubscriber pour régénérer les PDF lorsque les informations de l'émetteur changent
- * 
+ *
  * Déclenche la régénération automatique des PDF pour tous les documents émis/signés
  * lorsque les informations de l'entreprise (CompanySettings) sont modifiées
  */
@@ -33,13 +33,16 @@ class CompanySettingsUpdateSubscriber
         'email',
         'tauxTVADefaut', // Le taux de TVA peut affecter les montants affichés
         'logoPath', // Le logo de l'entreprise
+        'formeJuridique', // Forme juridique (Micro-entrepreneur, etc.)
+        'codeAPE', // Code NAF/APE
+        'assuranceRCPro', // Assurance RC Professionnelle
+        'indemniteForfaitaireRecouvrement', // Indemnité forfaitaire (min 40€)
     ];
 
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly LoggerInterface $logger
-    ) {
-    }
+    ) {}
 
     public function postUpdate(CompanySettings $entity, LifecycleEventArgs $args): void
     {
@@ -79,4 +82,3 @@ class CompanySettingsUpdateSubscriber
         }
     }
 }
-

@@ -14,14 +14,23 @@
 			<div class="company-details">
 				{% if company %}
 					<strong>{{ company.raisonSociale }}</strong><br>
-					{% if not company.isTvaEnabled() %}
-						<em>Micro-entrepreneur</em><br>
-					{% endif %}
+					{{ company.formeJuridique ?? 'Micro-entrepreneur' }}
+					{% if company.codeAPE %}
+						• APE:
+						{{ company.codeAPE }}
+					{% endif %}<br>
 					{{ company.adresse }}<br>
-					{{ company.codePostal }} {{ company.ville }}<br>
-					{% if company.siret %}SIRET: {{ company.siret }}<br>{% endif %}
-					{% if company.email %}Email: {{ company.email }}<br>{% endif %}
-					{% if company.telephone %}Tél: {{ company.telephone }}{% endif %}
+					{{ company.codePostal }}
+					{{ company.ville }}<br>
+					{% if company.siret %}SIRET:
+						{{ company.siret }}<br>
+					{% endif %}
+					{% if company.email %}Email:
+						{{ company.email }}<br>
+					{% endif %}
+					{% if company.telephone %}Tél:
+						{{ company.telephone }}
+					{% endif %}
 				{% else %}
 					<strong>Entreprise</strong><br>
 					Informations non disponibles
@@ -32,7 +41,8 @@
 			<div class="document-title">AVENANT</div>
 			<div class="document-number">{{ amendment.numero ?? ('AV-' ~ amendment.id) }}</div>
 			<div class="document-date">
-				Date: {{ amendment.dateCreation|date('d/m/Y') }}
+				Date:
+				{{ amendment.dateCreation|date('d/m/Y') }}
 			</div>
 		</div>
 	</div>
@@ -44,125 +54,167 @@
 			{% if client.companyName %}
 				<div class="client-name">{{ client.companyName }}</div>
 				<div class="client-details">
-					<strong>{{ client.prenom }} {{ client.nom }}</strong><br>
-			{% else %}
-				<div class="client-name">{{ client.prenom }} {{ client.nom }}</div>
-				<div class="client-details">
-			{% endif %}
-				{% if client.email %}{{ client.email }}<br>{% endif %}
-				{% if client.telephone %}{{ client.telephone }}<br>{% endif %}
-				{% if client.adresse %}
-					{{ client.adresse }}<br>
-					{{ client.codePostal }} {{ client.ville }}
-				{% endif %}
-				{% if client.siret %}<br>SIRET: {{ client.siret }}{% endif %}
-			</div>
-		</div>
-		{% if quote %}
-			<div class="company-billing">
-				<div class="section-title">Devis de référence</div>
-				<div class="client-details">
-					<strong>{{ quote.numero }}</strong><br>
-					Signé le {{ quote.dateSignature|date('d/m/Y') }}
+					<strong>{{ client.prenom }}
+						{{ client.nom }}</strong><br>
+				{% else %}
+					<div class="client-name">{{ client.prenom }}
+						{{ client.nom }}</div>
+					<div class="client-details">
+					{% endif %}
+					{% if client.email %}
+						{{ client.email }}<br>
+					{% endif %}
+					{% if client.telephone %}
+						{{ client.telephone }}<br>
+					{% endif %}
+					{% if client.adresse %}
+						{{ client.adresse }}<br>
+						{{ client.codePostal }}
+						{{ client.ville }}
+					{% endif %}
+					{% if client.siret %}<br>SIRET:
+						{{ client.siret }}
+					{% endif %}
 				</div>
 			</div>
-		{% endif %}
-	</div>
-
-	<!-- Motif et modifications -->
-	<div class="conditions-section">
-		<div class="conditions-title">Motif de l'avenant</div>
-		<div class="conditions-content">
-			{{ amendment.motif|nl2br }}
+			{% if quote %}
+				<div class="company-billing">
+					<div class="section-title">Devis de référence</div>
+					<div class="client-details">
+						<strong>{{ quote.numero }}</strong><br>
+						Signé le
+						{{ quote.dateSignature|date('d/m/Y') }}
+					</div>
+				</div>
+			{% endif %}
 		</div>
-	</div>
 
-	<div class="conditions-section">
-		<div class="conditions-title">Modifications apportées</div>
-		<div class="conditions-content">
-			{{ amendment.modifications|nl2br }}
+		<!-- Motif et modifications -->
+		<div class="conditions-section no-break">
+			<div class="conditions-title">Motif de l'avenant</div>
+			<div class="conditions-content">
+				{{ amendment.motif|nl2br }}
+			</div>
 		</div>
-	</div>
 
-	<!-- Tableau des lignes modifiées -->
-	{% if amendment.lines|length > 0 %}
-		<table class="services-table">
-			<thead>
-				<tr>
-					<th style="width: 40%;">Description</th>
-					<th style="width: 10%;" class="text-center">Qté</th>
-					<th style="width: 15%;" class="text-right">Prix unit.</th>
-					{% if company and company.isTvaEnabled() %}
-						<th style="width: 10%;" class="text-right">TVA</th>
-					{% endif %}
-					<th style="width: 15%;" class="text-right">Ancien total</th>
-					<th style="width: 15%;" class="text-right">Nouveau total</th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for line in amendment.lines %}
+		<div class="conditions-section no-break">
+			<div class="conditions-title">Modifications apportées</div>
+			<div class="conditions-content">
+				{{ amendment.modifications|nl2br }}
+			</div>
+		</div>
+
+		<!-- Tableau des lignes modifiées -->
+		{% if amendment.lines|length > 0 %}
+			<table class="services-table">
+				<thead>
 					<tr>
-						<td><strong>{{ line.description }}</strong></td>
-						<td class="text-center">{{ line.quantity }}</td>
-						<td class="text-right">{{ line.unitPrice|number_format(2, ',', ' ') }} €</td>
+						<th style="width: 40%;">Description</th>
+						<th style="width: 10%;" class="text-center">Qté</th>
+						<th style="width: 15%;" class="text-right">Prix unit.</th>
 						{% if company and company.isTvaEnabled() %}
-							<td class="text-right">{{ line.tvaRate }} %</td>
+							<th style="width: 10%;" class="text-right">TVA</th>
 						{% endif %}
-						<td class="text-right">{{ line.oldValue|number_format(2, ',', ' ') }} €</td>
-						<td class="text-right">{{ line.newValue|number_format(2, ',', ' ') }} €</td>
+						<th style="width: 15%;" class="text-right">Ancien total</th>
+						<th style="width: 15%;" class="text-right">Nouveau total</th>
 					</tr>
-				{% endfor %}
-			</tbody>
-		</table>
-	{% endif %}
+				</thead>
+				<tbody>
+					{% for line in amendment.lines %}
+						<tr>
+							<td>
+								<strong>{{ line.description }}</strong>
+							</td>
+							<td class="text-center">{{ line.quantity }}</td>
+							<td class="text-right">{{ line.unitPrice|number_format(2, ',', ' ') }}
+								€</td>
+							{% if company and company.isTvaEnabled() %}
+								<td class="text-right">{{ line.tvaRate }}
+									%</td>
+							{% endif %}
+							<td class="text-right">{{ line.oldValue|number_format(2, ',', ' ') }}
+								€</td>
+							<td class="text-right">{{ line.newValue|number_format(2, ',', ' ') }}
+								€</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		{% endif %}
 
-	<!-- Totaux -->
-	<div class="totals">
-		<table class="totals-table">
-			<tr>
-				<td class="label">Total HT (nouveaux montants):</td>
-				<td class="amount">{{ amendment.montantHTFormate }}</td>
-			</tr>
-			{% if company and company.isTvaEnabled() and amendment.montantTVA > 0 %}
+		<!-- Totaux -->
+		<div class="totals no-break">
+			<table class="totals-table">
 				<tr>
-					<td class="label">Total TVA:</td>
-					<td class="amount">{{ amendment.montantTVAFormatted ?? (amendment.montantTVA|number_format(2, ',', ' ') ~ ' €') }}</td>
+					<td class="label">Total HT (nouveaux montants):</td>
+					<td class="amount">{{ amendment.montantHTFormate }}</td>
 				</tr>
-			{% endif %}
-			<tr class="total-row">
-				<td class="label">Total TTC:</td>
-				<td class="amount">{{ amendment.montantTTCFormate }}</td>
-			</tr>
-		</table>
-	</div>
-
-	{% if amendment.notes %}
-		<div class="notes-section">
-			<strong>Notes:</strong><br>
-			{{ amendment.notes|nl2br }}
+				{% if company and company.isTvaEnabled() and amendment.montantTVA > 0 %}
+					<tr>
+						<td class="label">Total TVA:</td>
+						<td class="amount">{{ amendment.montantTVAFormatted ?? (amendment.montantTVA|number_format(2, ',', ' ') ~ ' €') }}</td>
+					</tr>
+				{% endif %}
+				<tr class="total-row">
+					<td class="label">Total TTC:</td>
+					<td class="amount">{{ amendment.montantTTCFormate }}</td>
+				</tr>
+			</table>
 		</div>
-	{% endif %}
 
-	<!-- Mentions légales -->
-	<div class="legal-mentions">
-		<strong>Mentions légales:</strong><br>
-		Avenant au devis {{ quote.numero }} émis le {{ amendment.dateCreation|date('d/m/Y') }}.<br>
-		{% if company and not company.isTvaEnabled() %}
-			<strong>Micro-entrepreneur:</strong>
-			TVA non applicable selon l'article 293 B du Code Général des Impôts.
+		{% if amendment.notes %}
+			<div class="notes-section no-break">
+				<strong>Notes:</strong><br>
+				{{ amendment.notes|nl2br }}
+			</div>
 		{% endif %}
-	</div>
 
-	<!-- Pied de page -->
-	<div class="footer">
-		{% if company %}
-			<strong>{{ company.raisonSociale }}</strong>
-			{% if company.email or company.telephone %}
-				|
-				{% if company.email %}{{ company.email }}{% endif %}
-				{% if company.email and company.telephone %} | {% endif %}
-				{% if company.telephone %}{{ company.telephone }}{% endif %}
+		<!-- Mentions légales -->
+		<div class="legal-mentions no-break">
+			<strong>Mentions légales:</strong><br>
+			Avenant au devis
+			{{ quote.numero }}
+			émis le
+			{{ amendment.dateCreation|date('d/m/Y') }}.<br>
+			{% if company %}
+				{{ company.raisonSociale }}
+				-
+				{{ company.formeJuridique ?? 'Micro-entrepreneur' }}
+				{% if company.codeAPE %}
+					(APE:
+					{{ company.codeAPE }})
+				{% endif %}
+				{% if company.siret %}
+					- SIRET:
+					{{ company.siret }}
+				{% endif %}<br>
+				{% if company.assuranceRCPro %}
+					RC Pro:
+					{{ company.assuranceRCPro }}<br>
+				{% endif %}
 			{% endif %}
-		{% endif %}
-	</div>
-{% endblock %}
+			{% if company and not company.isTvaEnabled() %}
+				<strong>Micro-entrepreneur:</strong>
+				TVA non applicable selon l'article 293 B du Code Général des Impôts.
+			{% endif %}
+		</div>
+
+		<!-- Pied de page -->
+		<div class="footer no-break">
+			{% if company %}
+				<strong>{{ company.raisonSociale }}</strong>
+				{% if company.email or company.telephone %}
+					|
+					{% if company.email %}
+						{{ company.email }}
+					{% endif %}
+					{% if company.email and company.telephone %}
+						|
+					{% endif %}
+					{% if company.telephone %}
+						{{ company.telephone }}
+					{% endif %}
+				{% endif %}
+			{% endif %}
+		</div>
+	{% endblock %}

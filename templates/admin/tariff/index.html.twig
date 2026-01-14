@@ -1,0 +1,160 @@
+{% extends 'admin/layout/base.html.twig' %}
+{% import 'admin/macros/pagination.html.twig' as pagination_macro %}
+
+{% block title %}Catalogue Tarifs - Administration Delnyx{% endblock %}
+
+{% block page_title %}Catalogue Tarifs{% endblock %}
+
+{% block body %}
+	<div class="space-y-6">
+
+		{# Header avec actions #}
+		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+			<div>
+				<h1 class="text-2xl font-bold text-white">Catalogue de Tarifs</h1>
+				<p class="text-white/60 mt-1">{{ total_tariffs }} tarif(s) au total</p>
+			</div>
+			<div class="flex gap-3">
+				<a href="{{ path('admin_tariff_new') }}" class="btn-primary flex items-center gap-2">
+					{{ ux_icon('lucide:plus', {class: 'w-4 h-4'}) }}
+					Nouveau Tarif
+				</a>
+			</div>
+		</div>
+
+		{# Filtres par catégorie #}
+		<div class="flex flex-wrap gap-2 scroll-animate">
+			<a href="{{ path('admin_tariff_index') }}"
+			   class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all {{ current_categorie is null ? 'bg-blue-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20' }}">
+				Tous
+			</a>
+			{% for key, label in categories %}
+				<a href="{{ path('admin_tariff_index', {categorie: key}) }}"
+				   class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all {{ current_categorie == key ? 'bg-blue-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20' }}">
+					{{ label }}
+				</a>
+			{% endfor %}
+		</div>
+
+		{# Liste des tarifs #}
+		{% if tariffs|length > 0 %}
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+				{% for tariff in tariffs %}
+					<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate flex flex-col {{ not tariff.actif ? 'opacity-60' : '' }}" data-delay="{{ loop.index * 0.1 }}s">
+
+						{# Header de la carte #}
+						<div class="flex items-start justify-between gap-3 mb-4">
+							<div class="flex items-center gap-3 min-w-0 flex-1">
+								<div class="w-10 h-10 flex-shrink-0 bg-purple-500/20 rounded-lg flex items-center justify-center">
+									{% if tariff.categorie == 'site_vitrine' %}
+										{{ ux_icon('lucide:globe', {class: 'w-5 h-5 text-purple-400'}) }}
+									{% elseif tariff.categorie == 'reservation' %}
+										{{ ux_icon('lucide:calendar', {class: 'w-5 h-5 text-purple-400'}) }}
+									{% elseif tariff.categorie == 'application_gestion' %}
+										{{ ux_icon('lucide:layout-dashboard', {class: 'w-5 h-5 text-purple-400'}) }}
+									{% elseif tariff.categorie == 'maintenance' %}
+										{{ ux_icon('lucide:wrench', {class: 'w-5 h-5 text-purple-400'}) }}
+									{% else %}
+										{{ ux_icon('lucide:tag', {class: 'w-5 h-5 text-purple-400'}) }}
+									{% endif %}
+								</div>
+								<div class="min-w-0 flex-1">
+									<h3 class="text-base font-semibold text-white truncate">{{ tariff.nom }}</h3>
+									<p class="text-white/60 text-xs truncate">{{ tariff.categorieLabel }}</p>
+								</div>
+							</div>
+							<span class="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap {{ tariff.actif ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300' }}">
+								{{ tariff.actif ? 'Actif' : 'Inactif' }}
+							</span>
+						</div>
+
+						{# Contenu #}
+						<div class="flex-grow">
+							{# Prix #}
+							<div class="mb-4">
+								<div class="text-2xl font-bold text-white">
+									{{ tariff.prix|number_format(2, ',', ' ') }} €
+									<span class="text-sm font-normal text-white/60">{{ tariff.uniteLabel }}</span>
+								</div>
+							</div>
+
+							{# Description #}
+							{% if tariff.description %}
+								<p class="text-sm text-white/70 line-clamp-2 mb-4">{{ tariff.description }}</p>
+							{% endif %}
+
+							{# Caractéristiques #}
+							{% if tariff.caracteristiques %}
+								<div class="text-sm text-white/60 mb-4">
+									{% set lignes = tariff.caracteristiques|split("\n") %}
+									<ul class="space-y-1">
+										{% for ligne in lignes|slice(0, 3) %}
+											<li class="flex items-start gap-2">
+												{{ ux_icon('lucide:check', {class: 'w-3 h-3 text-green-400 mt-0.5 flex-shrink-0'}) }}
+												<span class="truncate">{{ ligne }}</span>
+											</li>
+										{% endfor %}
+									</ul>
+									{% if lignes|length > 3 %}
+										<p class="text-white/40 text-xs mt-1">+{{ lignes|length - 3 }} autres...</p>
+									{% endif %}
+								</div>
+							{% endif %}
+						</div>
+
+						{# Actions #}
+						<div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/10">
+							<a href="{{ path('admin_tariff_edit', {id: tariff.id}) }}" class="btn-secondary text-center text-sm py-2 px-3 flex items-center gap-1">
+								{{ ux_icon('lucide:edit', {class: 'w-4 h-4'}) }}
+								Éditer
+							</a>
+							<form action="{{ path('admin_tariff_toggle', {id: tariff.id}) }}" method="POST" class="inline">
+								<input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ tariff.id) }}">
+								<button type="submit" class="btn-secondary text-center text-sm py-2 px-3 flex items-center gap-1">
+									{{ ux_icon(tariff.actif ? 'lucide:eye-off' : 'lucide:eye', {class: 'w-4 h-4'}) }}
+									{{ tariff.actif ? 'Désactiver' : 'Activer' }}
+								</button>
+							</form>
+							<form action="{{ path('admin_tariff_duplicate', {id: tariff.id}) }}" method="POST" class="inline">
+								<input type="hidden" name="_token" value="{{ csrf_token('duplicate' ~ tariff.id) }}">
+								<button type="submit" class="btn-secondary text-center text-sm py-2 px-3 flex items-center gap-1">
+									{{ ux_icon('lucide:copy', {class: 'w-4 h-4'}) }}
+									Dupliquer
+								</button>
+							</form>
+							<button type="button"
+								data-action="click->confirm-modal#open"
+								data-url="{{ path('admin_tariff_delete', {id: tariff.id}) }}"
+								data-method="POST"
+								data-csrf-token="{{ csrf_token('delete' ~ tariff.id) }}"
+								data-item-name="ce tarif"
+								data-message="Êtes-vous sûr de vouloir supprimer ce tarif ? Cette action est irréversible."
+								class="btn-danger text-center text-sm py-2 px-3 flex items-center gap-1">
+								{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+								Suppr.
+							</button>
+						</div>
+					</div>
+				{% endfor %}
+			</div>
+
+			{# Pagination #}
+			{{ pagination_macro.render(current_page, total_pages, 'admin_tariff_index', {categorie: current_categorie}, 12, total_tariffs) }}
+		{% else %}
+			{# État vide #}
+			<div class="text-center py-20 scroll-animate">
+				<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-12 max-w-md mx-auto">
+					{{ ux_icon('lucide:tag', {class: 'w-16 h-16 text-gray-400 mb-6 mx-auto'}) }}
+					<h3 class="text-2xl font-bold text-white mb-4">Aucun tarif</h3>
+					<p class="text-gray-300 mb-6">
+						Créez votre premier tarif pour pouvoir le sélectionner dans vos devis.
+					</p>
+					<a href="{{ path('admin_tariff_new') }}" class="btn-primary">
+						{{ ux_icon('lucide:plus', {class: 'w-4 h-4 mr-2'}) }}
+						Ajouter un tarif
+					</a>
+				</div>
+			</div>
+		{% endif %}
+	</div>
+{% endblock %}

@@ -7,7 +7,7 @@
 
 {% block body %}
 <div class="space-y-6">
-    
+
     {# Header avec breadcrumb #}
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
         <div>
@@ -20,7 +20,7 @@
                 <span class="text-white">{{ title }}</span>
             </nav>
         </div>
-        <a href="{{ path('admin_quote_index') }}" 
+        <a href="{{ path('admin_quote_index') }}"
            class="btn-secondary flex items-center gap-2">
             {{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
             Retour à la liste
@@ -45,13 +45,13 @@
          data-controller="quote-form flash-messages">
         {% set isReadOnly = quote.statut.value == 'signed' %}
         {{ form_start(form, {'attr': {'class': 'space-y-6', 'data-controller': 'admin-form', 'data-admin-form-target': 'form', 'novalidate': 'novalidate', 'data-action': 'submit->admin-form#handleSubmit'}}) }}
-        
+
         {# Messages flash avec contrôleur Stimulus #}
         <div data-flash-messages-target="container" class="space-y-3 mb-4">
             {% for type, messages in app.flashes %}
                 {% for message in messages %}
-                    <div data-flash-messages-target="message" 
-                         class="glass-card optimized-blur p-4 border-l-4 {% if type == 'success' %}border-emerald-500{% elseif type == 'error' %}border-red-500{% else %}border-blue-500{% endif %}" 
+                    <div data-flash-messages-target="message"
+                         class="glass-card optimized-blur p-4 border-l-4 {% if type == 'success' %}border-emerald-500{% elseif type == 'error' %}border-red-500{% else %}border-blue-500{% endif %}"
                          data-flash-messages-message-param="{{ loop.index }}">
                         <div class="flex items-center">
                             <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 {% if type == 'success' %}bg-emerald-500/20{% else %}bg-red-500/20{% endif %}">
@@ -69,17 +69,17 @@
                 {% endfor %}
             {% endfor %}
         </div>
-        
+
         {# Informations générales #}
         <div class="space-y-4">
             <h3 class="text-lg font-semibold text-white flex items-center gap-2">
                 {{ ux_icon('lucide:file-text', {class: 'w-5 h-5'}) }}
                 Informations générales
             </h3>
-            
+
             {# Le champ numero est toujours caché (généré automatiquement en création, affiché dans le titre en édition) #}
             {{ form_widget(form.numero, {'attr': {'style': 'display: none'}}) }}
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="form-group" data-controller="select-search" data-select-search-type="client">
                     {{ form_label(form.client, null, {'label_attr': {'class': 'form-label'}}) }}
@@ -89,14 +89,14 @@
                 </div>
                 {{ form_macros.simple_field(form, 'statut', 'select', {'disabled': isReadOnly}) }}
             </div>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="form-group" data-controller="date-picker">
                     {{ form_label(form.dateValidite, null, {'label_attr': {'class': 'form-label'}}) }}
                     <div class="relative">
                         {{ form_widget(form.dateValidite, {'attr': {'class': 'form-input pr-10', 'data-admin-form-target': 'field', 'data-date-picker-target': 'input', 'disabled': isReadOnly ? 'disabled' : false}}) }}
                         {% if not isReadOnly %}
-                            <button type="button" 
+                            <button type="button"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50 rounded p-1"
                                     data-date-picker-target="button"
                                     aria-label="Ouvrir le calendrier">
@@ -131,8 +131,8 @@
                 </h3>
                 <div class="flex items-center gap-3">
                     {% if companySettings and companySettings.isTvaEnabled() and not isReadOnly %}
-                        <button type="button" 
-                                class="btn-secondary text-sm py-2 px-4 flex items-center gap-2" 
+                        <button type="button"
+                                class="btn-secondary text-sm py-2 px-4 flex items-center gap-2"
                                 data-tva-per-line-target="toggle"
                                 data-action="click->tva-per-line#toggle"
                                 data-label-disabled="Appliquer la TVA par ligne"
@@ -142,7 +142,7 @@
                         </button>
                     {% endif %}
                     {% if not isReadOnly %}
-                        <button type="button" 
+                        <button type="button"
                                 class="btn-secondary text-sm py-2 px-4"
                                 data-action="click->quote-form#addLine">
                             {{ ux_icon('lucide:plus', {class: 'w-4 h-4'}) }}
@@ -151,7 +151,7 @@
                     {% endif %}
                 </div>
             </div>
-            
+
             <div data-quote-form-target="linesContainer" class="space-y-4">
                 {% for line in form.lines %}
                     <div class="bg-white/5 border border-white/10 rounded-lg p-4 {% if not line.vars.valid %}border-red-500/50{% endif %}" data-line-index="{{ loop.index0 }}">
@@ -190,7 +190,7 @@
                         </div>
                         {% if not isReadOnly %}
                             <div class="flex items-center justify-end mt-4 pt-4 border-t border-white/10">
-                                <button type="button" 
+                                <button type="button"
                                         class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1"
                                         data-action="click->quote-form#removeLine">
                                     {{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
@@ -201,15 +201,18 @@
                     </div>
                 {% endfor %}
             </div>
-            
+
             {# Template pour nouvelle ligne (caché) #}
             <template data-quote-form-target="lineTemplate">
                 <div class="bg-white/5 border border-white/10 rounded-lg p-4" data-line-index="__name__">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="form-group">
+                    <div class="form-group">
                             <label class="form-label">Tarif du catalogue</label>
                             <select name="quote[lines][__name__][tariff]" class="form-select" data-admin-form-target="field">
-                                <option value="">Aucun</option>
+                                <option value="">Aucun (ligne personnalisée)</option>
+                                {% for tariff in tariffs|default([]) %}
+                                    <option value="{{ tariff.id }}">{{ tariff.nom }} - {{ tariff.prix|number_format(2, ',', ' ') }} € ({{ tariff.uniteLabel }})</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="form-group">
@@ -247,7 +250,7 @@
                         {% endif %}
                     </div>
                     <div class="flex items-center justify-end mt-4 pt-4 border-t border-white/10">
-                        <button type="button" 
+                        <button type="button"
                                 class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1"
                                 data-action="click->quote-form#removeLine">
                             {{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
@@ -264,11 +267,11 @@
                 {{ ux_icon('lucide:euro', {class: 'w-5 h-5'}) }}
                 Montants et conditions
             </h3>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {{ form_macros.simple_field(form, 'acomptePourcentage') }}
             </div>
-            
+
             {{ form_macros.simple_field(form, 'conditionsPaiement', 'textarea') }}
             {{ form_macros.simple_field(form, 'delaiLivraison') }}
         </div>
@@ -279,11 +282,11 @@
                 {{ ux_icon('lucide:shield-check', {class: 'w-5 h-5'}) }}
                 Mentions légales
             </h3>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {{ form_macros.simple_field(form, 'typeOperations', 'select') }}
             </div>
-            
+
             <div class="flex items-center gap-2">
                 {{ form_widget(form.paiementTvaSurDebits, {'attr': {'class': 'form-checkbox'}}) }}
                 {{ form_label(form.paiementTvaSurDebits, null, {'label_attr': {'class': 'text-white/90 cursor-pointer'}}) }}
@@ -299,20 +302,20 @@
                 {{ ux_icon('lucide:sticky-note', {class: 'w-5 h-5'}) }}
                 Notes
             </h3>
-            
+
             {{ form_macros.simple_field(form, 'notes', 'textarea') }}
         </div>
 
         {# Actions #}
         <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/20">
-            <button type="submit" 
+            <button type="submit"
                     class="btn-primary flex items-center justify-center gap-2"
                     data-admin-form-target="submit">
                 {{ ux_icon('lucide:save', {class: 'w-4 h-4'}) }}
                 {{ quote.id ? 'Modifier le devis' : 'Créer le devis' }}
             </button>
-            
-            <a href="{{ path('admin_quote_index') }}" 
+
+            <a href="{{ path('admin_quote_index') }}"
                class="btn-secondary flex items-center justify-center gap-2">
                 {{ ux_icon('lucide:x', {class: 'w-4 h-4'}) }}
                 Annuler

@@ -1,8 +1,8 @@
 {# Sidebar Navigation - Glassmorphique #}
-<aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white/10 backdrop-blur-xl border-r border-white/20 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out" 
-       id="sidebar" 
+<aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white/10 backdrop-blur-xl border-r border-white/20 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out"
+       id="sidebar"
        data-admin-sidebar-target="sidebar">
-    
+
     {# Logo et Brand #}
     <div class="flex items-center justify-between h-16 px-6 border-b border-white/20">
         <div class="flex-shrink-0">
@@ -13,82 +13,82 @@
 						</div>
 					</a>
 				</div>
-        
+
         {# Mobile Close Button #}
         <button class="lg:hidden text-white/70 hover:text-white transition-colors duration-200"
                 data-action="click->admin-sidebar#close">
             {{ ux_icon('lucide:x', {class: 'w-6 h-6'}) }}
         </button>
     </div>
-    
+
     {# Navigation Menu #}
     <nav class="flex-1 px-4 py-6 space-y-2">
-        
+
         {# Dashboard #}
-        <a href="{{ path('admin_dashboard') }}" 
+        <a href="{{ path('admin_dashboard') }}"
            class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
            {{ app.request.attributes.get('_route') == 'admin_dashboard' ? 'bg-white/20 text-white' : '' }}">
             {{ ux_icon('lucide:layout', {class: 'w-5 h-5'}) }}
             <span class="font-medium">Dashboard</span>
         </a>
-        
+
         {# Clients #}
-        <a href="{{ path('admin_client_index') }}" 
+        <a href="{{ path('admin_client_index') }}"
            class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
            {{ app.request.attributes.get('_route') starts with 'admin_client' ? 'bg-white/20 text-white' : '' }}">
             {{ ux_icon('lucide:users', {class: 'w-5 h-5'}) }}
             <span class="font-medium">Clients</span>
         </a>
-        
+
         {# Devis #}
-        <a href="{{ path('admin_quote_index') }}" 
+        <a href="{{ path('admin_quote_index') }}"
            class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
            {{ app.request.attributes.get('_route') starts with 'admin_quote' ? 'bg-white/20 text-white' : '' }}">
             {{ ux_icon('lucide:file-text', {class: 'w-5 h-5'}) }}
             <span class="font-medium">Devis</span>
         </a>
-        
+
         {# Factures #}
-        <a href="{{ path('admin_invoice_index') }}" 
+        <a href="{{ path('admin_invoice_index') }}"
            class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
            {{ app.request.attributes.get('_route') starts with 'admin_invoice' ? 'bg-white/20 text-white' : '' }}">
             {{ ux_icon('lucide:credit-card', {class: 'w-5 h-5'}) }}
             <span class="font-medium">Factures</span>
         </a>
-        
-        {# Tarifs #}
-        {# <a href="{{ path('admin_tarif_index') }}" 
+
+        {# Tarifs / Catalogue #}
+        <a href="{{ path('admin_tariff_index') }}"
            class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
-           {{ app.request.attributes.get('_route') starts with 'admin_tarif' ? 'bg-white/20 text-white' : '' }}">
-            {{ ux_icon('lucide:euro', {class: 'w-5 h-5'}) }}
-            <span class="font-medium">Tarifs</span>
-        </a> #}
-        
+           {{ app.request.attributes.get('_route') starts with 'admin_tariff' ? 'bg-white/20 text-white' : '' }}">
+            {{ ux_icon('lucide:tag', {class: 'w-5 h-5'}) }}
+            <span class="font-medium">Catalogue</span>
+        </a>
+
         {# Séparateur #}
         <div class="border-t border-white/20 my-4"></div>
-        
+
         {# Portfolio #}
-        <a href="{{ path('admin_project_index') }}" 
+        <a href="{{ path('admin_project_index') }}"
            class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
            {{ app.request.attributes.get('_route') starts with 'admin_project' ? 'bg-white/20 text-white' : '' }}">
             {{ ux_icon('lucide:briefcase', {class: 'w-5 h-5'}) }}
             <span class="font-medium">Portfolio</span>
         </a>
-        
+
         {# Technologies #}
-        <a href="{{ path('admin_technology_index') }}" 
+        <a href="{{ path('admin_technology_index') }}"
            class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
            {{ app.request.attributes.get('_route') starts with 'admin_technology' ? 'bg-white/20 text-white' : '' }}">
             {{ ux_icon('lucide:code', {class: 'w-5 h-5'}) }}
             <span class="font-medium">Technologies</span>
         </a>
-        
+
     </nav>
-    
+
 </aside>
 
 {# Mobile Overlay #}
-<div class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden hidden" 
-     id="sidebar-overlay" 
+<div class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden hidden"
+     id="sidebar-overlay"
      data-admin-sidebar-target="overlay"
      data-action="click->admin-sidebar#close"></div>

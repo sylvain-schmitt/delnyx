@@ -289,7 +289,10 @@
 							<div class="form-group">
 								<label class="form-label">Tarif du catalogue</label>
 								<select name="invoice[lines][__name__][tariff]" class="form-select" data-admin-form-target="field">
-									<option value="">Aucun</option>
+									<option value="">Aucun (ligne personnalisée)</option>
+									{% for tariff in tariffs|default([]) %}
+										<option value="{{ tariff.id }}">{{ tariff.nom }} - {{ tariff.prix|number_format(2, ',', ' ') }} € ({{ tariff.uniteLabel }})</option>
+									{% endfor %}
 								</select>
 							</div>
 							<div class="form-group">
