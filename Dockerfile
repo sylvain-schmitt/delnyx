@@ -34,6 +34,7 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interactio
 # Build des assets
 RUN php bin/console importmap:install || true
 RUN php bin/console tailwind:build --minify || true
+RUN php bin/console ux:icons:lock || true
 RUN php bin/console asset-map:compile || true
 
 # Compiler le cache de production (important pour Messenger)
