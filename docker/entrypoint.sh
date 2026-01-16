@@ -22,6 +22,10 @@ for i in {1..30}; do
     sleep 1
 done
 
+# Exécuter les migrations
+echo "🔄 Exécution des migrations..."
+php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration || echo "⚠️ Migrations failed, continuing..."
+
 # Compiler le cache (après que la DB soit prête)
 echo "🔄 Compilation du cache (APP_ENV=${APP_ENV:-dev})..."
 php bin/console cache:warmup --env="${APP_ENV:-dev}" --no-debug || echo "⚠️ Cache warmup failed, continuing..."
