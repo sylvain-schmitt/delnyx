@@ -65,3 +65,6 @@ EXPOSE 8001
 # Utiliser l'entrypoint puis lancer Supervisor
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+
+# DEBUG: Mettre le manifest dans les logs de build pour vérification
+RUN cat public/assets/manifest.json || echo "Manifest not found"
