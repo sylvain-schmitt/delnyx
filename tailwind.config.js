@@ -5,12 +5,6 @@ module.exports = {
         "./templates/**/*.html.twig",
         "./src/**/*.php",
     ],
-    safelist: [
-        'h-80',
-        'text-violet-400',
-        'w-6', 'h-6',
-        'relative',
-    ],
     theme: {
         extend: {},
     },
