@@ -31,14 +31,13 @@ RUN mkdir -p var/cache var/log public/bundles public/build public/uploads/projec
 RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction \
     && composer dump-autoload --optimize
 
-# Build des assets
+# Compiler le cache de production AVANT les assets (requis pour les templates Twig)
+RUN php bin/console cache:warmup --env=prod || true
+
+# Build des assets (après le cache pour que les icônes soient détectées)
 RUN php bin/console importmap:install || true
 RUN php bin/console tailwind:build --minify || true
-RUN php bin/console ux:icons:lock || true
 RUN php bin/console asset-map:compile || true
-
-# Compiler le cache de production (important pour Messenger)
-RUN php bin/console cache:warmup --env=prod || true
 
 # Permissions finales sur var et public
 RUN chmod -R 777 var/ public/
