@@ -60,7 +60,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 ARG APP_ENV=prod
 ENV APP_ENV=${APP_ENV}
 
-EXPOSE 9000
+EXPOSE 8001
 
 # Utiliser l'entrypoint puis lancer Supervisor
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
