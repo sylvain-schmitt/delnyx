@@ -43,4 +43,7 @@ return [
     'admin-form' => [
         'path' => './assets/controllers/admin_form_controller.js',
     ],
+    'chart.js' => [
+        'version' => '3.9.1',
+    ],
 ];

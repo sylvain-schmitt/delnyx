@@ -8,6 +8,7 @@ use App\Entity\Invoice;
 use App\Repository\ClientRepository;
 use App\Repository\QuoteRepository;
 use App\Repository\InvoiceRepository;
+use App\Service\DashboardService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -18,7 +19,8 @@ class DashboardController extends AbstractController
     public function __construct(
         private ClientRepository $clientRepository,
         private QuoteRepository $quoteRepository,
-        private InvoiceRepository $invoiceRepository
+        private InvoiceRepository $invoiceRepository,
+        private DashboardService $dashboardService,
     ) {}
 
     #[Route('/', name: 'dashboard')]
@@ -54,11 +56,17 @@ class DashboardController extends AbstractController
             5
         );
 
+        // Nouvelles statistiques avancées
+        $advancedStats = $this->dashboardService->getAllStats();
+        $revenueChart = $this->dashboardService->createMonthlyRevenueChart();
+
         return $this->render('admin/dashboard/index.html.twig', [
             'stats' => $stats,
             'growth' => $growth,
             'recent_quotes' => $recent_quotes,
             'recent_invoices' => $recent_invoices,
+            'advanced_stats' => $advancedStats,
+            'revenue_chart' => $revenueChart,
         ]);
     }
 
@@ -223,7 +231,7 @@ class DashboardController extends AbstractController
 
     /**
      * Calcule le pourcentage de croissance et détermine la direction
-     * 
+     *
      * @return array ['percentage' => float, 'direction' => 'up'|'down'|'stable']
      */
     private function calculateGrowth(float $current, float $previous): array

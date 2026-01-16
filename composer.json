@@ -30,6 +30,7 @@
         "symfony/stimulus-bundle": "^2.29",
         "symfony/twig-bundle": "7.3.*",
         "symfony/uid": "7.3.*",
+        "symfony/ux-chartjs": "^2.32",
         "symfony/ux-icons": "^2.29",
         "symfony/ux-turbo": "^2.29",
         "symfony/ux-twig-component": "^2.31",
