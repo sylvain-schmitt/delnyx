@@ -3,11 +3,17 @@ import { startStimulusApp } from '@symfony/stimulus-bundle';
 const app = startStimulusApp();
 
 // Désactiver les logs de debug de Stimulus
-app.debug = false;
+// Activer les logs de debug de Stimulus temporairement
+app.debug = true;
 
 // register any custom, 3rd party controllers here
 // app.register('some_controller_name', SomeImportedController);
 
+// NOTE: Avec @symfony/stimulus-bundle, les contrôleurs dans assets/controllers/
+// sont chargés automatiquement. L'enregistrement manuel ci-dessous est redondant
+// et peut causer des conflits.
+
+/*
 // Import des contrôleurs personnalisés
 import PortfolioController from './controllers/portfolio_controller.js';
 import AdminFormController from './controllers/admin_form_controller.js';
@@ -27,3 +33,4 @@ app.register('tva-settings', TvaSettingsController);
 app.register('invoice-form', InvoiceFormController);
 app.register('cancel-modal', CancelModalController);
 app.register('cancel-modal-trigger', CancelModalTriggerController);
+*/
