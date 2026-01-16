@@ -30,6 +30,9 @@ php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migratio
 echo "🔄 Compilation du cache (APP_ENV=${APP_ENV:-dev})..."
 php bin/console cache:warmup --env="${APP_ENV:-dev}" --no-debug || echo "⚠️ Cache warmup failed, continuing..."
 
+echo "🔄 Compilation des assets (pour s'assurer que tous les contrôleurs Stimulus sont détectés)..."
+php bin/console asset-map:compile || echo "⚠️ Asset compilation failed, continuing..."
+
 echo "✅ Démarrage de l'application..."
 
 # Exécuter la commande originale (Supervisor)

@@ -37,7 +37,6 @@ RUN php bin/console cache:warmup --env=prod || true
 # Build des assets (après le cache pour que les icônes soient détectées)
 RUN php bin/console importmap:install || true
 RUN php bin/console tailwind:build --minify || true
-RUN php bin/console asset-map:compile || true
 
 # Permissions finales sur var et public
 RUN chmod -R 777 var/ public/
@@ -65,6 +64,3 @@ EXPOSE 8001
 # Utiliser l'entrypoint puis lancer Supervisor
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
-
-# DEBUG: Mettre le manifest dans les logs de build pour vérification
-RUN cat public/assets/manifest.json || echo "Manifest not found"
