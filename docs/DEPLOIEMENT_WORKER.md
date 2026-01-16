@@ -1,147 +1,89 @@
 # Déploiement du Worker Messenger
 
-## Option 1 : Via le script de déploiement (Simple)
+## Architecture de Production (Coolify)
 
-Le script `scripts/deploy.sh` a été mis à jour pour :
-1. Arrêter l'ancien worker (s'il existe)
-2. Lancer le nouveau worker en arrière-plan
-3. Vérifier que le worker est bien lancé
+Le déploiement utilise **Supervisor** pour gérer PHP-FPM et le worker Messenger dans le même conteneur.
 
-**Avantages :**
-- Simple à mettre en place
-- Pas besoin de modifier docker-compose.yml
+### Fichiers de configuration
 
-**Inconvénients :**
-- Le worker peut s'arrêter si le conteneur redémarre
-- Moins facile à monitorer
+- `Dockerfile` : Installe Supervisor et copie la configuration
+- `docker/supervisor/supervisord.conf` : Configure PHP-FPM + Messenger worker
 
-## Option 2 : Service Docker séparé (Recommandé)
+### Comment ça fonctionne
 
-Créer un service dédié dans `docker-compose.yml` pour le worker.
+1. Coolify build l'image Docker depuis le `Dockerfile`
+2. Supervisor démarre automatiquement :
+   - **PHP-FPM** (port 9000) pour servir l'application
+   - **Messenger Worker** pour traiter les tâches en arrière-plan
 
-### Étape 1 : Ajouter le service dans docker-compose.yml
+### Logs
 
-```yaml
-services:
-  # ... vos autres services ...
-  
-  messenger-worker:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-    container_name: delnyx_messenger_worker
-    volumes:
-      - .:/var/www/html
-      - delnyx_uploads:/var/www/html/public/uploads
-    depends_on:
-      - app
-      - db
-    networks:
-      - delnyx_net
-    command: php bin/console messenger:consume async scheduler_default --time-limit=3600 --memory-limit=128M -vv
-    restart: unless-stopped
-    environment:
-      - APP_ENV=prod
-      - APP_DEBUG=0
+Les logs du worker sont disponibles dans :
+```bash
+# Dans le conteneur
+cat /var/log/supervisor/messenger-worker.log
+cat /var/log/supervisor/messenger-worker-error.log
+
+# Via Docker (si accès au conteneur)
+docker logs <container_id>
 ```
 
-### Étape 2 : Modifier le script de déploiement
-
-Remplacer la section "Configuration du worker Messenger" par :
+### Vérifier le statut
 
 ```bash
-# 15. Relance du worker Messenger (via service Docker)
-echo "🔄 Relance du worker Messenger..."
-docker compose up -d messenger-worker
+# Dans le conteneur Coolify
+supervisorctl status
 
-# Vérifier que le worker est bien lancé
-sleep 3
-if docker ps | grep -q delnyx_messenger_worker; then
-    echo "✅ Worker Messenger lancé avec succès"
-else
-    echo "❌ Le worker Messenger n'est pas lancé"
-    docker compose logs messenger-worker
-    exit 1
-fi
+# Résultat attendu :
+# messenger-worker   RUNNING   pid 123, uptime 0:10:00
+# php-fpm            RUNNING   pid 456, uptime 0:10:00
 ```
 
-**Avantages :**
-- Redémarrage automatique si le conteneur crash
-- Logs séparés (`docker compose logs messenger-worker`)
-- Plus facile à monitorer
-- Gestion via docker-compose standard
+### Redémarrer le worker
 
-**Commandes utiles :**
 ```bash
+# Dans le conteneur
+supervisorctl restart messenger-worker
+```
+
+### Configuration Supervisor
+
+Le fichier `docker/supervisor/supervisord.conf` configure :
+
+| Programme | Description |
+|-----------|-------------|
+| `php-fpm` | Serveur PHP-FPM (priorité 5) |
+| `messenger-worker` | Worker Messenger (priorité 10, redémarre toutes les heures) |
+
+### Paramètres du worker
+
+- `--time-limit=3600` : Redémarre toutes les heures (libère la mémoire)
+- `--memory-limit=128M` : Arrête si dépasse 128 Mo
+- `async` : Transport pour les messages async (régénération PDF, etc.)
+- `scheduler_default` : Transport pour les tâches planifiées
+
+---
+
+## Développement Local
+
+En local, le worker est géré par un service Docker séparé (`docker-compose.yml`) :
+
+```bash
+# Démarrer les containers (inclut le worker)
+docker compose up -d
+
 # Voir les logs du worker
-docker compose logs -f messenger-worker
+docker compose logs -f messenger
 
-# Redémarrer le worker
-docker compose restart messenger-worker
-
-# Arrêter le worker
-docker compose stop messenger-worker
-
-# Vérifier le statut
-docker compose ps messenger-worker
+# Traiter les messages manuellement
+docker compose exec app php bin/console messenger:consume async --limit=10 -vv
 ```
 
-## Option 3 : Supervisor dans le conteneur (Avancé)
+---
 
-Si vous préférez gérer le worker depuis l'intérieur du conteneur avec Supervisor.
+## Anciennes configurations (obsolètes)
 
-### Étape 1 : Créer la configuration Supervisor
-
-**`docker/supervisor/messenger-worker.conf` :**
-```ini
-[program:messenger-worker]
-command=php /var/www/html/bin/console messenger:consume async scheduler_default --time-limit=3600 --memory-limit=128M
-directory=/var/www/html
-user=www-data
-numprocs=1
-startsecs=0
-autorestart=true
-startretries=10
-stdout_logfile=/var/log/messenger-worker.log
-stderr_logfile=/var/log/messenger-worker-error.log
-```
-
-### Étape 2 : Modifier le Dockerfile
-
-Ajouter Supervisor et la configuration :
-
-```dockerfile
-# Installer Supervisor
-RUN apt-get update && apt-get install -y supervisor && rm -rf /var/lib/apt/lists/*
-
-# Copier la configuration Supervisor
-COPY docker/supervisor/ /etc/supervisor/conf.d/
-
-# Lancer Supervisor au démarrage
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
-```
-
-## Recommandation
-
-**Pour la production, utilisez l'Option 2 (Service Docker séparé)** car :
-- ✅ Redémarrage automatique
-- ✅ Logs séparés
-- ✅ Monitoring facile
-- ✅ Gestion standard Docker
-
-## Vérification après déploiement
-
-```bash
-# Vérifier que le worker est actif
-docker compose ps messenger-worker
-
-# Voir les messages en queue
-docker compose exec app php bin/console messenger:stats
-
-# Voir les logs en temps réel
-docker compose logs -f messenger-worker
-
-# Vérifier les tâches Scheduler
-docker compose exec app php bin/console debug:scheduler
-```
-
+> [!WARNING]
+> Les configurations suivantes ne sont plus utilisées :
+> - ~~GitHub Actions (`deploy.yml`)~~ - Supprimé, Coolify gère le déploiement
+> - ~~Script `scripts/deploy.sh`~~ - N'existe plus

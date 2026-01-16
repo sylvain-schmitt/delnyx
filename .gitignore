@@ -43,3 +43,4 @@ docker-compose.yml
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
+.grepai/
