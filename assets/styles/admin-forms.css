@@ -145,19 +145,39 @@
     @apply mr-1;
 }
 
-/* Erreurs Symfony (listes) */
+/* Erreurs Symfony (listes) - Support pour toutes les variantes */
 ul.form-error,
-.form-group ul {
+.form-group ul,
+.form-group .invalid-feedback,
+.invalid-feedback {
     @apply list-none p-0 m-0;
 }
 
 ul.form-error li,
-.form-group ul li {
+.form-group ul li,
+.form-group .invalid-feedback li,
+.invalid-feedback li {
     @apply text-red-400 text-sm mt-1 flex items-center;
 }
 
 ul.form-error li::before,
-.form-group ul li::before {
+.form-group ul li::before,
+.form-group .invalid-feedback li::before,
+.invalid-feedback li::before {
+    content: "⚠ ";
+    @apply mr-1;
+}
+
+/* Support pour les erreurs Symfony standard (sans classe spécifique) */
+.form-group > ul:not([class]) {
+    @apply list-none p-0 m-0;
+}
+
+.form-group > ul:not([class]) li {
+    @apply text-red-400 text-sm mt-1 flex items-center;
+}
+
+.form-group > ul:not([class]) li::before {
     content: "⚠ ";
     @apply mr-1;
 }

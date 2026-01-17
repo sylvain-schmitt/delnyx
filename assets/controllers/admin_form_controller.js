@@ -388,6 +388,74 @@ export default class extends Controller {
             }
         }
 
+        // --- TARIFF (Catalogue) ---
+        if (field.name.includes('tariff[')) {
+            // Nom du tarif
+            if (field.name.includes('[nom]')) {
+                if (!value) {
+                    return this.setFieldInvalid(field, 'Le nom du tarif est obligatoire')
+                } else if (value.length < 2) {
+                    return this.setFieldInvalid(field, 'Au moins 2 caractères requis')
+                } else if (value.length > 100) {
+                    return this.setFieldInvalid(field, 'Maximum 100 caractères')
+                }
+                this.setFieldValid(field)
+                return true
+            }
+            // Catégorie
+            if (field.name.includes('[categorie]') && field.tagName === 'SELECT') {
+                const selectValue = field.value
+                if (!selectValue || selectValue === '') {
+                    return this.setFieldInvalid(field, 'La catégorie est obligatoire')
+                }
+                this.setFieldValid(field)
+                return true
+            }
+            // Prix
+            if (field.name.includes('[prix]')) {
+                const prix = parseFloat(value)
+                if (isNaN(prix)) {
+                    return this.setFieldInvalid(field, 'Le prix doit être un nombre')
+                } else if (prix < 0) {
+                    return this.setFieldInvalid(field, 'Le prix ne peut pas être négatif')
+                }
+                this.setFieldValid(field)
+                return true
+            }
+            // Unité de facturation
+            if (field.name.includes('[unite]') && field.tagName === 'SELECT') {
+                const selectValue = field.value
+                if (!selectValue || selectValue === '') {
+                    return this.setFieldInvalid(field, 'L\'unité de facturation est obligatoire')
+                }
+                this.setFieldValid(field)
+                return true
+            }
+            // Ordre (optionnel, on valide seulement le format)
+            if (field.name.includes('[ordre]')) {
+                if (value !== '' && value !== null && value !== undefined) {
+                    const ordre = parseInt(value, 10)
+                    if (isNaN(ordre)) {
+                        return this.setFieldInvalid(field, 'L\'ordre doit être un nombre entier')
+                    } else if (ordre < 0) {
+                        return this.setFieldInvalid(field, 'L\'ordre ne peut pas être négatif')
+                    }
+                }
+                this.setFieldValid(field)
+                return true
+            }
+            // Description et caractéristiques sont optionnels
+            if (field.name.includes('[description]') || field.name.includes('[caracteristiques]')) {
+                this.setFieldValid(field)
+                return true
+            }
+            // Actif (checkbox, toujours valide)
+            if (field.name.includes('[actif]')) {
+                this.setFieldValid(field)
+                return true
+            }
+        }
+
         // Validation selon le type de champ
         let isValid = true
         let errorMessage = ''

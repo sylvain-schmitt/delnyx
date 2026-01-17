@@ -55,12 +55,7 @@ class Tariff
 
     #[ORM\Column(type: Types::STRING, length: 50)]
     #[Assert\NotBlank(message: 'La catégorie est obligatoire')]
-    #[Assert\Choice(choices: [
-        'site_vitrine' => 'Site vitrine',
-        'reservation' => 'Système de réservation',
-        'application_gestion' => 'Application de gestion',
-        'maintenance' => 'Maintenance & Support'
-    ], message: 'La catégorie doit être sélectionnée')]
+    #[Assert\Choice(choices: ['site_vitrine', 'reservation', 'application_gestion', 'maintenance'], message: 'La catégorie doit être sélectionnée')]
     #[Groups(['tariff:read', 'tariff:write'])]
     private ?string $categorie = null;
 
@@ -77,12 +72,7 @@ class Tariff
 
     #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => 'forfait'])]
     #[Assert\NotBlank(message: 'L\'unité est obligatoire')]
-    #[Assert\Choice(choices: [
-        'forfait' => 'Forfait',
-        'mois' => 'Par mois',
-        'an' => 'Par an',
-        'heure' => 'Par heure'
-    ], message: 'L\'unité doit être sélectionnée')]
+    #[Assert\Choice(choices: ['forfait', 'mois', 'an', 'heure'], message: 'L\'unité doit être sélectionnée')]
     #[Groups(['tariff:read', 'tariff:write'])]
     private string $unite = 'forfait';
 

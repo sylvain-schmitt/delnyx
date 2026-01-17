@@ -29,6 +29,7 @@ class TariffType extends AbstractType
             ->add('categorie', ChoiceType::class, [
                 'label' => 'Catégorie',
                 'choices' => array_flip(Tariff::getCategories()),
+                'placeholder' => 'Sélectionnez une catégorie',
                 'attr' => ['class' => 'form-select'],
                 'help' => 'Type de prestation',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
@@ -50,6 +51,7 @@ class TariffType extends AbstractType
             ->add('unite', ChoiceType::class, [
                 'label' => 'Unité de facturation',
                 'choices' => array_flip(Tariff::getUnites()),
+                'placeholder' => 'Sélectionnez une unité',
                 'attr' => ['class' => 'form-select'],
                 'help' => 'Mode de facturation (forfait, par mois, etc.)',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']

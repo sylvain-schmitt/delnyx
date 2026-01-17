@@ -1,4 +1,5 @@
 {% extends 'admin/layout/base.html.twig' %}
+{% import 'admin/macros/form_fields.html.twig' as form_macros %}
 
 {% block title %}{{ title }} - Administration Delnyx{% endblock %}
 
@@ -20,68 +21,30 @@
 
 		{# Formulaire #}
 		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-8 scroll-animate">
-			{{ form_start(form, {'attr': {'class': 'space-y-6'}}) }}
+		{{ form_start(form, {'attr': {'class': 'space-y-6', 'data-controller': 'admin-form', 'data-admin-form-target': 'form', 'novalidate': 'novalidate', 'data-action': 'submit->admin-form#handleSubmit'}}) }}
 
 			{# Informations principales #}
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-				<div>
-					{{ form_label(form.nom, null, {'label_attr': {'class': 'text-white font-medium'}}) }}
-					{{ form_widget(form.nom) }}
-					{{ form_errors(form.nom) }}
-					{{ form_help(form.nom) }}
-				</div>
-
-				<div>
-					{{ form_label(form.categorie, null, {'label_attr': {'class': 'text-white font-medium'}}) }}
-					{{ form_widget(form.categorie) }}
-					{{ form_errors(form.categorie) }}
-					{{ form_help(form.categorie) }}
-				</div>
+				{{ form_macros.form_field(form, 'nom', 'input') }}
+				{{ form_macros.form_field(form, 'categorie', 'select') }}
 			</div>
 
 			{# Prix et unité #}
 			<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-				<div>
-					{{ form_label(form.prix, null, {'label_attr': {'class': 'text-white font-medium'}}) }}
-					{{ form_widget(form.prix) }}
-					{{ form_errors(form.prix) }}
-					{{ form_help(form.prix) }}
-				</div>
-
-				<div>
-					{{ form_label(form.unite, null, {'label_attr': {'class': 'text-white font-medium'}}) }}
-					{{ form_widget(form.unite) }}
-					{{ form_errors(form.unite) }}
-					{{ form_help(form.unite) }}
-				</div>
-
-				<div>
-					{{ form_label(form.ordre, null, {'label_attr': {'class': 'text-white font-medium'}}) }}
-					{{ form_widget(form.ordre) }}
-					{{ form_errors(form.ordre) }}
-					{{ form_help(form.ordre) }}
-				</div>
+				{{ form_macros.form_field(form, 'prix', 'input') }}
+				{{ form_macros.form_field(form, 'unite', 'select') }}
+				{{ form_macros.form_field(form, 'ordre', 'input') }}
 			</div>
 
 			{# Description #}
-			<div>
-				{{ form_label(form.description, null, {'label_attr': {'class': 'text-white font-medium'}}) }}
-				{{ form_widget(form.description) }}
-				{{ form_errors(form.description) }}
-				{{ form_help(form.description) }}
-			</div>
+			{{ form_macros.form_field(form, 'description', 'textarea') }}
 
 			{# Caractéristiques #}
-			<div>
-				{{ form_label(form.caracteristiques, null, {'label_attr': {'class': 'text-white font-medium'}}) }}
-				{{ form_widget(form.caracteristiques) }}
-				{{ form_errors(form.caracteristiques) }}
-				{{ form_help(form.caracteristiques) }}
-			</div>
+			{{ form_macros.form_field(form, 'caracteristiques', 'textarea') }}
 
 			{# Statut #}
 			<div class="flex items-center gap-3 p-4 bg-white/5 rounded-lg">
-				{{ form_widget(form.actif) }}
+				{{ form_widget(form.actif, {'attr': {'class': 'form-checkbox', 'data-admin-form-target': 'field'}}) }}
 				{{ form_label(form.actif, null, {'label_attr': {'class': 'text-white ml-2'}}) }}
 				<div class="text-white/60 text-sm">{{ form_help(form.actif) }}</div>
 			</div>
@@ -91,7 +54,7 @@
 				<a href="{{ path('admin_tariff_index') }}" class="btn-secondary">
 					Annuler
 				</a>
-				<button type="submit" class="btn-primary flex items-center gap-2">
+				<button type="submit" class="btn-primary flex items-center gap-2" data-admin-form-target="submit">
 					{{ ux_icon('lucide:check', {class: 'w-4 h-4'}) }}
 					Enregistrer
 				</button>
