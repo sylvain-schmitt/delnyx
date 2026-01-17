@@ -137,15 +137,15 @@
 				<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Automatisation</h3>
 
 				<div class="bg-white/5 border border-white/10 rounded-lg p-4">
-					<div class="flex items-center justify-between">
-						<div class="flex items-center gap-4">
-							{{ ux_icon('lucide:bell', {class: 'w-8 h-8 text-blue-400'}) }}
+					<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+						<div class="flex items-start gap-4">
+							{{ ux_icon('lucide:bell', {class: 'w-8 h-8 text-blue-400 flex-shrink-0'}) }}
 							<div>
 								<h4 class="text-white font-medium">Relances automatiques</h4>
 								<p class="text-white/60 text-sm">Configurez des règles pour envoyer automatiquement des rappels aux clients avec des factures impayées.</p>
 							</div>
 						</div>
-						<a href="{{ path('admin_reminder_index') }}" class="btn-secondary flex items-center gap-2 text-sm">
+						<a href="{{ path('admin_reminder_index') }}" class="btn-secondary flex items-center justify-center gap-2 text-sm flex-shrink-0">
 							{{ ux_icon('lucide:settings', {class: 'w-4 h-4'}) }}
 							Configurer
 						</a>
