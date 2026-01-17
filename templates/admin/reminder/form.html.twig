@@ -1,0 +1,124 @@
+{% extends 'admin/layout/base.html.twig' %}
+{% import 'admin/macros/form_fields.html.twig' as form_macros %}
+
+{% block title %}
+	{{ title }}
+	- Administration Delnyx
+{% endblock %}
+
+{% block page_title %}
+	{{ title }}
+{% endblock %}
+
+{% block body %}
+	<div
+		class="max-w-2xl mx-auto space-y-6">
+
+		{# Header #}
+		<div class="flex items-center justify-between scroll-animate">
+			<div class="flex items-center gap-4">
+				<a href="{{ path('admin_reminder_index') }}" class="btn-secondary flex items-center gap-2">
+					{{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
+					Retour
+				</a>
+				<h1 class="text-2xl font-bold text-white">{{ title }}</h1>
+			</div>
+		</div>
+
+		{# Messages flash #}
+		{% for type, messages in app.flashes %}
+			{% for message in messages %}
+				<div class="glass-card optimized-blur p-4 border-l-4 {% if type == 'success' %}border-emerald-500{% elseif type == 'error' %}border-red-500{% else %}border-blue-500{% endif %} scroll-animate">
+					<div class="flex items-center">
+						<div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 {% if type == 'success' %}bg-emerald-500/20{% else %}bg-red-500/20{% endif %}">
+							{% if type == 'success' %}
+								{{ ux_icon('lucide:check-circle', {class: 'w-5 h-5 text-emerald-400'}) }}
+							{% else %}
+								{{ ux_icon('lucide:alert-circle', {class: 'w-5 h-5 text-red-400'}) }}
+							{% endif %}
+						</div>
+						<div class="flex-1">
+							<p class="text-white font-medium">{{ message }}</p>
+						</div>
+					</div>
+				</div>
+			{% endfor %}
+		{% endfor %}
+
+		{# Formulaire #}
+		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100" data-controller="admin-form flash-messages">
+			{{ form_start(form, {'attr': {
+			'class': 'space-y-6',
+			'data-controller': 'admin-form',
+			'data-admin-form-target': 'form',
+			'novalidate': 'novalidate',
+			'data-action': 'submit->admin-form#handleSubmit'
+		}}) }}
+
+			{# Configuration de la règle #}
+			<div class="space-y-4">
+				<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+					{{ ux_icon('lucide:settings', {class: 'w-5 h-5'}) }}
+					Configuration de la règle
+				</h3>
+
+				{{ form_macros.simple_field(form, 'name') }}
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{{ form_macros.simple_field(form, 'daysAfterDue') }}
+					{{ form_macros.simple_field(form, 'maxReminders') }}
+				</div>
+
+				<div class="flex items-center gap-3 pt-2">
+					{{ form_widget(form.isActive) }}
+					{{ form_label(form.isActive) }}
+				</div>
+			</div>
+
+			{# Boutons d'action #}
+			<div class="flex justify-end gap-3 pt-4 border-t border-white/10">
+				<a href="{{ path('admin_reminder_index') }}" class="btn-secondary">Annuler</a>
+				<button type="submit" class="btn-primary flex items-center gap-2" data-admin-form-target="submit">
+					{{ ux_icon('lucide:save', {class: 'w-4 h-4'}) }}
+					{{ rule.id ? 'Modifier' : 'Créer' }}
+				</button>
+			</div>
+
+			{{ form_end(form) }}
+		</div>
+
+		{# Info sur le fonctionnement #}
+		<div class="bg-white/5 border border-white/10 rounded-xl p-6 scroll-animate animate-delay-200">
+			<h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+				{{ ux_icon('lucide:info', {class: 'w-5 h-5 text-blue-400'}) }}
+				Comment ça fonctionne ?
+			</h3>
+			<div class="space-y-3 text-sm text-white/70">
+				<p>
+					{{ ux_icon('lucide:check', {class: 'w-4 h-4 inline text-green-400 mr-2'}) }}
+					Les relances sont envoyées automatiquement aux
+					<strong class="text-white">factures impayées</strong>
+					après la date d'échéance.
+				</p>
+				<p>
+					{{ ux_icon('lucide:check', {class: 'w-4 h-4 inline text-green-400 mr-2'}) }}
+					L'email inclut automatiquement la
+					<strong class="text-white">facture en PDF</strong>
+					en pièce jointe.
+				</p>
+				<p>
+					{{ ux_icon('lucide:check', {class: 'w-4 h-4 inline text-green-400 mr-2'}) }}
+					Le
+					<strong class="text-white">nombre maximum de relances</strong>
+					s'applique à toutes les règles combinées.
+				</p>
+				<p>
+					{{ ux_icon('lucide:check', {class: 'w-4 h-4 inline text-green-400 mr-2'}) }}
+					L'ordre d'exécution est basé sur le
+					<strong class="text-white">nombre de jours après échéance</strong>.
+				</p>
+			</div>
+		</div>
+
+	</div>
+{% endblock %}

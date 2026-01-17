@@ -11,7 +11,8 @@
 {% endblock %}
 
 {% block body %}
-	<div class="space-y-6">
+	<div
+		class="space-y-6">
 
 		{# Header avec breadcrumb #}
 		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
@@ -80,27 +81,43 @@
 
 				{{ form_widget(form.number, {'attr': {'style': 'display: none'}}) }}
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="form-group" data-controller="select-search" data-select-search-type="invoice">
-                    {{ form_label(form.invoice, null, {'label_attr': {'class': 'form-label'}}) }}
-                    {% if invoice_locked|default(false) or isReadOnly %}
-                        {{ form_widget(form.invoice, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field', 'disabled': 'disabled'}}) }}
-                        {% if invoice_locked|default(false) %}
-                            <p class="text-sm text-white/60 mt-1">La facture est verrouillée car l'avoir a été créé depuis cette facture.</p>
-                        {% endif %}
-                    {% else %}
-                        {{ form_widget(form.invoice, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field'}}) }}
-                    {% endif %}
-                    {# Toujours créer un champ caché si le select a une valeur, pour s'assurer que la valeur est soumise même si le select est désactivé ou invisible (select-search) #}
-                    {% if form.invoice.vars.value %}
-                        {% set invoiceValue = form.invoice.vars.value %}
-                        {% set invoiceId = attribute(invoiceValue, 'id')|default(invoiceValue) %}
-                        <input type="hidden" name="{{ form.invoice.vars.full_name }}" value="{{ invoiceId }}" id="{{ form.invoice.vars.id }}_hidden">
-                    {% endif %}
-                    {{ form_help(form.invoice) }}
-                    {{ form_errors(form.invoice) }}
-                </div>
-					{{ form_macros.simple_field(form, 'statut', 'select', {'disabled': isReadOnly}) }}
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div class="form-group" data-controller="select-search" data-select-search-type="invoice">
+						{{ form_label(form.invoice, null, {'label_attr': {'class': 'form-label'}}) }}
+						{% if invoice_locked|default(false) or isReadOnly %}
+							{{ form_widget(form.invoice, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field', 'disabled': 'disabled'}}) }}
+							{% if invoice_locked|default(false) %}
+								<p class="text-sm text-white/60 mt-1">La facture est verrouillée car l'avoir a été créé depuis cette facture.</p>
+							{% endif %}
+						{% else %}
+							{{ form_widget(form.invoice, {'attr': {'class': 'form-select', 'data-admin-form-target': 'field'}}) }}
+						{% endif %}
+						{# Toujours créer un champ caché si le select a une valeur, pour s'assurer que la valeur est soumise même si le select est désactivé ou invisible (select-search) #}
+						{% if form.invoice.vars.value %}
+							{% set invoiceValue = form.invoice.vars.value %}
+							{% set invoiceId = attribute(invoiceValue, 'id')|default(invoiceValue) %}
+							<input type="hidden" name="{{ form.invoice.vars.full_name }}" value="{{ invoiceId }}" id="{{ form.invoice.vars.id }}_hidden">
+						{% endif %}
+						{{ form_help(form.invoice) }}
+						{{ form_errors(form.invoice) }}
+					</div>
+					{# Statut affiché en lecture seule - les transitions passent par les boutons d'action #}
+					<div class="form-group">
+						<label class="form-label">Statut</label>
+						<div class="flex items-center gap-3 h-10">
+							{% set statusColors = {
+								'draft': 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+								'issued': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+								'sent': 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+								'applied': 'bg-green-500/20 text-green-300 border-green-500/30',
+								'cancelled': 'bg-red-500/20 text-red-300 border-red-500/30'
+							} %}
+							<span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border {{ statusColors[creditNote.statutEnum.value]|default('bg-gray-500/20 text-gray-300 border-gray-500/30') }}">
+								{{ creditNote.statutEnum.label|default('Brouillon') }}
+							</span>
+							<span class="text-white/50 text-xs">Utilisez les boutons d'action pour changer le statut</span>
+						</div>
+					</div>
 				</div>
 
 				{{ form_macros.simple_field(form, 'reason', 'textarea', {'disabled': isReadOnly}) }}
@@ -123,14 +140,20 @@
 										<div class="flex-1">
 											<p class="text-white font-medium">{{ invoiceLine.description }}</p>
 											<p class="text-white/60 text-xs">
-												Qté: {{ invoiceLine.quantity }} × {{ invoiceLine.unitPrice|number_format(2, ',', ' ') }} €
+												Qté:
+												{{ invoiceLine.quantity }}
+												×
+												{{ invoiceLine.unitPrice|number_format(2, ',', ' ') }}
+												€
 												{% if creditNote.invoice.quote and creditNote.invoice.quote.usePerLineTva and invoiceLine.tvaRate %}
-													(TVA {{ invoiceLine.tvaRate }}%)
+													(TVA
+													{{ invoiceLine.tvaRate }}%)
 												{% endif %}
 											</p>
 										</div>
 										<div class="text-right">
-											<p class="text-white font-semibold">{{ invoiceLine.totalHt|number_format(2, ',', ' ') }} €</p>
+											<p class="text-white font-semibold">{{ invoiceLine.totalHt|number_format(2, ',', ' ') }}
+												€</p>
 											<p class="text-white/60 text-xs">HT</p>
 										</div>
 									</div>
@@ -156,18 +179,17 @@
 							Lignes d'ajustement
 						</h3>
 						<p class="text-sm text-white/60 mt-1">
-							⚠️ Important : Saisissez uniquement les <strong>ajustements</strong> (deltas), pas les montants bruts.
-							<br>Exemple : Pour passer de 200€ à 300€, saisissez <strong>+100€</strong> (et non 300€).
+							⚠️ Important : Saisissez uniquement les
+							<strong>ajustements</strong>
+							(deltas), pas les montants bruts.
+							<br>Exemple : Pour passer de 200€ à 300€, saisissez
+							<strong>+100€</strong>
+							(et non 300€).
 						</p>
 					</div>
 					<div class="flex items-center gap-3">
 						{% if companySettings and companySettings.isTvaEnabled() and not isReadOnly %}
-							<button type="button" 
-									class="btn-secondary text-sm py-2 px-4 flex items-center gap-2" 
-									data-tva-per-line-target="toggle"
-									data-action="click->tva-per-line#toggle"
-									data-label-disabled="Appliquer la TVA par ligne"
-									data-label-enabled="Désactiver la TVA par ligne">
+							<button type="button" class="btn-secondary text-sm py-2 px-4 flex items-center gap-2" data-tva-per-line-target="toggle" data-action="click->tva-per-line#toggle" data-label-disabled="Appliquer la TVA par ligne" data-label-enabled="Désactiver la TVA par ligne">
 								{{ ux_icon('lucide:percent', {class: 'w-4 h-4'}) }}
 								<span>Appliquer la TVA par ligne</span>
 							</button>
@@ -200,8 +222,12 @@
 							{% endif %}
 							<div class="bg-blue-500/10 border border-blue-500/20 rounded p-3 mb-4">
 								<p class="text-blue-300 text-sm">
-									<strong>💡 Ajustement :</strong> Saisissez un montant <strong>positif</strong> pour ajouter/augmenter, 
-									<strong>négatif</strong> pour retirer/diminuer.
+									<strong>💡 Ajustement :</strong>
+									Saisissez un montant
+									<strong>positif</strong>
+									pour ajouter/augmenter,
+									<strong>négatif</strong>
+									pour retirer/diminuer.
 								</p>
 							</div>
 							{# Champ sourceLine : sélection de la ligne de la facture à corriger #}
@@ -225,8 +251,7 @@
 								{% if companySettings and companySettings.isTvaEnabled() %}
 									{# Afficher le champ TVA si TVA est activée dans companySettings #}
 									{# Les avoirs utilisent toujours la TVA par ligne si TVA est activée #}
-									<div data-tva-per-line-target="rateWrapper" style="display: none;">
-										{{ form_macros.simple_field(line, 'tvaRate', 'select', {'disabled': isReadOnly}) }}
+										<div data-tva-per-line-target="rateWrapper" style="display: none;"> {{ form_macros.simple_field(line, 'tvaRate', 'select', {'disabled': isReadOnly}) }}
 									</div>
 								{% else %}
 									{# Cacher le champ tvaRate si TVA désactivée #}
@@ -252,8 +277,12 @@
 					<div class="bg-white/5 border border-white/10 rounded-lg p-4" data-line-index="__name__">
 						<div class="bg-blue-500/10 border border-blue-500/20 rounded p-3 mb-4">
 							<p class="text-blue-300 text-sm">
-								<strong>💡 Ajustement :</strong> Saisissez un montant <strong>positif</strong> pour ajouter/augmenter, 
-								<strong>négatif</strong> pour retirer/diminuer.
+								<strong>💡 Ajustement :</strong>
+								Saisissez un montant
+								<strong>positif</strong>
+								pour ajouter/augmenter,
+								<strong>négatif</strong>
+								pour retirer/diminuer.
 							</p>
 						</div>
 						{# Champ sourceLine : sélection de la ligne de la facture à corriger #}
@@ -269,9 +298,12 @@
 								<label class="form-label">Tarif du catalogue</label>
 								<select name="{{ form.lines.vars.full_name }}[__name__][tariff]" class="form-select" data-admin-form-target="field">
 									<option value="">Aucun (ligne personnalisée)</option>
-                                                                        {% for tariff in tariffs|default([]) %}
-                                                                            <option value="{{ tariff.id }}">{{ tariff.nom }} - {{ tariff.prix|number_format(2, ',', ' ') }} € ({{ tariff.uniteLabel }})</option>
-                                                                        {% endfor %}
+									{% for tariff in tariffs|default([]) %}
+										<option value="{{ tariff.id }}">{{ tariff.nom }}
+											-
+											{{ tariff.prix|number_format(2, ',', ' ') }}
+											€ ({{ tariff.uniteLabel }})</option>
+									{% endfor %}
 								</select>
 							</div>
 							<div class="form-group">
@@ -335,4 +367,3 @@
 		</div>
 	</div>
 {% endblock %}
-

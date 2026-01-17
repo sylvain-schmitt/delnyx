@@ -47,7 +47,8 @@ class AmendmentType extends AbstractType
                 'label' => 'Devis associé',
                 'class' => Quote::class,
                 'choice_label' => function (Quote $quote) {
-                    return sprintf('%s - %s (%s)', 
+                    return sprintf(
+                        '%s - %s (%s)',
                         $quote->getNumero() ?? 'Devis #' . $quote->getId(),
                         $quote->getClient() ? $quote->getClient()->getNomComplet() : 'Client inconnu',
                         $quote->getMontantTTCFormate()
@@ -59,28 +60,18 @@ class AmendmentType extends AbstractType
                     $qb = $er->createQueryBuilder('q')
                         ->where('q.statut = :signed')
                         ->setParameter('signed', QuoteStatus::SIGNED);
-                    
+
                     // Si on édite un avenant existant, permettre de voir le devis associé
                     if ($amendment && $amendment->getId() && $amendment->getQuote()) {
                         $qb->andWhere('q.id = :currentQuoteId OR q.id = :currentQuoteId')
-                           ->setParameter('currentQuoteId', $amendment->getQuote()->getId());
+                            ->setParameter('currentQuoteId', $amendment->getQuote()->getId());
                     }
-                    
+
                     return $qb->orderBy('q.dateCreation', 'DESC');
                 },
                 'attr' => ['class' => 'form-select'],
                 'disabled' => !$canEdit,
                 'help' => 'Un avenant ne peut être créé que pour un devis signé',
-                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
-            ])
-            ->add('statut', EnumType::class, [
-                'label' => 'Statut',
-                'class' => AmendmentStatus::class,
-                'choice_label' => fn(AmendmentStatus $status) => $status->getLabel(),
-                'property_path' => 'statutEnum',
-                'attr' => ['class' => 'form-select'],
-                'disabled' => !$canEdit,
-                'help' => 'Statut de l\'avenant',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('motif', TextareaType::class, [
@@ -168,7 +159,7 @@ class AmendmentType extends AbstractType
             if (isset($data['quote'])) {
                 $quoteValue = $data['quote'];
                 error_log('PRE_SUBMIT - quoteValue: ' . json_encode($quoteValue));
-                
+
                 if (is_numeric($quoteValue)) {
                     $quoteId = (int)$quoteValue;
                 } elseif (is_string($quoteValue) && is_numeric($quoteValue)) {
@@ -183,21 +174,21 @@ class AmendmentType extends AbstractType
                 error_log('PRE_SUBMIT - Mise à jour du champ quote');
                 $quoteField = $form->get('quote');
                 $quoteOptions = $quoteField->getConfig()->getOptions();
-                
+
                 // Mettre à jour le query_builder pour inclure le devis sélectionné
                 $quoteOptions['query_builder'] = function (EntityRepository $er) use ($quoteId) {
                     $qb = $er->createQueryBuilder('q')
                         ->where('q.statut = :signed OR q.id = :quoteId')
                         ->setParameter('signed', QuoteStatus::SIGNED)
                         ->setParameter('quoteId', $quoteId);
-                    
+
                     return $qb->orderBy('q.dateCreation', 'DESC');
                 };
-                
+
                 // IMPORTANT: Ne pas désactiver le champ lors de la reconstruction
                 // Sinon Symfony ne traitera pas la valeur soumise
                 $quoteOptions['disabled'] = false;
-                
+
                 // Reconstruire le champ quote avec le nouveau query_builder
                 $form->remove('quote');
                 $form->add('quote', EntityType::class, $quoteOptions);
@@ -205,16 +196,16 @@ class AmendmentType extends AbstractType
 
             // Si on a un ID de devis, mettre à jour le query_builder de toutes les lignes
             error_log('PRE_SUBMIT - Vérification: quoteId=' . ($quoteId ?? 'null') . ', has(lines)=' . ($form->has('lines') ? 'YES' : 'NO'));
-            
+
             // Vérifier si des lignes sont dans les données soumises
             $linesData = $data['lines'] ?? [];
             error_log('PRE_SUBMIT - Nombre de lignes dans les données: ' . count($linesData));
-            
+
             if ($quoteId && $form->has('lines')) {
                 error_log('PRE_SUBMIT - Entrée dans le bloc de mise à jour des lignes');
                 $linesForm = $form->get('lines');
                 error_log('PRE_SUBMIT - Nombre de lignes dans le formulaire: ' . count($linesForm->all()));
-                
+
                 // Si des lignes sont dans les données mais pas dans le formulaire, les ajouter
                 if (count($linesData) > count($linesForm->all())) {
                     error_log('PRE_SUBMIT - Ajout des lignes manquantes au formulaire');
@@ -227,14 +218,14 @@ class AmendmentType extends AbstractType
                         ]);
                     }
                 }
-                
+
                 error_log('PRE_SUBMIT - Nombre de lignes après ajout: ' . count($linesForm->all()));
-                
+
                 // Le ModelTransformer dans AmendmentLineType va gérer la conversion de l'ID en entité QuoteLine
                 // Plus besoin de reconstruire le champ sourceLine ici
                 error_log('PRE_SUBMIT - Les lignes ont été ajoutées, le ModelTransformer gérera la conversion');
             }
-            
+
             error_log('=== FIN PRE_SUBMIT LISTENER ===');
         });
     }
@@ -248,4 +239,3 @@ class AmendmentType extends AbstractType
         $resolver->setAllowedTypes('company_settings', ['null', CompanySettings::class]);
     }
 }
-

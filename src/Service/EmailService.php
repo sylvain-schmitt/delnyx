@@ -20,7 +20,7 @@ use Twig\Environment;
 
 /**
  * Service d'envoi d'emails pour les documents
- * 
+ *
  * Gère l'envoi et la traçabilité de tous les emails
  */
 class EmailService
@@ -36,7 +36,7 @@ class EmailService
 
     /**
      * Récupère les informations d'expéditeur depuis les paramètres de l'entreprise
-     * 
+     *
      * @return array{email: string, name: string, settings: ?CompanySettings}
      */
     private function getSenderInfo(): array
@@ -61,7 +61,7 @@ class EmailService
 
     /**
      * Envoie un devis par email
-     * 
+     *
      * @param array $additionalAttachments Fichiers supplémentaires à joindre (UploadedFile[])
      */
     public function sendQuote(Quote $quote, ?string $customMessage = null, array $additionalAttachments = []): EmailLog
@@ -107,7 +107,7 @@ class EmailService
 
     /**
      * Envoie une facture par email
-     * 
+     *
      * @param array $additionalAttachments Fichiers supplémentaires à joindre (UploadedFile[])
      */
     public function sendInvoice(Invoice $invoice, ?string $customMessage = null, array $additionalAttachments = []): EmailLog
@@ -153,7 +153,7 @@ class EmailService
 
     /**
      * Envoie un avenant par email
-     * 
+     *
      * @param array $additionalAttachments Fichiers supplémentaires à joindre (UploadedFile[])
      */
     public function sendAmendment(Amendment $amendment, ?string $customMessage = null, array $additionalAttachments = []): EmailLog
@@ -205,7 +205,7 @@ class EmailService
 
     /**
      * Envoie un avoir par email
-     * 
+     *
      * @param array $additionalAttachments Fichiers supplémentaires à joindre (UploadedFile[])
      */
     public function sendCreditNote(CreditNote $creditNote, ?string $customMessage = null, array $additionalAttachments = []): EmailLog
@@ -257,7 +257,7 @@ class EmailService
 
     /**
      * Méthode générique d'envoi avec traçabilité
-     * 
+     *
      * @param array $additionalAttachments Fichiers supplémentaires à joindre (UploadedFile[])
      */
     private function send(
@@ -356,5 +356,56 @@ class EmailService
         return $this->entityManager
             ->getRepository(EmailLog::class)
             ->findByEntity($entityType, $entityId);
+    }
+
+    /**
+     * Envoie un email de relance pour une facture
+     */
+    public function sendReminderEmail(
+        Invoice $invoice,
+        string $subject,
+        string $htmlContent,
+        ?CompanySettings $companySettings = null
+    ): EmailLog {
+        $client = $invoice->getClient();
+
+        if (!$client || !$client->getEmail()) {
+            throw new \RuntimeException('Impossible d\'envoyer la relance : aucun email client');
+        }
+
+        $senderInfo = $this->getSenderInfo();
+
+        // Encapsuler le contenu dans un template email
+        $html = $this->twig->render('emails/reminder.html.twig', [
+            'invoice' => $invoice,
+            'client' => $client,
+            'content' => $htmlContent,
+            'subject' => $subject,
+            'companySettings' => $companySettings ?? $senderInfo['settings'],
+        ]);
+
+        // Générer le PDF de la facture
+        $pdfContent = null;
+        $pdfFilename = null;
+        try {
+            $pdfResponse = $this->pdfGeneratorService->generateFacturePdf($invoice, false);
+            $pdfContent = $pdfResponse->getContent();
+            $pdfFilename = sprintf('facture-%s.pdf', $invoice->getNumero() ?? $invoice->getId());
+        } catch (\Exception $e) {
+            // Si la génération PDF échoue, on envoie quand même l'email sans PDF
+        }
+
+        return $this->send(
+            recipient: $client->getEmail(),
+            subject: $subject,
+            html: $html,
+            entityType: 'Invoice',
+            entityId: $invoice->getId(),
+            type: 'reminder',
+            senderEmail: $senderInfo['email'],
+            senderName: $senderInfo['name'],
+            pdfContent: $pdfContent,
+            pdfFilename: $pdfFilename
+        );
     }
 }

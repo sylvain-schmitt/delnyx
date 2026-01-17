@@ -56,14 +56,6 @@ class QuoteType extends AbstractType
                 'help' => 'Tapez pour rechercher un client dans la liste',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
-            ->add('statut', EnumType::class, [
-                'label' => 'Statut',
-                'class' => QuoteStatus::class,
-                'choice_label' => fn(QuoteStatus $status) => $status->getLabel(),
-                'attr' => ['class' => 'form-select'],
-                'help' => 'Statut du devis',
-                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
-            ])
             ->add('dateValidite', DateType::class, [
                 'label' => 'Date de validité',
                 'required' => true,
@@ -208,4 +200,3 @@ class QuoteType extends AbstractType
         $resolver->setAllowedTypes('company_settings', ['null', CompanySettings::class]);
     }
 }
-

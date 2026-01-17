@@ -1,0 +1,62 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block body %}
+	<h1>⚠️ Rappel de paiement</h1>
+
+	<p>Bonjour
+		{{ client.nomComplet }},</p>
+
+	<p>
+		Nous nous permettons de vous rappeler que la facture n°<strong>{{ invoice.numero }}</strong>
+		d'un montant de
+		<strong>{{ invoice.montantTTCFormate }}</strong>, émise le
+		{{ invoice.dateCreation|date('d/m/Y') }},
+				reste actuellement en attente de paiement.
+	</p>
+
+	{% if invoice.dateEcheance %}
+		<p style="color: #dc2626;">
+			La date d'échéance était fixée au
+			<strong>{{ invoice.dateEcheance|date('d/m/Y') }}</strong>.
+		</p>
+	{% endif %}
+
+	<div class="info-box">
+		<p>
+			<strong>Numéro de facture :</strong>
+			{{ invoice.numero }}</p>
+		<p>
+			<strong>Date d'émission :</strong>
+			{{ invoice.dateCreation|date('d/m/Y') }}</p>
+		{% if invoice.dateEcheance %}
+			<p>
+				<strong>Date d'échéance :</strong>
+				<span style="color: #dc2626; font-weight: bold;">{{ invoice.dateEcheance|date('d/m/Y') }}</span>
+			</p>
+		{% endif %}
+		<p>
+			<strong>Montant TTC :</strong>
+			<span style="font-size: 18px; color: #1e293b;">{{ invoice.montantTTCFormate }}</span>
+		</p>
+	</div>
+
+	<div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 30px 0;">
+		<p style="margin: 0; color: #92400e;">
+			📎
+			<strong>La facture complète est disponible en pièce jointe de cet email (PDF).</strong>
+		</p>
+	</div>
+
+	<p>Nous vous remercions de bien vouloir régulariser cette situation dans les meilleurs délais.</p>
+
+	<p>Pour toute question concernant cette facture, n'hésitez pas à nous contacter.</p>
+
+	<p style="margin-top: 30px;">
+		Cordialement,<br>
+		{% if companySettings and companySettings.raisonSociale %}
+			<strong>{{ companySettings.raisonSociale }}</strong>
+		{% else %}
+			<strong>L'équipe Delnyx</strong>
+		{% endif %}
+	</p>
+{% endblock %}

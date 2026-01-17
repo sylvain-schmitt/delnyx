@@ -31,14 +31,14 @@ class InvoiceType extends AbstractType
     {
         $invoice = $options['data'] ?? null;
         $hasQuote = $invoice && $invoice->getQuote() !== null;
-        
+
         // Vérifier si chaque champ a une valeur pré-remplie depuis le devis
         $hasMontantAcompteFromQuote = $hasQuote && $invoice->getMontantAcompte() !== null && $invoice->getMontantAcompte() > 0;
         $hasConditionsPaiementFromQuote = $hasQuote && $invoice->getConditionsPaiement() !== null && trim($invoice->getConditionsPaiement()) !== '';
         $hasDelaiPaiementFromQuote = $hasQuote && $invoice->getDelaiPaiement() !== null;
         $isEdit = $invoice && $invoice->getId();
         $canEdit = !$isEdit || ($invoice && $invoice->canBeModified());
-        
+
         // Si un devis est associé, les lignes ne peuvent pas être modifiées (légalité)
         $linesEditable = $canEdit && !$hasQuote;
 
@@ -58,7 +58,8 @@ class InvoiceType extends AbstractType
                 'label' => 'Devis associé',
                 'class' => Quote::class,
                 'choice_label' => function (Quote $quote) {
-                    return sprintf('%s - %s (%s)', 
+                    return sprintf(
+                        '%s - %s (%s)',
                         $quote->getNumero() ?? 'Devis #' . $quote->getId(),
                         $quote->getClient() ? $quote->getClient()->getNomComplet() : 'Client inconnu',
                         $quote->getMontantTTCFormate()
@@ -71,17 +72,17 @@ class InvoiceType extends AbstractType
                         ->leftJoin('q.invoice', 'i')
                         ->where('q.statut = :signed')
                         ->setParameter('signed', \App\Entity\QuoteStatus::SIGNED);
-                    
+
                     // Si on édite une facture existante, permettre de voir le devis associé
                     $invoice = $options['data'] ?? null;
                     if ($invoice && $invoice->getId() && $invoice->getQuote()) {
                         $qb->andWhere('i.id IS NULL OR i.id = :currentInvoiceId')
-                           ->setParameter('currentInvoiceId', $invoice->getId());
+                            ->setParameter('currentInvoiceId', $invoice->getId());
                     } else {
                         // En création, exclure les devis qui ont déjà une facture
                         $qb->andWhere('i.id IS NULL');
                     }
-                    
+
                     return $qb->orderBy('q.dateCreation', 'DESC');
                 },
                 'attr' => ['class' => 'form-select'],
@@ -101,15 +102,6 @@ class InvoiceType extends AbstractType
                 },
                 'attr' => ['class' => 'form-select', 'required' => 'required'],
                 'help' => 'Tapez pour rechercher un client dans la liste',
-                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
-            ])
-            ->add('statut', EnumType::class, [
-                'label' => 'Statut',
-                'class' => InvoiceStatus::class,
-                'choice_label' => fn(InvoiceStatus $status) => $status->getLabel(),
-                'property_path' => 'statutEnum',
-                'attr' => ['class' => 'form-select'],
-                'help' => 'Statut de la facture',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('dateEcheance', DateType::class, [
@@ -213,7 +205,7 @@ class InvoiceType extends AbstractType
             $quoteId = null;
             if (isset($data['quote'])) {
                 $quoteValue = $data['quote'];
-                
+
                 if (is_numeric($quoteValue)) {
                     $quoteId = (int)$quoteValue;
                 } elseif (is_string($quoteValue) && is_numeric($quoteValue)) {
@@ -225,7 +217,7 @@ class InvoiceType extends AbstractType
             if ($quoteId && $form->has('quote')) {
                 $quoteField = $form->get('quote');
                 $quoteOptions = $quoteField->getConfig()->getOptions();
-                
+
                 // Mettre à jour le query_builder pour inclure le devis sélectionné
                 $quoteOptions['query_builder'] = function (EntityRepository $er) use ($quoteId) {
                     $qb = $er->createQueryBuilder('q')
@@ -233,13 +225,13 @@ class InvoiceType extends AbstractType
                         ->where('(q.statut = :signed AND i.id IS NULL) OR q.id = :quoteId')
                         ->setParameter('signed', \App\Entity\QuoteStatus::SIGNED)
                         ->setParameter('quoteId', $quoteId);
-                    
+
                     return $qb->orderBy('q.dateCreation', 'DESC');
                 };
-                
+
                 // IMPORTANT: Ne pas désactiver le champ lors de la reconstruction
                 $quoteOptions['disabled'] = false;
-                
+
                 // Reconstruire le champ quote avec le nouveau query_builder
                 $form->remove('quote');
                 $form->add('quote', EntityType::class, $quoteOptions);
@@ -247,10 +239,10 @@ class InvoiceType extends AbstractType
 
             // Si on a un ID de devis, ajouter les lignes manquantes au formulaire
             $linesData = $data['lines'] ?? [];
-            
+
             if ($quoteId && $form->has('lines')) {
                 $linesForm = $form->get('lines');
-                
+
                 // Si des lignes sont dans les données mais pas dans le formulaire, les ajouter
                 if (count($linesData) > count($linesForm->all())) {
                     for ($i = count($linesForm->all()); $i < count($linesData); $i++) {
@@ -265,8 +257,7 @@ class InvoiceType extends AbstractType
 
     public function __construct(
         private \Doctrine\ORM\EntityManagerInterface $entityManager
-    ) {
-    }
+    ) {}
 
     public function configureOptions(OptionsResolver $resolver): void
     {
@@ -277,4 +268,3 @@ class InvoiceType extends AbstractType
         $resolver->setAllowedTypes('company_settings', ['null', CompanySettings::class]);
     }
 }
-

@@ -1,0 +1,149 @@
+{% extends 'admin/layout/base.html.twig' %}
+
+{% block title %}Règles de relance - Administration Delnyx
+{% endblock %}
+
+{% block page_title %}Relances Automatiques
+{% endblock %}
+
+{% block body %}
+	<div
+		class="space-y-6">
+
+		{# Header avec actions #}
+		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+			<div>
+				<h1 class="text-2xl font-bold text-white">Règles de relance</h1>
+				<p class="text-white/60 mt-1">{{ rules|length }}
+					règle{{ rules|length > 1 ? 's' : '' }}
+					configurée{{ rules|length > 1 ? 's' : '' }}</p>
+			</div>
+			<div class="flex gap-3">
+				<a href="{{ path('admin_reminder_history') }}" class="btn-secondary flex items-center gap-2">
+					{{ ux_icon('lucide:history', {class: 'w-4 h-4'}) }}
+					Historique
+				</a>
+				<a href="{{ path('admin_reminder_new') }}" class="btn-primary flex items-center gap-2">
+					{{ ux_icon('lucide:plus', {class: 'w-4 h-4'}) }}
+					Nouvelle règle
+				</a>
+			</div>
+		</div>
+
+		{# Liste des règles #}
+		{% if rules|length > 0 %}
+			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl overflow-hidden scroll-animate animate-delay-100">
+				<div class="overflow-x-auto">
+					<table class="w-full">
+						<thead class="bg-white/5 border-b border-white/20">
+							<tr>
+								<th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Nom</th>
+								<th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Délai</th>
+								<th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Max relances</th>
+								<th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Statut</th>
+								<th class="px-6 py-4 text-right text-xs font-semibold text-white/80 uppercase tracking-wider">Actions</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-white/10">
+							{% for rule in rules %}
+								<tr class="hover:bg-white/5 transition-colors duration-200">
+									<td class="px-6 py-4">
+										<div class="text-sm font-medium text-white">{{ rule.name }}</div>
+									</td>
+									<td class="px-6 py-4 whitespace-nowrap">
+										<div class="text-sm text-white">
+											{% if rule.daysAfterDue == 0 %}
+												Le jour de l'échéance
+											{% else %}
+												{{ rule.daysAfterDue }}
+												jour{{ rule.daysAfterDue > 1 ? 's' : '' }}
+												après
+											{% endif %}
+										</div>
+									</td>
+									<td class="px-6 py-4 whitespace-nowrap">
+										<div class="text-sm text-white">{{ rule.maxReminders }}</div>
+									</td>
+									<td class="px-6 py-4 whitespace-nowrap">
+										{% if rule.isActive %}
+											<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-300">
+												Actif
+											</span>
+										{% else %}
+											<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400">
+												Inactif
+											</span>
+										{% endif %}
+									</td>
+									<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+										<div class="flex items-center justify-end gap-2">
+											<form action="{{ path('admin_reminder_toggle', {id: rule.id}) }}" method="post" class="inline">
+												<input type="hidden" name="_token" value="{{ csrf_token('toggle_reminder_rule_' ~ rule.id) }}">
+												<button type="submit" class="p-2 rounded-lg transition-colors duration-200 {{ rule.isActive ? 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400' : 'bg-green-500/20 hover:bg-green-500/30 text-green-400' }}" title="{{ rule.isActive ? 'Désactiver' : 'Activer' }}">
+													{{ ux_icon(rule.isActive ? 'lucide:pause' : 'lucide:play', {class: 'w-4 h-4'}) }}
+												</button>
+											</form>
+											<a href="{{ path('admin_reminder_edit', {id: rule.id}) }}" class="p-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg text-blue-400 transition-colors duration-200">
+												{{ ux_icon('lucide:pencil', {class: 'w-4 h-4'}) }}
+											</a>
+											<form action="{{ path('admin_reminder_delete', {id: rule.id}) }}" method="post" class="inline" data-action="submit->confirm-modal#open" data-confirm-modal-message="Supprimer cette règle ?" data-confirm-modal-title="Confirmer la suppression" data-confirm-modal-button="Supprimer">
+												<input type="hidden" name="_token" value="{{ csrf_token('delete_reminder_rule_' ~ rule.id) }}">
+												<button type="submit" class="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-red-400 transition-colors duration-200">
+													{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+												</button>
+											</form>
+										</div>
+									</td>
+								</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		{% else %}
+			{# État vide #}
+			<div class="text-center py-20 scroll-animate">
+				<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-12 max-w-md mx-auto">
+					{{ ux_icon('lucide:bell-off', {class: 'w-16 h-16 text-gray-400 mb-6 mx-auto'}) }}
+					<h3 class="text-2xl font-bold text-white mb-4">Aucune règle de relance</h3>
+					<p class="text-gray-300 mb-6">
+						Configurez des règles pour envoyer automatiquement des rappels aux clients avec des factures impayées.
+					</p>
+					<a href="{{ path('admin_reminder_new') }}" class="btn-primary">
+						{{ ux_icon('lucide:plus', {class: 'w-4 h-4 mr-2'}) }}
+						Créer une règle
+					</a>
+				</div>
+			</div>
+		{% endif %}
+
+		{# Info box #}
+		<div class="bg-white/5 border border-white/10 rounded-xl p-6 scroll-animate animate-delay-200">
+			<h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+				{{ ux_icon('lucide:info', {class: 'w-5 h-5 text-blue-400'}) }}
+				Comment ça fonctionne ?
+			</h3>
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-white/70">
+				<div class="flex items-start gap-3">
+					<div class="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+						<span class="text-blue-400 font-bold">1</span>
+					</div>
+					<p>Une tâche CRON vérifie quotidiennement les factures en retard de paiement.</p>
+				</div>
+				<div class="flex items-start gap-3">
+					<div class="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+						<span class="text-blue-400 font-bold">2</span>
+					</div>
+					<p>Les règles actives sont appliquées selon le délai configuré après la date d'échéance.</p>
+				</div>
+				<div class="flex items-start gap-3">
+					<div class="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+						<span class="text-blue-400 font-bold">3</span>
+					</div>
+					<p>Un email de rappel est envoyé automatiquement au client avec la facture en pièce jointe.</p>
+				</div>
+			</div>
+		</div>
+
+	</div>
+{% endblock %}

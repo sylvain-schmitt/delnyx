@@ -44,7 +44,8 @@ class CreditNoteType extends AbstractType
                 'label' => 'Facture associée',
                 'class' => Invoice::class,
                 'choice_label' => function (Invoice $invoice) {
-                    return sprintf('%s - %s (%s)', 
+                    return sprintf(
+                        '%s - %s (%s)',
                         $invoice->getNumero() ?? 'Facture #' . $invoice->getId(),
                         $invoice->getClient() ? $invoice->getClient()->getNomComplet() : 'Client inconnu',
                         $invoice->getMontantTTCFormate()
@@ -60,28 +61,18 @@ class CreditNoteType extends AbstractType
                             InvoiceStatus::SENT->value,
                             InvoiceStatus::PAID->value,
                         ]);
-                    
+
                     // Si on édite un avoir existant, permettre de voir la facture associée
                     if ($creditNote && $creditNote->getId() && $creditNote->getInvoice()) {
                         $qb->andWhere('i.id = :currentInvoiceId OR i.id = :currentInvoiceId')
-                           ->setParameter('currentInvoiceId', $creditNote->getInvoice()->getId());
+                            ->setParameter('currentInvoiceId', $creditNote->getInvoice()->getId());
                     }
-                    
+
                     return $qb->orderBy('i.dateCreation', 'DESC');
                 },
                 'attr' => ['class' => 'form-select'],
                 'disabled' => !$canEdit,
                 'help' => 'Un avoir ne peut être créé que pour une facture émise',
-                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
-            ])
-            ->add('statut', EnumType::class, [
-                'label' => 'Statut',
-                'class' => CreditNoteStatus::class,
-                'choice_label' => fn(CreditNoteStatus $status) => $status->getLabel(),
-                'property_path' => 'statutEnum',
-                'attr' => ['class' => 'form-select'],
-                'disabled' => !$canEdit,
-                'help' => 'Statut de l\'avoir',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->addEventSubscriber(new RemoveEmptyLinesSubscriber())
@@ -120,4 +111,3 @@ class CreditNoteType extends AbstractType
         $resolver->setAllowedTypes('company_settings', ['null', CompanySettings::class]);
     }
 }
-
