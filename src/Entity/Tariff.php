@@ -68,7 +68,7 @@ class Tariff
     #[Assert\Type(type: 'numeric', message: 'Le prix doit être un nombre')]
     #[Assert\GreaterThanOrEqual(value: 0, message: 'Le prix ne peut pas être négatif')]
     #[Groups(['tariff:read', 'tariff:write'])]
-    private string $prix = '0.00';
+    private ?string $prix = null;
 
     #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => 'forfait'])]
     #[Assert\NotBlank(message: 'L\'unité est obligatoire')]
@@ -150,12 +150,12 @@ class Tariff
         return $this;
     }
 
-    public function getPrix(): string
+    public function getPrix(): ?string
     {
         return $this->prix;
     }
 
-    public function setPrix(string $prix): self
+    public function setPrix(?string $prix): self
     {
         $this->prix = $prix;
         return $this;

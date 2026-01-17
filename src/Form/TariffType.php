@@ -44,7 +44,9 @@ class TariffType extends AbstractType
             ->add('prix', NumberType::class, [
                 'label' => 'Prix HT (€)',
                 'scale' => 2,
-                'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0, 'placeholder' => '0.00'],
+                'required' => true,
+                'empty_data' => null,
+                'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0, 'placeholder' => 'Prix de la prestation'],
                 'help' => 'Prix hors taxes en euros',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
