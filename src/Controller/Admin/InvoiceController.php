@@ -17,6 +17,8 @@ use App\Repository\AmendmentRepository;
 use App\Repository\TariffRepository;
 use App\Service\InvoiceService;
 use App\Service\EmailService;
+use App\Service\FecExportService;
+use App\Service\ExportService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -41,7 +43,9 @@ class InvoiceController extends AbstractController
         private EntityManagerInterface $entityManager,
         private InvoiceService $invoiceService,
         private \App\Service\PdfGeneratorService $pdfGeneratorService,
-        private EmailService $emailService
+        private EmailService $emailService,
+        private FecExportService $fecExportService,
+        private ExportService $exportService
     ) {}
 
     #[Route('/', name: 'index')]
@@ -910,5 +914,146 @@ class InvoiceController extends AbstractController
         }
 
         return $this->redirectToRoute('admin_invoice_show', ['id' => $invoice->getId()]);
+    }
+
+    /**
+     * Formulaire d'export des factures (FEC et CSV)
+     */
+    #[Route('/export', name: 'export', methods: ['GET'])]
+    public function export(): Response
+    {
+        // Récupérer les années disponibles pour l'export (via les dates de création)
+        $invoices = $this->invoiceRepository->createQueryBuilder('i')
+            ->select('i.dateCreation')
+            ->orderBy('i.dateCreation', 'DESC')
+            ->getQuery()
+            ->getScalarResult();
+
+        // Extraire les années uniques
+        $years = [];
+        foreach ($invoices as $invoice) {
+            if ($invoice['dateCreation']) {
+                $year = (int)($invoice['dateCreation'] instanceof \DateTimeInterface
+                    ? $invoice['dateCreation']->format('Y')
+                    : (new \DateTime($invoice['dateCreation']))->format('Y'));
+                if (!in_array($year, $years)) {
+                    $years[] = $year;
+                }
+            }
+        }
+        rsort($years); // Trier par année décroissante
+
+        return $this->render('admin/invoice/export.html.twig', [
+            'years' => $years,
+            'current_year' => (int)date('Y'),
+        ]);
+    }
+
+    /**
+     * Export au format FEC
+     */
+    #[Route('/export/fec', name: 'export_fec', methods: ['POST'])]
+    public function exportFec(Request $request): Response
+    {
+        $dateDebut = $request->request->get('date_debut');
+        $dateFin = $request->request->get('date_fin');
+        $excludeCancelled = $request->request->getBoolean('exclude_cancelled', true);
+
+        // Créer les dates depuis les paramètres
+        $dateDebutObj = $dateDebut ? new \DateTime($dateDebut) : new \DateTime('first day of January this year');
+        $dateFinObj = $dateFin ? new \DateTime($dateFin) : new \DateTime('last day of December this year');
+
+        // Récupérer les factures pour la période
+        $qb = $this->invoiceRepository->createQueryBuilder('i')
+            ->where('i.dateCreation >= :dateDebut')
+            ->andWhere('i.dateCreation <= :dateFin')
+            ->setParameter('dateDebut', $dateDebutObj->format('Y-m-d 00:00:00'))
+            ->setParameter('dateFin', $dateFinObj->format('Y-m-d 23:59:59'))
+            ->orderBy('i.dateCreation', 'ASC');
+
+        if ($excludeCancelled) {
+            $qb->andWhere('i.statut != :cancelled')
+                ->setParameter('cancelled', InvoiceStatus::CANCELLED->value);
+        }
+
+        // Exclure les factures en brouillon (pas encore émises)
+        $qb->andWhere('i.statut != :draft')
+            ->setParameter('draft', InvoiceStatus::DRAFT->value);
+
+        $invoices = $qb->getQuery()->getResult();
+
+        if (empty($invoices)) {
+            $this->addFlash('warning', 'Aucune facture à exporter pour cette période.');
+            return $this->redirectToRoute('admin_invoice_export');
+        }
+
+        // Générer le FEC
+        $fecData = $this->fecExportService->generateFec($invoices, $dateFinObj);
+
+        // Créer la réponse avec téléchargement
+        $response = new Response($fecData['content']);
+        $response->headers->set('Content-Type', 'text/plain; charset=UTF-8');
+        $response->headers->set(
+            'Content-Disposition',
+            $response->headers->makeDisposition(
+                ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+                $fecData['filename']
+            )
+        );
+
+        return $response;
+    }
+
+    /**
+     * Export au format CSV
+     */
+    #[Route('/export/csv', name: 'export_csv', methods: ['POST'])]
+    public function exportCsv(Request $request): Response
+    {
+        $dateDebut = $request->request->get('date_debut');
+        $dateFin = $request->request->get('date_fin');
+        $excludeCancelled = $request->request->getBoolean('exclude_cancelled', true);
+
+        // Créer les dates depuis les paramètres
+        $dateDebutObj = $dateDebut ? new \DateTime($dateDebut) : new \DateTime('first day of January this year');
+        $dateFinObj = $dateFin ? new \DateTime($dateFin) : new \DateTime('last day of December this year');
+
+        // Récupérer les factures pour la période
+        $qb = $this->invoiceRepository->createQueryBuilder('i')
+            ->leftJoin('i.client', 'c')
+            ->addSelect('c')
+            ->where('i.dateCreation >= :dateDebut')
+            ->andWhere('i.dateCreation <= :dateFin')
+            ->setParameter('dateDebut', $dateDebutObj->format('Y-m-d 00:00:00'))
+            ->setParameter('dateFin', $dateFinObj->format('Y-m-d 23:59:59'))
+            ->orderBy('i.dateCreation', 'ASC');
+
+        if ($excludeCancelled) {
+            $qb->andWhere('i.statut != :cancelled')
+                ->setParameter('cancelled', InvoiceStatus::CANCELLED->value);
+        }
+
+        $invoices = $qb->getQuery()->getResult();
+
+        if (empty($invoices)) {
+            $this->addFlash('warning', 'Aucune facture à exporter pour cette période.');
+            return $this->redirectToRoute('admin_invoice_export');
+        }
+
+        // Générer le CSV
+        $csvData = $this->exportService->exportInvoicesCsv($invoices);
+
+        // Créer la réponse avec téléchargement
+        $response = new Response($csvData['content']);
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set(
+            'Content-Disposition',
+            $response->headers->makeDisposition(
+                ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+                $csvData['filename']
+            )
+        );
+
+        return $response;
     }
 }

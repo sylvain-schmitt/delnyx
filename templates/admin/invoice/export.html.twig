@@ -1,0 +1,139 @@
+{% extends 'admin/layout/base.html.twig' %}
+
+{% block title %}Export Comptable - Administration Delnyx
+{% endblock %}
+
+{% block page_title %}Export Comptable
+{% endblock %}
+
+{% block body %}
+	<div
+		class="max-w-4xl mx-auto space-y-6">
+
+		{# Header #}
+		<div class="flex items-center justify-between scroll-animate">
+			<div class="flex items-center gap-4">
+				<a href="{{ path('admin_invoice_index') }}" class="btn-secondary flex items-center gap-2">
+					{{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
+					Retour
+				</a>
+				<h1 class="text-2xl font-bold text-white">Export Comptable</h1>
+			</div>
+		</div>
+
+		{# Contenu principal #}
+		<div
+			class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+			{# Export FEC #}
+			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate">
+				<div class="flex items-center gap-3 mb-4">
+					<div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+						{{ ux_icon('lucide:file-text', {class: 'w-5 h-5 text-blue-400'}) }}
+					</div>
+					<div>
+						<h2 class="text-lg font-semibold text-white">Export FEC</h2>
+						<p class="text-sm text-white/60">Fichier des Écritures Comptables</p>
+					</div>
+				</div>
+
+				<p class="text-white/70 text-sm mb-4">
+					Format officiel requis par l'administration fiscale française (article A47 A-1 du LPF).
+									Fichier TXT avec 18 colonnes obligatoires.
+				</p>
+
+				<form action="{{ path('admin_invoice_export_fec') }}" method="post" class="space-y-4" data-turbo="false">
+					<div class="grid grid-cols-2 gap-4">
+						<div class="form-group">
+							<label for="fec_date_debut" class="form-label">Date début</label>
+							<input type="date" id="fec_date_debut" name="date_debut" class="form-input" value="{{ 'now'|date('Y') ~ '-01-01' }}">
+						</div>
+						<div class="form-group">
+							<label for="fec_date_fin" class="form-label">Date fin</label>
+							<input type="date" id="fec_date_fin" name="date_fin" class="form-input" value="{{ 'now'|date('Y-m-d') }}">
+						</div>
+					</div>
+
+					<div class="flex items-center gap-2">
+						<input type="checkbox" id="fec_exclude_cancelled" name="exclude_cancelled" value="1" checked class="form-checkbox">
+						<label for="fec_exclude_cancelled" class="text-white/80 text-sm">
+							Exclure les factures annulées
+						</label>
+					</div>
+
+					<button type="submit" class="btn-primary w-full flex items-center justify-center gap-2">
+						{{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
+						Télécharger FEC
+					</button>
+				</form>
+			</div>
+
+			{# Export CSV #}
+			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100">
+				<div class="flex items-center gap-3 mb-4">
+					<div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+						{{ ux_icon('lucide:table', {class: 'w-5 h-5 text-green-400'}) }}
+					</div>
+					<div>
+						<h2 class="text-lg font-semibold text-white">Export CSV</h2>
+						<p class="text-sm text-white/60">Format Excel / Tableur</p>
+					</div>
+				</div>
+
+				<p class="text-white/70 text-sm mb-4">
+					Export simplifié pour Excel avec les colonnes principales :
+									numéro, date, client, montants HT/TVA/TTC, statut.
+				</p>
+
+				<form action="{{ path('admin_invoice_export_csv') }}" method="post" class="space-y-4" data-turbo="false">
+					<div class="grid grid-cols-2 gap-4">
+						<div class="form-group">
+							<label for="csv_date_debut" class="form-label">Date début</label>
+							<input type="date" id="csv_date_debut" name="date_debut" class="form-input" value="{{ 'now'|date('Y') ~ '-01-01' }}">
+						</div>
+						<div class="form-group">
+							<label for="csv_date_fin" class="form-label">Date fin</label>
+							<input type="date" id="csv_date_fin" name="date_fin" class="form-input" value="{{ 'now'|date('Y-m-d') }}">
+						</div>
+					</div>
+
+					<div class="flex items-center gap-2">
+						<input type="checkbox" id="csv_exclude_cancelled" name="exclude_cancelled" value="1" checked class="form-checkbox">
+						<label for="csv_exclude_cancelled" class="text-white/80 text-sm">
+							Exclure les factures annulées
+						</label>
+					</div>
+
+					<button type="submit" class="btn-primary w-full flex items-center justify-center gap-2">
+						{{ ux_icon('lucide:download', {class: 'w-4 h-4'}) }}
+						Télécharger CSV
+					</button>
+				</form>
+			</div>
+
+		</div>
+
+		{# Informations FEC #}
+		<div class="bg-white/5 border border-white/10 rounded-xl p-6 scroll-animate animate-delay-200">
+			<h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+				{{ ux_icon('lucide:info', {class: 'w-5 h-5 text-blue-400'}) }}
+				À propos du format FEC
+			</h3>
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-white/70">
+				<div>
+					<h4 class="font-medium text-white/90 mb-2">Nom du fichier</h4>
+					<p>Le fichier FEC doit être nommé :
+						<code class="bg-white/10 px-2 py-0.5 rounded">SIRENFEC[AAAAMMJJ].txt</code>
+					</p>
+					<p class="mt-1">Où SIREN est votre numéro SIREN et AAAAMMJJ la date de clôture.</p>
+				</div>
+				<div>
+					<h4 class="font-medium text-white/90 mb-2">Contenu</h4>
+					<p>18 colonnes obligatoires séparées par tabulation :</p>
+					<p class="mt-1 text-xs">JournalCode, JournalLib, EcritureNum, EcritureDate, CompteNum, CompteLib...</p>
+				</div>
+			</div>
+		</div>
+
+	</div>
+{% endblock %}
