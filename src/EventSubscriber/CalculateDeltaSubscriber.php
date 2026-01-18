@@ -13,13 +13,13 @@ use Doctrine\ORM\Events;
 
 /**
  * Subscriber Doctrine pour calculer automatiquement oldValue, newValue, delta
- * 
+ *
  * CONFORMITÉ LÉGALE :
  * - Pour chaque ligne d'avenant/avoir, on doit stocker oldValue, newValue, delta
  * - oldValue = valeur d'origine (0.00 si ligne ajoutée, total HT de la ligne source si modification)
  * - newValue = nouvelle valeur (total HT calculé)
  * - delta = newValue - oldValue
- * 
+ *
  * Ce subscriber calcule automatiquement ces valeurs lors de la création/modification
  */
 #[AsEntityListener(event: Events::prePersist, entity: AmendmentLine::class)]
@@ -46,7 +46,7 @@ class CalculateDeltaSubscriber
 
     /**
      * Calcule oldValue, newValue, delta pour une ligne
-     * 
+     *
      * LOGIQUE IDENTIQUE À recalculateTotalHt() :
      * - Si sourceLine est défini : unitPrice représente le DELTA (ajustement)
      *   → oldValue = sourceLine.totalHt
@@ -58,7 +58,7 @@ class CalculateDeltaSubscriber
     private function calculateDelta(AmendmentLine|CreditNoteLine $line): void
     {
         $sourceLine = $line->getSourceLine();
-        
+
         // Calculer newValue selon la même logique que recalculateTotalHt()
         // Seulement si quantity et unitPrice sont définis
         if ($line->getQuantity() !== null && $line->getUnitPrice() !== null) {
@@ -69,21 +69,30 @@ class CalculateDeltaSubscriber
                     $oldValue = (float) $sourceLine->getTotalHt();
                     $line->setOldValue(number_format($oldValue, 2, '.', ''));
                 }
-                
+
+                // newValue = oldValue + delta
                 // newValue = oldValue + delta
                 $oldValue = (float) $line->getOldValue();
                 $delta = (float) $line->getUnitPrice() * $line->getQuantity();
+
+                // CORRECTIF POUR AVOIRS : Le delta doit être un crédit (négatif)
+                if ($line instanceof \App\Entity\CreditNoteLine) {
+                    $delta = -abs($delta);
+                }
+
                 $newValue = $oldValue + $delta;
                 $line->setNewValue(number_format($newValue, 2, '.', ''));
-                // Mettre à jour totalHt pour qu'il corresponde à newValue
-                $line->setTotalHt(number_format($newValue, 2, '.', ''));
+
+                // CORRECTIF MAJEUR : Le montant de la ligne (totalHt) est le DELTA (l'écart), pas le nouveau total
+                // Exemple : Facture 1500 -> 1400. Delta = -100. Montant de l'avoir = -100.
+                $line->setTotalHt(number_format($delta, 2, '.', ''));
             } else {
                 // AJOUT : unitPrice représente la nouvelle valeur totale
                 // Définir oldValue à 0.00 si pas déjà défini
                 if (!$line->getOldValue() || $line->getOldValue() === '0.00') {
                     $line->setOldValue('0.00');
                 }
-                
+
                 $total = (float) $line->getUnitPrice() * $line->getQuantity();
                 // Pour les avoirs, le montant doit être négatif (crédit)
                 if ($line instanceof \App\Entity\CreditNoteLine && $total > 0) {
@@ -102,7 +111,7 @@ class CalculateDeltaSubscriber
                     $line->setNewValue(number_format($newValue, 2, '.', ''));
                 }
             }
-            
+
             // Définir oldValue si pas déjà défini
             if (!$line->getOldValue() || $line->getOldValue() === '0.00') {
                 if ($sourceLine) {
@@ -120,4 +129,3 @@ class CalculateDeltaSubscriber
         $line->recalculateDelta();
     }
 }
-

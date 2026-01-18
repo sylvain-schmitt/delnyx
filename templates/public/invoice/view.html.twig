@@ -87,11 +87,7 @@
 
     {# Actions #}
     {% if invoice.statutEnum.value in ['issued', 'sent'] %}
-        <a href="{{ path('public_invoice_pay', {
-            id: invoice.id,
-            expires: app.request.query.get('expires'),
-            signature: app.request.query.get('signature')
-        }) }}" class="btn-primary block text-center py-4">
+        <a href="{{ magic_link(invoice, 'pay') }}" class="btn-primary block text-center py-4">
             {{ ux_icon('lucide:credit-card', {class: 'w-5 h-5 inline mr-2'}) }}
             Payer cette facture
         </a>

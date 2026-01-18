@@ -1,6 +1,6 @@
 {% extends 'public/layout/base.html.twig' %}
 
-{% block title %}Avoir {{ creditNote.numero }} - Delnyx{% endblock %}
+{% block title %}Avoir {{ creditNote.number }} - Delnyx{% endblock %}
 
 {% block body %}
 <div class="max-w-4xl mx-auto">
@@ -8,7 +8,7 @@
         <div class="flex items-start justify-between mb-6">
             <div>
                 <h1 class="text-3xl font-bold text-white mb-2">Avoir</h1>
-                <p class="text-xl text-white/80">{{ creditNote.numero }}</p>
+                <p class="text-xl text-white/80">{{ creditNote.number }}</p>
                 {% if creditNote.invoice %}
                     <p class="text-sm text-white/60 mt-2">Facture associée : {{ creditNote.invoice.numero }}</p>
                 {% endif %}
@@ -97,11 +97,7 @@
 
     {# Actions #}
     {% if creditNote.statutEnum.value in ['issued', 'sent'] %}
-        <a href="{{ path('public_credit_note_apply', {
-            id: creditNote.id,
-            expires: app.request.query.get('expires'),
-            signature: app.request.query.get('signature')
-        }) }}" class="btn-primary block text-center py-4">
+        <a href="{{ magic_link(creditNote, 'apply') }}" class="btn-primary block text-center py-4">
             {{ ux_icon('lucide:check-circle', {class: 'w-5 h-5 inline mr-2'}) }}
             Appliquer cet avoir
         </a>

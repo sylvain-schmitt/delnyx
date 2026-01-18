@@ -1,15 +1,15 @@
 {% extends 'public/layout/base.html.twig' %}
 
-{% block title %}Appliquer l'avoir {{ creditNote.numero }} - Delnyx{% endblock %}
+{% block title %}Appliquer l'avoir {{ creditNote.number }} - Delnyx{% endblock %}
 
 {% block body %}
 <div class="max-w-2xl mx-auto">
     <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-8">
         <h1 class="text-2xl font-bold text-white mb-6">Application de l'avoir</h1>
-        
+
         <div class="mb-6">
             <p class="text-white/80 mb-2">
-                <span class="font-medium text-white">Avoir :</span> {{ creditNote.numero }}
+                <span class="font-medium text-white">Avoir :</span> {{ creditNote.number }}
             </p>
             {% if creditNote.invoice %}
                 <p class="text-white/80 mb-2">
@@ -40,10 +40,10 @@
 
         <form method="post" class="space-y-6">
             <div class="flex items-start">
-                <input 
-                    type="checkbox" 
-                    id="confirm_apply" 
-                    name="confirm_apply" 
+                <input
+                    type="checkbox"
+                    id="confirm_apply"
+                    name="confirm_apply"
                     required
                     class="mt-1 w-4 h-4 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-2 focus:ring-blue-500"
                 >
@@ -57,11 +57,7 @@
                     {{ ux_icon('lucide:check-circle', {class: 'w-5 h-5 inline mr-2'}) }}
                     Confirmer l'application
                 </button>
-                <a href="{{ path('public_credit_note_view', {
-                    id: creditNote.id,
-                    expires: app.request.query.get('expires'),
-                    signature: app.request.query.get('signature')
-                }) }}" class="btn-secondary flex-1 py-3 text-center">
+                <a href="{{ magic_link(creditNote, 'view') }}" class="btn-secondary flex-1 py-3 text-center">
                     Annuler
                 </a>
             </div>

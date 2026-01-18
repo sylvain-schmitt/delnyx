@@ -469,7 +469,17 @@ class PublicDocumentController extends AbstractController
     ): Response {
         $creditNote = $this->verifyAndGetDocument($repository, $id, 'credit_note', 'apply', $request);
 
-        if (!in_array($creditNote->getStatutEnum(), [CreditNoteStatus::ISSUED, CreditNoteStatus::SENT], true)) {
+        // Si l'avoir est déjà appliqué (REFUNDED), on affiche la vue avec un message
+        if ($creditNote->getStatutEnum() === CreditNoteStatus::REFUNDED) {
+            $this->addFlash('info', 'Cet avoir a déjà été appliqué.');
+            return $this->render('public/credit_note/view.html.twig', [
+                'creditNote' => $creditNote,
+            ]);
+        }
+
+        // Sinon, vérifier si le statut permet l'application (ISSUED ou SENT)
+        // Utilisation de false pour la comparaison non stricte
+        if (!in_array($creditNote->getStatutEnum(), [CreditNoteStatus::ISSUED, CreditNoteStatus::SENT], false)) {
             throw new AccessDeniedHttpException('Cet avoir ne peut plus être appliqué.');
         }
 

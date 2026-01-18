@@ -232,19 +232,19 @@ class Invoice
         // Une fois émise, une facture ne peut plus être modifiée (sauf certains champs techniques)
         if (!$this->canBeModified()) {
             $changedFields = array_keys($args->getEntityChangeSet());
-            
+
             // Liste des champs autorisés même sur facture émise (champs techniques/métadonnées)
             $allowedFields = [
-                'datePaiement', 
-                'sentAt', 
-                'sentCount', 
+                'datePaiement',
+                'sentAt',
+                'sentCount',
                 'dateModification',
                 'pdfFilename',  // Métadonnée PDF
                 'pdfHash'       // Métadonnée PDF
             ];
-            
+
             $unauthorizedChanges = array_diff($changedFields, $allowedFields);
-            
+
             if (!empty($unauthorizedChanges)) {
                 throw new \RuntimeException(
                     sprintf(
@@ -281,7 +281,7 @@ class Invoice
                 );
             }
         }
-        
+
         $this->numero = $numero;
         return $this;
     }
@@ -577,7 +577,7 @@ class Invoice
                 );
             }
         }
-        
+
         $this->quote = $quote;
         return $this;
     }
@@ -618,18 +618,19 @@ class Invoice
         $totalAvoirsEmis = 0.0;
 
         // Calculer le total des avoirs émis uniquement
-        // Les avoirs sont stockés en montants négatifs, donc on les additionne directement
+        // Les avoirs sont stockés en VALEURS ABSOLUES (positives), donc on les additionne
+        // puis on soustraira ce total du montant de la facture
         foreach ($this->creditNotes as $creditNote) {
             $statutEnum = $creditNote->getStatutEnum();
             if ($statutEnum && $statutEnum === \App\Entity\CreditNoteStatus::ISSUED) {
-                // Les avoirs sont stockés en négatif, donc on additionne directement
-                $totalAvoirsEmis += (float) $creditNote->getMontantTTC();
+                // On prend la valeur absolue par sécurité, mais normalement stocké en positif
+                $totalAvoirsEmis += abs((float) $creditNote->getMontantTTC());
             }
         }
 
-        // Si les avoirs sont négatifs, additionner revient à soustraire
-        // Exemple : 200 + (-200) = 0
-        return number_format($montantTTC + $totalAvoirsEmis, 2, '.', '');
+        // Solde = Montant Facture - Total Avoirs
+        // Exemple : Facture 1500€ - Avoir 100€ = Reste 1400€
+        return number_format($montantTTC - $totalAvoirsEmis, 2, '.', '');
     }
 
     /**
@@ -715,7 +716,7 @@ class Invoice
 
     /**
      * Valide que la facture peut être émise
-     * 
+     *
      * @throws \RuntimeException si la facture ne peut pas être émise
      */
     public function validateCanBeIssued(): void
@@ -900,7 +901,7 @@ class Invoice
         $totalTvaEuros = 0.0;
 
         $quote = $this->getQuote();
-        
+
         // Déterminer si on utilise la TVA par ligne :
         // - Si un devis est associé, utiliser usePerLineTva du devis
         // - Sinon, détecter automatiquement si au moins une ligne a un taux de TVA défini
@@ -916,7 +917,7 @@ class Invoice
                 }
             }
         }
-        
+
         $tauxTVA = $quote ? (float) $quote->getTauxTVA() : 0.0;
 
         foreach ($this->lines as $line) {
@@ -955,8 +956,8 @@ class Invoice
     /**
      * Calcule le total corrigé de la facture en tenant compte des avoirs modifiables
      * totalCorrected = totalOriginal + sum(all deltas from modifiable credit notes)
-     * 
-     * CONFORMITÉ LÉGALE : 
+     *
+     * CONFORMITÉ LÉGALE :
      * - Les avoirs en brouillon (DRAFT) peuvent encore être modifiés, donc on les inclut dans le calcul
      * - Les avoirs émis (ISSUED) ou envoyés (SENT) sont définitifs et doivent être inclus
      * - Les avoirs annulés (CANCELLED) ne doivent pas être inclus

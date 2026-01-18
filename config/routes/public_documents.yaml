@@ -75,3 +75,18 @@ public_credit_note_apply:
         id: '\d+'
 
 
+
+# === PAIEMENT (Retour Stripe) ===
+public_invoice_payment_success:
+    path: /public/invoice/{id}/payment/success
+    controller: App\Controller\Public\PublicDocumentController::paymentSuccess
+    methods: [GET, POST]
+    requirements:
+        id: '\d+'
+
+public_invoice_payment_cancel:
+    path: /public/invoice/{id}/payment/cancel
+    controller: App\Controller\Public\PublicDocumentController::paymentCancel
+    methods: [GET, POST]
+    requirements:
+        id: '\d+'

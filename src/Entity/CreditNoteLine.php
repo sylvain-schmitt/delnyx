@@ -226,7 +226,7 @@ class CreditNoteLine
      * Pour les avoirs, le total doit être négatif (crédit)
      * Les montants sont stockés en DECIMAL (euros)
      * Met aussi à jour newValue et recalcule le delta
-     * 
+     *
      * LOGIQUE :
      * - Si sourceLine est défini : unitPrice représente le DELTA (ajustement, généralement négatif)
      *   → oldValue = sourceLine.totalHt
@@ -245,14 +245,15 @@ class CreditNoteLine
             } elseif (!$this->sourceLine && !$this->oldValue) {
                 $this->oldValue = '0.00';
             }
-            
+
             if ($this->sourceLine) {
-                // MODIFICATION : unitPrice représente le DELTA (ajustement, généralement négatif)
-                // totalHt = delta
+                // MODIFICATION : unitPrice représente le montant à CRÉDITER (rembourser)
+                // On force le delta en négatif pour réduire le montant de la facture
                 $oldValue = (float) $this->oldValue;
-                $delta = (float) $this->unitPrice * $this->quantity;
+                // On prend la valeur absolue du prix et on la rend négative
+                $delta = -abs((float) $this->unitPrice * $this->quantity);
                 $newValue = $oldValue + $delta;
-                
+
                 // FIX: totalHt stocke le delta (montant de l'avoir pour cette ligne)
                 $this->totalHt = number_format($delta, 2, '.', '');
                 $this->newValue = number_format($newValue, 2, '.', '');
@@ -280,7 +281,7 @@ class CreditNoteLine
     public function getTotalTtc(): string
     {
         $totalHt = (float) $this->totalHt;
-        
+
         if ($this->tvaRate && (float) $this->tvaRate > 0) {
             // La TVA est également négative pour un avoir
             $tvaAmount = abs($totalHt) * ((float) $this->tvaRate / 100);
