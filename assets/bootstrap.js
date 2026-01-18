@@ -4,7 +4,7 @@ const app = startStimulusApp();
 
 // Désactiver les logs de debug de Stimulus
 // Activer les logs de debug de Stimulus temporairement
-app.debug = true;
+app.debug = false;
 
 // register any custom, 3rd party controllers here
 // app.register('some_controller_name', SomeImportedController);
