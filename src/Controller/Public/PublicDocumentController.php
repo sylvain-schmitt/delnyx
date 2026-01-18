@@ -27,6 +27,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Routing\Annotation\Route;
 
 /**
  * Contrôleur pour les actions publiques via "Magic Links"
@@ -140,8 +141,6 @@ class PublicDocumentController extends AbstractController
                 );
                 $this->entityManager->flush();
 
-                $this->addFlash('success', 'Devis signé avec succès !');
-
                 // Générer un nouveau magic link pour la vue (l'ancien était pour sign)
                 $viewLink = $this->magicLinkService->generateViewLink($quote);
                 return $this->redirect($viewLink);
@@ -193,8 +192,6 @@ class PublicDocumentController extends AbstractController
                 ]
             );
             $this->entityManager->flush();
-
-            $this->addFlash('success', 'Votre refus a été enregistré.');
 
             // Générer un nouveau magic link pour la vue
             $viewLink = $this->magicLinkService->generateViewLink($quote);
@@ -301,8 +298,6 @@ class PublicDocumentController extends AbstractController
                 );
                 $this->entityManager->flush();
 
-                $this->addFlash('success', 'Avenant signé avec succès !');
-
                 // Générer un nouveau magic link pour la vue
                 $viewLink = $this->magicLinkService->generateViewLink($amendment);
                 return $this->redirect($viewLink);
@@ -342,8 +337,6 @@ class PublicDocumentController extends AbstractController
                 ]
             );
             $this->entityManager->flush();
-
-            $this->addFlash('success', 'Votre refus a été enregistré.');
 
             // Générer un nouveau magic link pour la vue
             $viewLink = $this->magicLinkService->generateViewLink($amendment);
@@ -411,7 +404,9 @@ class PublicDocumentController extends AbstractController
             try {
                 // Créer la session Stripe et rediriger
                 $checkoutUrl = $paymentService->createPaymentIntent($invoice, $successUrl, $cancelUrl);
-                return $this->redirect($checkoutUrl);
+
+                // Utiliser RedirectResponse directement pour éviter toute modification de l'URL
+                return new \Symfony\Component\HttpFoundation\RedirectResponse($checkoutUrl, 303);
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erreur lors de l\'initialisation du paiement : ' . $e->getMessage());
             }
@@ -426,10 +421,31 @@ class PublicDocumentController extends AbstractController
     public function paymentSuccess(
         int $id,
         Request $request,
-        InvoiceRepository $repository
+        InvoiceRepository $repository,
+        \App\Service\InvoiceService $invoiceService,
+        \App\Service\EmailService $emailService
     ): Response {
         // On utilise l'action 'pay' car c'est la suite logique et la signature est la même
         $invoice = $this->verifyAndGetDocument($repository, $id, 'invoice', 'pay', $request);
+
+        // Si la facture n'est pas encore marquée comme payée, on la met à jour
+        // (Fallback si le webhook n'a pas encore été reçu ou en environnement local)
+        if ($invoice->getStatutEnum() !== InvoiceStatus::PAID) {
+            try {
+                $invoiceService->markPaidByExternalPayment($invoice, (float) $invoice->getMontantTTC());
+
+                // Envoyer l'email de confirmation
+                $client = $invoice->getClient();
+                if ($client && $client->getEmail()) {
+                    $emailService->sendPaymentConfirmation($invoice);
+                }
+
+                $this->entityManager->flush();
+            } catch (\Exception $e) {
+                // Log l'erreur mais ne bloque pas l'affichage de la page de succès
+                error_log('Error marking invoice as paid: ' . $e->getMessage());
+            }
+        }
 
         return $this->render('public/invoice/payment_success.html.twig', [
             'invoice' => $invoice,
@@ -498,13 +514,9 @@ class PublicDocumentController extends AbstractController
             );
             $this->entityManager->flush();
 
-            $this->addFlash('success', 'Avoir appliqué avec succès !');
-
-            return $this->redirectToRoute('public_credit_note_view', [
-                'id' => $id,
-                'expires' => $request->query->get('expires'),
-                'signature' => $request->query->get('signature'),
-            ]);
+            // Rediriger vers la vue de l'avoir avec une NOUVELLE signature valide pour l'action 'view'
+            $viewUrl = $this->magicLinkService->generatePublicLink($creditNote, 'view');
+            return $this->redirect($viewUrl);
         }
 
         return $this->render('public/credit_note/apply.html.twig', [

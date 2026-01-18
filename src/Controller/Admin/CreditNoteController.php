@@ -732,8 +732,16 @@ class CreditNoteController extends AbstractController
         try {
             $this->creditNoteService->issueAndSend($creditNote);
 
-            // Vérifier si la facture doit être annulée (avoir total)
+            // FIX: Envoyer l'email réellement via EmailService
             $invoice = $creditNote->getInvoice();
+            $client = $invoice ? $invoice->getClient() : null;
+            if ($client && $client->getEmail()) {
+                $customMessage = $request->request->get('custom_message');
+                $uploadedFiles = $request->files->get('attachments', []);
+                $this->emailService->sendCreditNote($creditNote, $customMessage, $uploadedFiles);
+            }
+
+            // Vérifier si la facture doit être annulée (avoir total)
             if ($invoice) {
                 $this->entityManager->refresh($invoice);
                 if ($invoice->getStatutEnum() === InvoiceStatus::CANCELLED) {
@@ -831,6 +839,16 @@ class CreditNoteController extends AbstractController
 
         try {
             $this->creditNoteService->send($creditNote);
+
+            // FIX: Envoyer l'email réellement via EmailService
+            $invoice = $creditNote->getInvoice();
+            $client = $invoice ? $invoice->getClient() : null;
+            if ($client && $client->getEmail()) {
+                $customMessage = $request->request->get('custom_message');
+                $uploadedFiles = $request->files->get('attachments', []);
+                $this->emailService->sendCreditNote($creditNote, $customMessage, $uploadedFiles);
+            }
+
             $this->addFlash('success', 'Avoir envoyé au client');
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
             $this->addFlash('error', $e->getMessage());

@@ -408,4 +408,50 @@ class EmailService
             pdfFilename: $pdfFilename
         );
     }
+
+    /**
+     * Envoie un email de confirmation de paiement
+     */
+    public function sendPaymentConfirmation(Invoice $invoice): EmailLog
+    {
+        $client = $invoice->getClient();
+
+        if (!$client || !$client->getEmail()) {
+            throw new \RuntimeException('Impossible d\'envoyer la confirmation : aucun email client');
+        }
+
+        $senderInfo = $this->getSenderInfo();
+        $subject = sprintf('Confirmation de paiement - Facture %s', $invoice->getNumero());
+
+        $html = $this->twig->render('emails/payment_confirmation.html.twig', [
+            'invoice' => $invoice,
+            'client' => $client,
+            'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
+        ]);
+
+        // Générer le PDF de la facture
+        $pdfContent = null;
+        $pdfFilename = null;
+        try {
+            $pdfResponse = $this->pdfGeneratorService->generateFacturePdf($invoice, false);
+            $pdfContent = $pdfResponse->getContent();
+            $pdfFilename = sprintf('facture-%s.pdf', $invoice->getNumero() ?? $invoice->getId());
+        } catch (\Exception $e) {
+            // Si la génération PDF échoue, on envoie quand même l'email sans PDF
+        }
+
+        return $this->send(
+            recipient: $client->getEmail(),
+            subject: $subject,
+            html: $html,
+            entityType: 'Invoice',
+            entityId: $invoice->getId(),
+            type: 'payment_confirmation',
+            senderEmail: $senderInfo['email'],
+            senderName: $senderInfo['name'],
+            pdfContent: $pdfContent,
+            pdfFilename: $pdfFilename
+        );
+    }
 }

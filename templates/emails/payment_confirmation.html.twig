@@ -1,0 +1,49 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block body %}
+	<h1 style="color: #16a34a;">Paiement reçu avec succès !</h1>
+
+	<p>Bonjour
+		{{ client.nomComplet }},</p>
+
+	<p>Nous avons bien reçu votre paiement pour la facture
+		<strong>{{ invoice.numero }}</strong>.</p>
+
+	<div class="info-box" style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 20px; margin: 25px 0;">
+		<p style="margin: 0 0 10px 0;">
+			<strong>Récapitulatif :</strong>
+		</p>
+		<p style="margin: 5px 0;">
+			<strong>Numéro de facture :</strong>
+			{{ invoice.numero }}</p>
+		<p style="margin: 5px 0;">
+			<strong>Montant payé :</strong>
+			<span style="font-size: 18px; color: #16a34a; font-weight: bold;">{{ invoice.montantTTCFormate }}</span>
+		</p>
+		<p style="margin: 5px 0;">
+			<strong>Date de paiement :</strong>
+			{{ "now"|date('d/m/Y à H:i') }}</p>
+	</div>
+
+	{# Bouton d'action avec magic link #}
+	<div style="text-align: center; margin: 30px 0;">
+		<a href="{{ magic_link(invoice, 'view') }}" style="display: inline-block; padding: 12px 24px; background-color: #16a34a; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+			📄 Voir la facture acquittée
+		</a>
+	</div>
+
+	<div style="background-color: #f0f9ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 30px 0;">
+		<p style="margin: 0; color: #1e40af;">
+			📎
+			<strong>Votre facture acquittée est disponible en pièce jointe (PDF).</strong>
+		</p>
+	</div>
+
+	<p>Nous vous remercions pour votre confiance.</p>
+
+	<p style="margin-top: 30px;">
+		Cordialement,<br>
+		<strong>L'équipe
+			{{ companySettings ? companySettings.raisonSociale : 'Delnyx' }}</strong>
+	</p>
+{% endblock %}

@@ -26,8 +26,7 @@ class PaymentService
         private UrlGeneratorInterface $router,
         private InvoiceService $invoiceService,
         private string $stripeSecretKey = '',
-    ) {
-    }
+    ) {}
 
     /**
      * Crée une session Stripe Checkout pour le paiement d'une facture
@@ -44,7 +43,7 @@ class PaymentService
             // Mais en prod c'est critique.
             // Si on est en dev et pas de clé, on peut throw une exception explicite
             if ($_SERVER['APP_ENV'] === 'dev' && empty($this->stripeSecretKey)) {
-                 throw new \RuntimeException('Stripe Secret Key manquante. Veuillez configurer STRIPE_SECRET_KEY dans .env.local');
+                throw new \RuntimeException('Stripe Secret Key manquante. Veuillez configurer STRIPE_SECRET_KEY dans .env.local');
             }
             throw new \RuntimeException('Configuration de paiement manquante.');
         }
@@ -89,12 +88,23 @@ class PaymentService
                 'checkout_session_id' => $session->id,
                 'created_at' => (new \DateTime())->format('Y-m-d H:i:s')
             ]);
-            
+
             $this->entityManager->persist($payment);
             $this->entityManager->flush();
 
-            return $session->url;
+            $this->logger->info('Stripe Checkout Session Created', [
+                'session_id' => $session->id,
+                'session_url' => $session->url,
+                'invoice_id' => $invoice->getId(),
+            ]);
 
+            // Debug explicite
+            error_log('=== STRIPE SESSION ===');
+            error_log('Session ID: ' . $session->id);
+            error_log('Session URL: ' . $session->url);
+            error_log('URL Length: ' . strlen($session->url));
+
+            return $session->url;
         } catch (\Stripe\Exception\ApiErrorException $e) {
             $this->logger->error('Stripe Checkout Error: ' . $e->getMessage(), ['exception' => $e]);
             throw new \RuntimeException('Erreur lors de l\'initialisation du paiement: ' . $e->getMessage());
@@ -135,7 +145,7 @@ class PaymentService
         if ($invoice) {
             try {
                 $this->invoiceService->markPaid($invoice, $payment->getAmountInEuros());
-                
+
                 $this->logger->info('Payment succeeded and invoice marked as paid', [
                     'payment_id' => $payment->getId(),
                     'invoice_id' => $invoice->getId(),

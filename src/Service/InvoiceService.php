@@ -20,14 +20,14 @@ use Symfony\Component\Mime\Email;
 
 /**
  * Service pour gérer les transitions d'état et les opérations métier sur les factures
- * 
+ *
  * Ce service centralise toute la logique métier liée aux factures :
  * - Transitions d'état (issue, markPaid)
  * - Validation des règles métier
  * - Audit et traçabilité
  * - Génération depuis devis
  * - Gestion des avoirs
- * 
+ *
  * @package App\Service
  */
 class InvoiceService
@@ -40,8 +40,7 @@ class InvoiceService
         private readonly InvoiceNumberGenerator $numberGenerator,
         private readonly MailerInterface $mailer,
         private readonly PdfGeneratorService $pdfGeneratorService,
-    ) {
-    }
+    ) {}
 
     /**
      * Injection optionnelle d'AuditService (pour éviter la dépendance circulaire)
@@ -55,7 +54,7 @@ class InvoiceService
 
     /**
      * Émet une facture (DRAFT → ISSUED)
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -122,9 +121,9 @@ class InvoiceService
 
     /**
      * Émet et envoie une facture en une seule action (DRAFT → ISSUED → SENT)
-     * 
+     *
      * Raccourci pour émettre et envoyer directement une facture en brouillon
-     * 
+     *
      * @param string|null $channel Canal d'envoi ('email', 'pdp', 'both'). Si null, utilise 'email' par défaut
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
@@ -156,11 +155,11 @@ class InvoiceService
 
     /**
      * Envoie une facture au client (DRAFT → SENT direct, ISSUED → SENT, ou SENT → SENT pour relance)
-     * 
+     *
      * Si DRAFT, émet automatiquement la facture avant d'envoyer
      * Peut être fait plusieurs fois (relances)
      * Envoie par email et/ou PDP selon la configuration
-     * 
+     *
      * @param string|null $channel Canal d'envoi ('email', 'pdp', 'both'). Si null, utilise 'email' par défaut
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la facture ne peut pas être envoyée
@@ -268,7 +267,7 @@ class InvoiceService
 
     /**
      * Marque une facture comme payée (ISSUED → PAID)
-     * 
+     *
      * @param float|null $amount Montant payé (null = paiement total)
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
@@ -312,7 +311,7 @@ class InvoiceService
         if (abs($montantPaye - $montantTTC) < 0.01) {
             $oldStatus = $statutEnum;
             $invoice->setStatutEnum(InvoiceStatus::PAID);
-            
+
             // Enregistrer l'audit
             $this->logStatusChange($invoice, $oldStatus, InvoiceStatus::PAID, 'mark_paid');
         }
@@ -330,8 +329,60 @@ class InvoiceService
     }
 
     /**
+     * Marque une facture comme payée via un paiement externe (Stripe, PayPal, etc.)
+     *
+     * Cette méthode ne vérifie PAS les permissions car le paiement est validé
+     * par le système de paiement externe (webhook Stripe ou retour de paiement).
+     *
+     * @param float|null $amount Montant payé (null = paiement total)
+     * @throws \RuntimeException si la transition n'est pas possible
+     */
+    public function markPaidByExternalPayment(Invoice $invoice, ?float $amount = null): void
+    {
+        // Vérifier que la transition est possible
+        $statutEnum = $invoice->getStatutEnum();
+        if (!$statutEnum || !$statutEnum->canBeMarkedPaid()) {
+            // Si déjà payée, on ne fait rien (idempotent)
+            if ($statutEnum === InvoiceStatus::PAID) {
+                return;
+            }
+            throw new \RuntimeException(
+                sprintf(
+                    'La facture ne peut pas être marquée comme payée depuis l\'état "%s".',
+                    $statutEnum?->getLabel() ?? 'inconnu'
+                )
+            );
+        }
+
+        $montantTTC = (float) $invoice->getMontantTTC();
+        $montantPaye = $amount ?? $montantTTC;
+
+        // Enregistrer le paiement
+        $invoice->setDatePaiement(new \DateTime());
+
+        // Si paiement total, passer à PAID
+        if (abs($montantPaye - $montantTTC) < 0.01) {
+            $oldStatus = $statutEnum;
+            $invoice->setStatutEnum(InvoiceStatus::PAID);
+
+            // Enregistrer l'audit
+            $this->logStatusChange($invoice, $oldStatus, InvoiceStatus::PAID, 'external_payment');
+        }
+
+        // Persister
+        $this->entityManager->flush();
+
+        $this->logger->info('Facture marquée comme payée via paiement externe', [
+            'invoice_id' => $invoice->getId(),
+            'invoice_number' => $invoice->getNumero(),
+            'amount_paid' => $montantPaye,
+            'total_amount' => $montantTTC,
+        ]);
+    }
+
+    /**
      * Annule une facture (DRAFT ou ISSUED → CANCELLED)
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -368,7 +419,7 @@ class InvoiceService
             $currentNotes = $invoice->getNotes() ?? '';
             $invoice->setNotes(
                 ($currentNotes ? $currentNotes . "\n\n" : '') .
-                "Annulation le " . date('d/m/Y H:i') . " : " . $reason
+                    "Annulation le " . date('d/m/Y H:i') . " : " . $reason
             );
         }
 
@@ -389,7 +440,7 @@ class InvoiceService
 
     /**
      * Crée une facture à partir d'un devis signé
-     * 
+     *
      * @param Quote $quote Le devis signé
      * @param bool $issueImmediately Si true, émet la facture immédiatement
      * @return Invoice La facture créée
@@ -421,17 +472,17 @@ class InvoiceService
         $invoice->setQuote($quote);
         $invoice->setCompanyId($quote->getCompanyId());
         $invoice->setStatutEnum(InvoiceStatus::DRAFT);
-        
+
         // Copier les montants
         $invoice->setMontantHT($quote->getMontantHT());
         $invoice->setMontantTVA($quote->getMontantTVA());
         $invoice->setMontantTTC($quote->getMontantTTC());
-        
+
         // Copier les conditions
         $invoice->setConditionsPaiement($quote->getConditionsPaiement());
         // Note: Quote n'a pas de delaiPaiement, on laisse la valeur par défaut de Invoice
         $invoice->setNotes($quote->getNotes());
-        
+
         // Définir la date d'échéance (30 jours par défaut si non définie)
         if ($quote->getDateValidite()) {
             $invoice->setDateEcheance($quote->getDateValidite());
@@ -539,4 +590,3 @@ class InvoiceService
         );
     }
 }
-
