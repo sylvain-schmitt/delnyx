@@ -30,7 +30,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Contrôleur pour les actions publiques via "Magic Links"
- * 
+ *
  * Permet aux clients d'effectuer des actions (consulter, signer, payer, refuser)
  * sans authentification, via des URLs signées envoyées par email.
  */
@@ -42,8 +42,7 @@ class PublicDocumentController extends AbstractController
         private EntityManagerInterface $entityManager,
         private QuoteService $quoteService,
         private InvoiceService $invoiceService,
-    ) {
-    }
+    ) {}
 
     // ==================== DEVIS (Quote) ====================
 
@@ -53,7 +52,7 @@ class PublicDocumentController extends AbstractController
         QuoteRepository $repository
     ): Response {
         $quote = $this->verifyAndGetDocument($repository, $id, 'quote', 'view', $request);
-        
+
         // Enregistrer l'audit de visualisation
         $this->auditService->log(
             entityType: 'Quote',
@@ -66,7 +65,7 @@ class PublicDocumentController extends AbstractController
             ]
         );
         $this->entityManager->flush();
-        
+
         return $this->render('public/quote/view.html.twig', [
             'quote' => $quote,
         ]);
@@ -80,83 +79,53 @@ class PublicDocumentController extends AbstractController
         SignatureService $signatureService
     ): Response {
         $quote = $this->verifyAndGetDocument($repository, $id, 'quote', 'sign', $request);
-        
+
         // Vérifier que le devis peut être signé (DRAFT ou SENT)
         if (!in_array($quote->getStatut(), [QuoteStatus::DRAFT, QuoteStatus::SENT], true)) {
             throw new AccessDeniedHttpException('Ce devis ne peut plus être signé.');
         }
-        
+
         if ($request->isMethod('POST')) {
-            // Récupérer la méthode de signature
-            $signatureMethod = $request->request->get('signature_method', 'text');
-            $signatureName = $request->request->get('signature_name');
+            // Méthode de signature : uniquement draw
+            $signatureMethod = 'draw';
             $signatureData = [];
-            $uploadedFile = null;
-            
-            // Validation selon la méthode
             $isValid = false;
-            
-            if ($signatureMethod === 'text') {
-                if (empty($signatureName)) {
-                    $this->addFlash('error', 'Veuillez saisir votre nom pour signer.');
-                } else {
-                    $signatureData = ['name' => $signatureName];
+
+            // Validation de la signature dessinée
+            $dataJson = $request->request->get('signature_data');
+            if (!empty($dataJson)) {
+                $data = json_decode($dataJson, true);
+                if (isset($data['data']) && str_starts_with($data['data'], 'data:image/png')) {
+                    $signatureData = $data;
                     $isValid = true;
-                }
-            } elseif ($signatureMethod === 'draw') {
-                $dataJson = $request->request->get('signature_data');
-                if (!empty($dataJson)) {
-                    $data = json_decode($dataJson, true);
-                    if (isset($data['data']) && str_starts_with($data['data'], 'data:image/png')) {
-                        $signatureData = $data;
-                        $isValid = true;
-                    } else {
-                        $this->addFlash('error', 'Données de signature invalides.');
-                    }
                 } else {
-                    $this->addFlash('error', 'Veuillez dessiner votre signature.');
+                    $this->addFlash('error', 'Données de signature invalides.');
                 }
-            } elseif ($signatureMethod === 'upload') {
-                $uploadedFile = $request->files->get('signature_file');
-                if ($uploadedFile && $uploadedFile->isValid()) {
-                    // Valider le type MIME
-                    if (!in_array($uploadedFile->getMimeType(), ['image/png', 'image/jpeg'], true)) {
-                        $this->addFlash('error', 'Seuls les fichiers PNG et JPEG sont acceptés.');
-                    } elseif ($uploadedFile->getSize() > 500 * 1024) { // 500 Ko
-                        $this->addFlash('error', 'Le fichier ne doit pas dépasser 500 Ko.');
-                    } else {
-                        // Lire le fichier et le convertir en base64
-                        $fileContent = file_get_contents($uploadedFile->getPathname());
-                        $signatureData = [
-                            'filename' => $uploadedFile->getClientOriginalName(),
-                            'data' => 'data:' . $uploadedFile->getMimeType() . ';base64,' . base64_encode($fileContent)
-                        ];
-                        $isValid = true;
-                    }
-                } else {
-                    $this->addFlash('error', 'Veuillez sélectionner une image de signature.');
-                }
+            } else {
+                $this->addFlash('error', 'Veuillez dessiner votre signature.');
             }
-            
+
             if ($isValid && !empty($signatureData)) {
                 // Créer la signature avec SignatureService
                 $signerInfo = [
-                    'name' => $signatureName ?: $quote->getClient()->getNomComplet(),
+                    'name' => $quote->getClient()->getNomComplet(),
                     'email' => $quote->getClient()->getEmail(),
                     'ip' => $request->getClientIp(),
                     'userAgent' => $request->headers->get('User-Agent'),
                 ];
-                
+
                 $signature = $signatureService->createSignature(
                     $quote,
                     $signatureData,
                     $signerInfo,
                     $signatureMethod
                 );
-                
-                // Changer le statut du devis à SIGNED
-                $this->quoteService->sign($quote, $signerInfo['name']);
-                
+
+                // Changer le statut du devis à SIGNED directement (bypasse le Voter car magic link validé)
+                $quote->setStatut(QuoteStatus::SIGNED);
+                $quote->setDateSignature(new \DateTime());
+                $quote->setSignatureClient($signerInfo['name']);
+
                 // Enregistrer l'audit
                 $this->auditService->log(
                     entityType: 'Quote',
@@ -170,17 +139,15 @@ class PublicDocumentController extends AbstractController
                     ]
                 );
                 $this->entityManager->flush();
-                
+
                 $this->addFlash('success', 'Devis signé avec succès !');
-                
-                return $this->redirectToRoute('public_quote_view', [
-                    'id' => $id,
-                    'expires' => $request->query->get('expires'),
-                    'signature' => $request->query->get('signature'),
-                ]);
+
+                // Générer un nouveau magic link pour la vue (l'ancien était pour sign)
+                $viewLink = $this->magicLinkService->generateViewLink($quote);
+                return $this->redirect($viewLink);
             }
         }
-        
+
         return $this->render('public/quote/sign.html.twig', [
             'quote' => $quote,
         ]);
@@ -192,18 +159,27 @@ class PublicDocumentController extends AbstractController
         QuoteRepository $repository
     ): Response {
         $quote = $this->verifyAndGetDocument($repository, $id, 'quote', 'refuse', $request);
-        
+
         // Vérifier que le devis peut être refusé
         if ($quote->getStatut() !== QuoteStatus::SENT) {
             throw new AccessDeniedHttpException('Ce devis ne peut plus être refusé.');
         }
-        
+
         if ($request->isMethod('POST')) {
             $refuseReason = $request->request->get('refuse_reason', '');
-            
-            // Changer le statut à REFUSED
-            $this->quoteService->refuse($quote, $refuseReason);
-            
+
+            // Changer le statut à REFUSED directement (bypasse le Voter car magic link validé)
+            $quote->setStatut(QuoteStatus::REFUSED);
+
+            // Enregistrer la raison dans les notes si fournie
+            if (!empty($refuseReason)) {
+                $currentNotes = $quote->getNotes() ?? '';
+                $quote->setNotes(
+                    ($currentNotes ? $currentNotes . "\n\n" : '') .
+                        "Refus le " . date('d/m/Y H:i') . " : " . $refuseReason
+                );
+            }
+
             // Enregistrer la raison du refus
             $this->auditService->log(
                 entityType: 'Quote',
@@ -217,16 +193,14 @@ class PublicDocumentController extends AbstractController
                 ]
             );
             $this->entityManager->flush();
-            
+
             $this->addFlash('success', 'Votre refus a été enregistré.');
-            
-            return $this->redirectToRoute('public_quote_view', [
-                'id' => $id,
-                'expires' => $request->query->get('expires'),
-                'signature' => $request->query->get('signature'),
-            ]);
+
+            // Générer un nouveau magic link pour la vue
+            $viewLink = $this->magicLinkService->generateViewLink($quote);
+            return $this->redirect($viewLink);
         }
-        
+
         return $this->render('public/quote/refuse.html.twig', [
             'quote' => $quote,
         ]);
@@ -240,7 +214,7 @@ class PublicDocumentController extends AbstractController
         AmendmentRepository $repository
     ): Response {
         $amendment = $this->verifyAndGetDocument($repository, $id, 'amendment', 'view', $request);
-        
+
         $this->auditService->log(
             entityType: 'Amendment',
             entityId: $amendment->getId(),
@@ -252,7 +226,7 @@ class PublicDocumentController extends AbstractController
             ]
         );
         $this->entityManager->flush();
-        
+
         return $this->render('public/amendment/view.html.twig', [
             'amendment' => $amendment,
         ]);
@@ -265,88 +239,54 @@ class PublicDocumentController extends AbstractController
         SignatureService $signatureService
     ): Response {
         $amendment = $this->verifyAndGetDocument($repository, $id, 'amendment', 'sign', $request);
-        
+
         // Vérifier que l'avenant peut être signé (DRAFT ou SENT)
         if (!in_array($amendment->getStatut(), [AmendmentStatus::DRAFT, AmendmentStatus::SENT], true)) {
             throw new AccessDeniedHttpException('Cet avenant ne peut plus être signé.');
         }
-        
+
         if ($request->isMethod('POST')) {
-            // Récupérer la méthode de signature
-            $signatureMethod = $request->request->get('signature_method', 'text');
-            $signatureName = $request->request->get('signature_name');
+            // Méthode de signature : uniquement draw
+            $signatureMethod = 'draw';
             $signatureData = [];
-            $uploadedFile = null;
-            
-            // Validation selon la méthode
             $isValid = false;
-            
-            if ($signatureMethod === 'text') {
-                if (empty($signatureName)) {
-                    $this->addFlash('error', 'Veuillez saisir votre nom pour signer.');
-                } else {
-                    $signatureData = ['name' => $signatureName];
+
+            // Validation de la signature dessinée
+            $dataJson = $request->request->get('signature_data');
+            if (!empty($dataJson)) {
+                $data = json_decode($dataJson, true);
+                if (isset($data['data']) && str_starts_with($data['data'], 'data:image/png')) {
+                    $signatureData = $data;
                     $isValid = true;
-                }
-            } elseif ($signatureMethod === 'draw') {
-                $dataJson = $request->request->get('signature_data');
-                if (!empty($dataJson)) {
-                    $data = json_decode($dataJson, true);
-                    if (isset($data['data']) && str_starts_with($data['data'], 'data:image/png')) {
-                        $signatureData = $data;
-                        $isValid = true;
-                    } else {
-                        $this->addFlash('error', 'Données de signature invalides.');
-                    }
                 } else {
-                    $this->addFlash('error', 'Veuillez dessiner votre signature.');
+                    $this->addFlash('error', 'Données de signature invalides.');
                 }
-            } elseif ($signatureMethod === 'upload') {
-                $uploadedFile = $request->files->get('signature_file');
-                if ($uploadedFile && $uploadedFile->isValid()) {
-                    // Valider le type MIME
-                    if (!in_array($uploadedFile->getMimeType(), ['image/png', 'image/jpeg'], true)) {
-                        $this->addFlash('error', 'Seuls les fichiers PNG et JPEG sont acceptés.');
-                    } elseif ($uploadedFile->getSize() > 500 * 1024) { // 500 Ko
-                        $this->addFlash('error', 'Le fichier ne doit pas dépasser 500 Ko.');
-                    } else {
-                        // Lire le fichier et le convertir en base64
-                        $fileContent = file_get_contents($uploadedFile->getPathname());
-                        $signatureData = [
-                            'filename' => $uploadedFile->getClientOriginalName(),
-                            'data' => 'data:' . $uploadedFile->getMimeType() . ';base64,' . base64_encode($fileContent)
-                        ];
-                        $isValid = true;
-                    }
-                } else {
-                    $this->addFlash('error', 'Veuillez sélectionner une image de signature.');
-                }
+            } else {
+                $this->addFlash('error', 'Veuillez dessiner votre signature.');
             }
-            
+
             if ($isValid && !empty($signatureData)) {
                 // Créer la signature avec SignatureService
-                // Note: Amendment n'a pas forcément de méthode getClient() directe comme Quote, 
-                // il faut passer par le devis lié : $amendment->getQuote()->getClient()
                 $client = $amendment->getQuote()->getClient();
-                
+
                 $signerInfo = [
-                    'name' => $signatureName ?: $client->getNomComplet(),
+                    'name' => $client->getNomComplet(),
                     'email' => $client->getEmail(),
                     'ip' => $request->getClientIp(),
                     'userAgent' => $request->headers->get('User-Agent'),
                 ];
-                
+
                 $signature = $signatureService->createSignature(
                     $amendment,
                     $signatureData,
                     $signerInfo,
                     $signatureMethod
                 );
-                
+
                 // Changer le statut de l'avenant à SIGNED
                 $amendment->setStatut(AmendmentStatus::SIGNED);
                 $amendment->setDateSignature(new \DateTimeImmutable());
-                
+
                 // Enregistrer l'audit
                 $this->auditService->log(
                     entityType: 'Amendment',
@@ -360,17 +300,15 @@ class PublicDocumentController extends AbstractController
                     ]
                 );
                 $this->entityManager->flush();
-                
+
                 $this->addFlash('success', 'Avenant signé avec succès !');
-                
-                return $this->redirectToRoute('public_amendment_view', [
-                    'id' => $id,
-                    'expires' => $request->query->get('expires'),
-                    'signature' => $request->query->get('signature'),
-                ]);
+
+                // Générer un nouveau magic link pour la vue
+                $viewLink = $this->magicLinkService->generateViewLink($amendment);
+                return $this->redirect($viewLink);
             }
         }
-        
+
         return $this->render('public/amendment/sign.html.twig', [
             'amendment' => $amendment,
         ]);
@@ -382,16 +320,16 @@ class PublicDocumentController extends AbstractController
         AmendmentRepository $repository
     ): Response {
         $amendment = $this->verifyAndGetDocument($repository, $id, 'amendment', 'refuse', $request);
-        
+
         if ($amendment->getStatut() !== AmendmentStatus::SENT) {
             throw new AccessDeniedHttpException('Cet avenant ne peut plus être refusé.');
         }
-        
+
         if ($request->isMethod('POST')) {
             $refuseReason = $request->request->get('refuse_reason', '');
-            
-            $amendment->setStatut(QuoteStatus::REFUSED);
-            
+
+            $amendment->setStatut(AmendmentStatus::CANCELLED);
+
             $this->auditService->log(
                 entityType: 'Amendment',
                 entityId: $amendment->getId(),
@@ -404,16 +342,14 @@ class PublicDocumentController extends AbstractController
                 ]
             );
             $this->entityManager->flush();
-            
+
             $this->addFlash('success', 'Votre refus a été enregistré.');
-            
-            return $this->redirectToRoute('public_amendment_view', [
-                'id' => $id,
-                'expires' => $request->query->get('expires'),
-                'signature' => $request->query->get('signature'),
-            ]);
+
+            // Générer un nouveau magic link pour la vue
+            $viewLink = $this->magicLinkService->generateViewLink($amendment);
+            return $this->redirect($viewLink);
         }
-        
+
         return $this->render('public/amendment/refuse.html.twig', [
             'amendment' => $amendment,
         ]);
@@ -427,7 +363,7 @@ class PublicDocumentController extends AbstractController
         InvoiceRepository $repository
     ): Response {
         $invoice = $this->verifyAndGetDocument($repository, $id, 'invoice', 'view', $request);
-        
+
         $this->auditService->log(
             entityType: 'Invoice',
             entityId: $invoice->getId(),
@@ -439,7 +375,7 @@ class PublicDocumentController extends AbstractController
             ]
         );
         $this->entityManager->flush();
-        
+
         return $this->render('public/invoice/view.html.twig', [
             'invoice' => $invoice,
         ]);
@@ -452,11 +388,11 @@ class PublicDocumentController extends AbstractController
         PaymentService $paymentService
     ): Response {
         $invoice = $this->verifyAndGetDocument($repository, $id, 'invoice', 'pay', $request);
-        
+
         if (!in_array($invoice->getStatutEnum(), [InvoiceStatus::ISSUED, InvoiceStatus::SENT], true)) {
             throw new AccessDeniedHttpException('Cette facture ne peut plus être payée.');
         }
-        
+
         if ($request->isMethod('POST')) {
             // Générer les URLs de retour pour Stripe
             $successUrl = $this->generateUrl('public_invoice_payment_success', [
@@ -480,7 +416,7 @@ class PublicDocumentController extends AbstractController
                 $this->addFlash('error', 'Erreur lors de l\'initialisation du paiement : ' . $e->getMessage());
             }
         }
-        
+
         return $this->render('public/invoice/pay.html.twig', [
             'invoice' => $invoice,
         ]);
@@ -494,7 +430,7 @@ class PublicDocumentController extends AbstractController
     ): Response {
         // On utilise l'action 'pay' car c'est la suite logique et la signature est la même
         $invoice = $this->verifyAndGetDocument($repository, $id, 'invoice', 'pay', $request);
-        
+
         return $this->render('public/invoice/payment_success.html.twig', [
             'invoice' => $invoice,
         ]);
@@ -508,7 +444,7 @@ class PublicDocumentController extends AbstractController
         CreditNoteRepository $repository
     ): Response {
         $creditNote = $this->verifyAndGetDocument($repository, $id, 'credit_note', 'view', $request);
-        
+
         $this->auditService->log(
             entityType: 'CreditNote',
             entityId: $creditNote->getId(),
@@ -520,7 +456,7 @@ class PublicDocumentController extends AbstractController
             ]
         );
         $this->entityManager->flush();
-        
+
         return $this->render('public/credit_note/view.html.twig', [
             'creditNote' => $creditNote,
         ]);
@@ -532,14 +468,14 @@ class PublicDocumentController extends AbstractController
         CreditNoteRepository $repository
     ): Response {
         $creditNote = $this->verifyAndGetDocument($repository, $id, 'credit_note', 'apply', $request);
-        
+
         if (!in_array($creditNote->getStatutEnum(), [CreditNoteStatus::ISSUED, CreditNoteStatus::SENT], true)) {
             throw new AccessDeniedHttpException('Cet avoir ne peut plus être appliqué.');
         }
-        
+
         if ($request->isMethod('POST')) {
             $creditNote->setStatutEnum(CreditNoteStatus::REFUNDED);
-            
+
             $this->auditService->log(
                 entityType: 'CreditNote',
                 entityId: $creditNote->getId(),
@@ -551,16 +487,16 @@ class PublicDocumentController extends AbstractController
                 ]
             );
             $this->entityManager->flush();
-            
+
             $this->addFlash('success', 'Avoir appliqué avec succès !');
-            
+
             return $this->redirectToRoute('public_credit_note_view', [
                 'id' => $id,
                 'expires' => $request->query->get('expires'),
                 'signature' => $request->query->get('signature'),
             ]);
         }
-        
+
         return $this->render('public/credit_note/apply.html.twig', [
             'creditNote' => $creditNote,
         ]);
@@ -570,7 +506,7 @@ class PublicDocumentController extends AbstractController
 
     /**
      * Vérifie la signature de l'URL et récupère le document
-     * 
+     *
      * @template T
      * @param mixed $repository Repository de l'entité
      * @param int $id ID du document
@@ -591,7 +527,7 @@ class PublicDocumentController extends AbstractController
         // Récupérer les paramètres de signature
         $expires = (int) $request->query->get('expires', 0);
         $signature = $request->query->get('signature', '');
-        
+
         // Vérifier la signature
         if (!$this->magicLinkService->verifySignature($entityType, $id, $action, $expires, $signature)) {
             if (time() > $expires) {
@@ -599,15 +535,13 @@ class PublicDocumentController extends AbstractController
             }
             throw new AccessDeniedHttpException('Lien invalide. Impossible de vérifier l\'authenticité de la demande.');
         }
-        
+
         // Récupérer le document
         $document = $repository->find($id);
         if (!$document) {
             throw new NotFoundHttpException('Document introuvable.');
         }
-        
+
         return $document;
     }
 }
-
-

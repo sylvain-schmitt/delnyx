@@ -36,11 +36,11 @@
             <p class="text-white/80 text-sm mt-2">Date de création : {{ amendment.dateCreation|date('d/m/Y') }}</p>
         </div>
 
-        {# Description #}
-        {% if amendment.description %}
+        {# Motif de l'avenant #}
+        {% if amendment.motif %}
             <div class="mb-6">
-                <h2 class="text-sm font-semibold text-white/60 uppercase mb-2">Description</h2>
-                <p class="text-white/80">{{ amendment.description }}</p>
+                <h2 class="text-sm font-semibold text-white/60 uppercase mb-2">Motif</h2>
+                <p class="text-white/80">{{ amendment.motif }}</p>
             </div>
         {% endif %}
 
@@ -90,19 +90,11 @@
     {# Actions #}
     {% if amendment.statut.value in ['issued', 'sent'] %}
         <div class="grid md:grid-cols-2 gap-4">
-            <a href="{{ path('public_amendment_sign', {
-                id: amendment.id,
-                expires: app.request.query.get('expires'),
-                signature: app.request.query.get('signature')
-            }) }}" class="btn-primary text-center py-4">
-                {{ ux_icon('lucide:check-circle', {class: 'w-5 h-5 inline mr-2'}) }}
+            <a href="{{ magic_link(amendment, 'sign') }}" class="flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10 transition-colors duration-200" data-turbo="false">
+                {{ ux_icon('lucide:pen-tool', {class: 'w-5 h-5 mr-2'}) }}
                 Signer cet avenant
             </a>
-            <a href="{{ path('public_amendment_refuse', {
-                id: amendment.id,
-                expires: app.request.query.get('expires'),
-                signature: app.request.query.get('signature')
-            }) }}" class="btn-secondary text-center py-4">
+            <a href="{{ magic_link(amendment, 'refuse') }}" class="btn-secondary text-center py-4">
                 {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5 inline mr-2'}) }}
                 Refuser cet avenant
             </a>

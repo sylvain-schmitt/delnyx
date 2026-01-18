@@ -21,23 +21,22 @@ class SignatureService
         private EntityManagerInterface $entityManager,
         private SignatureRepository $signatureRepository,
         private LoggerInterface $logger,
-    ) {
-    }
+    ) {}
 
     /**
      * Crée une nouvelle signature pour un document
      *
      * @param Quote|Amendment $document Document à signer
-     * @param array $signatureData Données de signature selon la méthode
+     * @param array $signatureData Données de signature (image base64)
      * @param array $signerInfo Informations du signataire (name, email, ip, userAgent)
-     * @param string $method Méthode de signature (text, draw, upload)
+     * @param string $method Méthode de signature (draw uniquement)
      * @return Signature
      */
     public function createSignature(
         Quote|Amendment $document,
         array $signatureData,
         array $signerInfo,
-        string $method = 'text'
+        string $method = 'draw'
     ): Signature {
         // Déterminer le type de document
         $documentType = $document instanceof Quote ? 'quote' : 'amendment';
@@ -50,12 +49,12 @@ class SignatureService
         $signature->setSignerEmail($signerInfo['email']);
         $signature->setSignatureMethod($method);
         $signature->setSignatureData($signatureData);
-        
+
         // Informations de sécurité
         if (isset($signerInfo['ip'])) {
             $signature->setIpAddress($signerInfo['ip']);
         }
-        
+
         if (isset($signerInfo['userAgent'])) {
             $signature->setUserAgent($signerInfo['userAgent']);
         }
@@ -113,7 +112,7 @@ class SignatureService
     public function getDocumentSignatures(Quote|Amendment $document): array
     {
         $documentType = $document instanceof Quote ? 'quote' : 'amendment';
-        
+
         return $this->signatureRepository->findByDocument($documentType, $document->getId());
     }
 
@@ -140,7 +139,7 @@ class SignatureService
 
     /**
      * Génère le hash SHA-256 d'un document
-     * 
+     *
      * @param Quote|Amendment $document
      * @return string
      */

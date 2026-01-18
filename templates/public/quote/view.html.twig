@@ -93,19 +93,11 @@
     {# Actions disponibles #}
     {% if quote.statut.value in ['issued', 'sent'] %}
         <div class="grid md:grid-cols-2 gap-4">
-            <a href="{{ path('public_quote_sign', {
-                id: quote.id,
-                expires: app.request.query.get('expires'),
-                signature: app.request.query.get('signature')
-            }) }}" class="btn-primary text-center py-4">
+            <a href="{{ magic_link(quote, 'sign') }}" class="btn-primary text-center py-4" data-turbo="false">
                 {{ ux_icon('lucide:check-circle', {class: 'w-5 h-5 inline mr-2'}) }}
                 Signer ce devis
             </a>
-            <a href="{{ path('public_quote_refuse', {
-                id: quote.id,
-                expires: app.request.query.get('expires'),
-                signature: app.request.query.get('signature')
-            }) }}" class="btn-secondary text-center py-4">
+            <a href="{{ magic_link(quote, 'refuse') }}" class="btn-secondary text-center py-4">
                 {{ ux_icon('lucide:x-circle', {class: 'w-5 h-5 inline mr-2'}) }}
                 Refuser ce devis
             </a>
