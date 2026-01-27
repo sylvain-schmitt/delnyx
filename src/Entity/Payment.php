@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Entité Payment - Stockage des paiements
- * 
+ *
  * Gère tous les paiements liés aux factures :
  * - Paiements Stripe (carte bancaire)
  * - Paiements PayPal
@@ -32,7 +32,7 @@ class Payment
     /**
      * Facture associée
      */
-    #[ORM\ManyToOne(targetEntity: Invoice::class)]
+    #[ORM\ManyToOne(targetEntity: Invoice::class, inversedBy: 'payments')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Invoice $invoice = null;
 
@@ -196,17 +196,17 @@ class Payment
     public function setStatus(PaymentStatus $status): static
     {
         $this->status = $status;
-        
+
         // Si le paiement est validé, définir paidAt
         if ($status === PaymentStatus::SUCCEEDED && $this->paidAt === null) {
             $this->paidAt = new \DateTimeImmutable();
         }
-        
+
         // Si le paiement est remboursé, définir refundedAt
         if ($status === PaymentStatus::REFUNDED && $this->refundedAt === null) {
             $this->refundedAt = new \DateTimeImmutable();
         }
-        
+
         return $this;
     }
 

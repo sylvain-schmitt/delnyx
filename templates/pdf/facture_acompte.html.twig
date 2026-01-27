@@ -1,0 +1,204 @@
+{% extends 'pdf/base.html.twig' %}
+
+{% block content %}
+	<!-- En-tête -->
+	{% if invoice.statutEnum.value == 'paid' %}
+		<div class="watermark watermark-paid">PAYÉE</div>
+	{% endif %}
+	<div class="header">
+		<div class="company-info">
+			<div class="company-logo">
+				{% if logo_base64 %}
+					<img src="{{ logo_base64 }}" alt="{{ company.raisonSociale ?? 'Logo' }}" style="height: 40px; width: auto;">
+				{% else %}
+					<span style="font-size: 24px; font-weight: bold; color: #2563eb; letter-spacing: 2px;">{{ company.raisonSociale ?? 'ENTREPRISE' }}</span>
+				{% endif %}
+			</div>
+			<div class="company-details">
+				{% if company %}
+					<strong>{{ company.raisonSociale }}</strong><br>
+					{{ company.formeJuridique ?? 'Micro-entrepreneur' }}
+					{% if company.codeAPE %}
+						• APE:
+						{{ company.codeAPE }}
+					{% endif %}<br>
+					{{ company.adresse }}<br>
+					{{ company.codePostal }}
+					{{ company.ville }}<br>
+					{% if company.siret %}SIRET:
+						{{ company.siret }}<br>
+					{% endif %}
+					{% if company.email %}Email:
+						{{ company.email }}<br>
+					{% endif %}
+					{% if company.telephone %}Tél:
+						{{ company.telephone }}
+					{% endif %}
+				{% else %}
+					<strong>Entreprise</strong><br>
+					Informations non disponibles
+				{% endif %}
+			</div>
+		</div>
+		<div class="document-info">
+			<div class="document-title">FACTURE D'ACOMPTE</div>
+			<div class="document-number">{{ invoice.numero }}</div>
+			<div class="document-date">
+				Date:
+				{{ invoice.dateCreation|date('d/m/Y') }}
+			</div>
+		</div>
+	</div>
+
+	<!-- Informations client -->
+	<div class="client-section">
+		<div class="client-info">
+			<div class="section-title">Client</div>
+			{% if client.companyName %}
+				<div class="client-name">{{ client.companyName }}</div>
+				<div class="client-details">
+					<strong>{{ client.prenom }}
+						{{ client.nom }}</strong><br>
+				{% else %}
+					<div class="client-name">{{ client.prenom }}
+						{{ client.nom }}</div>
+					<div class="client-details">
+					{% endif %}
+					{% if client.email %}
+						{{ client.email }}<br>
+					{% endif %}
+					{% if client.telephone %}
+						{{ client.telephone }}<br>
+					{% endif %}
+					{% if client.adresse %}
+						{{ client.adresse }}<br>
+						{{ client.codePostal }}
+						{{ client.ville }}
+					{% endif %}
+					{% if client.siret %}<br>SIRET:
+						{{ client.siret }}
+					{% endif %}
+				</div>
+			</div>
+			{% if deposit and deposit.quote %}
+				<div class="company-billing">
+					<div class="section-title">Référence devis</div>
+					<div class="client-details">
+						<strong>{{ deposit.quote.numero }}</strong><br>
+						du
+						{{ deposit.quote.dateCreation|date('d/m/Y') }}
+					</div>
+				</div>
+			{% endif %}
+		</div>
+
+		<!-- Détail de l'acompte -->
+		<div class="conditions-section" style="margin-top: 10px; margin-bottom: 10px; background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 4px;">
+			<div class="section-title" style="margin-bottom: 5px;">Détail de l'acompte</div>
+			<table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+				<tr>
+					<td style="padding: 2px 0;"><strong>Devis de référence :</strong></td>
+					<td style="text-align: right; color: #666;">{{ deposit.quote.numero ?? '-' }}</td>
+				</tr>
+				{% if deposit %}
+					<tr>
+						<td style="padding: 2px 0;"><strong>Pourcentage du devis :</strong></td>
+						<td style="text-align: right; color: #666;">{{ deposit.percentage|number_format(0) }}%</td>
+					</tr>
+				{% endif %}
+				<tr>
+					<td style="padding: 2px 0;"><strong>Montant total du devis :</strong></td>
+					<td style="text-align: right; color: #666;">{{ deposit.quote.montantTTCFormate ?? '-' }}</td>
+				</tr>
+			</table>
+		</div>
+
+		<!-- Totaux -->
+		<div class="totals no-break" style="margin-bottom: 10px;">
+			<table class="totals-table">
+				<tr>
+					<td class="label">Montant HT:</td>
+					<td class="amount">{{ invoice.montantHTFormate }}</td>
+				</tr>
+				{% if company and company.isTvaEnabled() and invoice.montantTVA > 0 %}
+					<tr>
+						<td class="label">TVA ({{ deposit.quote.tauxTVA ?? 20 }}%):</td>
+						<td class="amount">{{ invoice.montantTVAFormatted ?? (invoice.montantTVA|number_format(2, ',', ' ') ~ ' €') }}</td>
+					</tr>
+				{% endif %}
+				<tr class="total-row">
+					<td class="label">ACOMPTE TTC:</td>
+					<td class="amount">{{ invoice.montantTTCFormate }}</td>
+				</tr>
+			</table>
+		</div>
+
+		<!-- Conditions de paiement -->
+		<div class="conditions-section no-break" style="margin-top: 10px; border: 1px solid #e5e7eb; padding: 10px; border-radius: 4px;">
+			<div class="conditions-title" style="margin-bottom: 5px; font-weight: bold; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px;">Conditions de paiement</div>
+			<div class="conditions-content" style="font-size: 9px; line-height: 1.3;">
+				<strong>Échéance:</strong> À réception<br>
+				<strong>Pénalités de retard:</strong> À défaut de paiement, pénalité de 10,00% par an ou 3x le taux légal<br>
+				<strong>Escompte:</strong> Pas d'escompte pour paiement anticipé.<br>
+				<strong>Recouvrement:</strong> {{ company.indemniteForfaitaireRecouvrementFormatee ?? '40,00 €' }} (Art. L.441-6)<br>
+			</div>
+		</div>
+
+		<div class="conditions-section no-break" style="margin-top: 10px; background-color: #ecfdf5; border: 1px solid #059669; padding: 10px; border-radius: 4px;">
+			<table style="width: 100%;">
+				<tr>
+					<td>
+						<strong style="color: #059669; font-size: 11px;">ACOMPTE RECU</strong><br>
+					<span style="font-size: 10px;">
+						{% if invoice.datePaiement %}
+							Paiement reçu le {{ invoice.datePaiement|date('d/m/Y') }}
+						{% else %}
+							Paiement confirmé
+						{% endif %}
+						</span>
+					</td>
+				</tr>
+			</table>
+		</div>
+
+		{% if invoice.notes %}
+			<div class="notes-section no-break">
+				<strong>Notes:</strong><br>
+				{{ invoice.notes|nl2br }}
+			</div>
+		{% endif %}
+
+		<!-- Mentions légales -->
+		<div class="legal-mentions no-break" style="margin-top: 10px; padding: 8px;">
+			<strong>Mentions légales:</strong><br>
+			Facture d'acompte émise le {{ invoice.dateCreation|date('d/m/Y') }}.
+			{% if company %}
+				{{ company.raisonSociale }} - {{ company.formeJuridique ?? 'Micro-entrepreneur' }}
+				{% if company.codeAPE %}(APE: {{ company.codeAPE }}){% endif %}
+				{% if company.siret %}- SIRET: {{ company.siret }}{% endif %}<br>
+			{% endif %}
+			<strong>Pénalités:</strong> 10%/an ou 3x taux légal. <strong>Escompte:</strong> Aucun.<br>
+			{% if company and not company.isTvaEnabled() %}
+				<strong>Micro-entrepreneur:</strong> TVA non applicable selon l'article 293 B du CGI.
+			{% endif %}
+		</div>
+
+		<!-- Pied de page -->
+		<div class="footer no-break">
+			{% if company %}
+				<strong>{{ company.raisonSociale }}</strong>
+				{% if company.email or company.telephone %}
+					|
+					{% if company.email %}
+						{{ company.email }}
+					{% endif %}
+					{% if company.email and company.telephone %}
+						|
+					{% endif %}
+					{% if company.telephone %}
+						{{ company.telephone }}
+					{% endif %}
+				{% endif %}
+			{% endif %}
+		</div>
+	{% endblock %}

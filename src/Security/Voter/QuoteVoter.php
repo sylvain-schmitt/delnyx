@@ -12,19 +12,19 @@ use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * Voter pour centraliser toutes les autorisations sur les devis (Quote)
- * 
+ *
  * Actions disponibles :
  * - EDIT : Modifier un devis
  * - DELETE : Supprimer un devis (jamais autorisé, archivage 10 ans)
- * - ISSUE : Émettre un devis (DRAFT → ISSUED)
- * - SEND : Envoyer un devis (ISSUED → SENT)
- * - ACCEPT : Accepter un devis (SENT → ACCEPTED)
- * - SIGN : Signer un devis (SENT/ACCEPTED → SIGNED)
- * - CANCEL : Annuler un devis (DRAFT → CANCELLED)
- * - REFUSE : Refuser un devis (SENT/ACCEPTED → REFUSED)
+ * - SEND : Envoyer un devis (DRAFT → SENT)
+ * - SIGN : Signer un devis (SENT → SIGNED)
+ * - CANCEL : Annuler un devis (DRAFT/SENT → CANCELLED)
+ * - REFUSE : Refuser un devis (SENT → REFUSED)
  * - GENERATE_INVOICE : Générer une facture depuis un devis (SIGNED uniquement)
  * - VIEW : Voir un devis
- * 
+ *
+ * Note: ISSUE et ACCEPT ont été supprimés du workflow simplifié
+ *
  * @package App\Security\Voter
  */
 class QuoteVoter extends Voter
@@ -131,11 +131,13 @@ class QuoteVoter extends Voter
 
     /**
      * Vérifie si l'utilisateur peut émettre le devis
-     * DRAFT → ISSUED
+     * Note: Cette action est obsolète dans le workflow simplifié
+     * @deprecated Utiliser canSend() à la place
      */
     private function canIssue(Quote $quote, UserInterface $user, QuoteStatus $status): bool
     {
-        return $status->canBeIssued();
+        // Workflow simplifié : ISSUE n'existe plus, utiliser SEND
+        return $status === QuoteStatus::DRAFT;
     }
 
     /**
@@ -149,11 +151,13 @@ class QuoteVoter extends Voter
 
     /**
      * Vérifie si l'utilisateur peut accepter le devis
-     * SENT → ACCEPTED
+     * Note: Dans le workflow simplifié, "accepter" = "signer"
+     * @deprecated Utiliser canSign() à la place
      */
     private function canAccept(Quote $quote, UserInterface $user, QuoteStatus $status): bool
     {
-        return $status->canBeAccepted();
+        // Workflow simplifié : ACCEPT n'existe plus, utiliser SIGN
+        return $status === QuoteStatus::SENT;
     }
 
     /**
@@ -215,4 +219,3 @@ class QuoteVoter extends Voter
         return true;
     }
 }
-

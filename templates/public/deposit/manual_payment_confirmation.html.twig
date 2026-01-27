@@ -1,0 +1,96 @@
+{% extends 'public/layout/base.html.twig' %}
+
+{% block title %}Confirmation de prise en compte - Delnyx
+{% endblock %}
+
+{% block body %}
+	<div class="max-w-2xl mx-auto">
+		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-8 text-center">
+
+			<div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 mb-6">
+				{{ ux_icon('lucide:check', {class: 'w-8 h-8'}) }}
+			</div>
+
+			<h1 class="text-3xl font-bold text-white mb-4">Demande enregistrée !</h1>
+
+			<p class="text-xl text-white/80 mb-8">
+				Nous avons bien pris en compte votre souhait de régler l'acompte pour le devis
+				<strong>{{ quote.numero }}</strong>
+				par virement ou chèque.
+			</p>
+
+			<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-6 text-left mb-8">
+				<h3 class="text-white font-semibold flex items-center gap-2 mb-4">
+					{{ ux_icon('lucide:landmark', {class: 'w-5 h-5 text-emerald-400'}) }}
+					Rappel des instructions
+				</h3>
+
+				<p class="text-white/80 mb-4">
+					Merci d'effectuer le virement du montant de
+					<strong>{{ deposit.formattedAmount }}</strong>
+					sur le compte suivant :
+				</p>
+
+				<div
+					class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					{# Virement #}
+					<div class="space-y-4">
+						<h4 class="text-white font-medium flex items-center gap-2">
+							{{ ux_icon('lucide:plus', {class: 'w-4 h-4 text-emerald-400'}) }}
+							Option 1 : Virement
+						</h4>
+						{% if companySettings is defined and companySettings.iban %}
+							<div class="bg-black/20 rounded p-4 font-mono text-xs border border-white/5 space-y-2">
+								<p>
+									<span class="text-white/50">Banque :</span>
+									<span class="text-white">{{ companySettings.banque|default('RIB') }}</span>
+								</p>
+								<p>
+									<span class="text-white/50">IBAN :</span>
+									<span class="text-white select-all">{{ companySettings.iban }}</span>
+								</p>
+								<p>
+									<span class="text-white/50">BIC :</span>
+									<span class="text-white select-all">{{ companySettings.bic }}</span>
+								</p>
+							</div>
+						{% else %}
+							<p class="text-amber-300 text-xs">Veuillez consulter l'email que vous allez recevoir pour les coordonnées bancaires.</p>
+						{% endif %}
+					</div>
+
+					{# Chèque #}
+					<div class="space-y-4">
+						<h4 class="text-white font-medium flex items-center gap-2">
+							{{ ux_icon('lucide:plus', {class: 'w-4 h-4 text-emerald-400'}) }}
+							Option 2 : Chèque
+						</h4>
+						<div class="bg-black/20 rounded p-4 text-xs border border-white/5 space-y-2 text-white/80">
+							<p>Libellé à l'ordre de :<br>
+								<strong class="text-white">{{ ownerName }}</strong>
+							</p>
+							<p>Adresse d'envoi :<br>
+								{{ ownerName }}<br>
+								{{ companySettings.adresse|default('')|nl2br }}<br>
+								{{ companySettings.codePostal }}
+								{{ companySettings.ville }}
+							</p>
+						</div>
+					</div>
+				</div>
+
+				<p class="mt-6 text-white/60 italic text-sm border-t border-white/10 pt-4">
+					Indiquez la référence
+					<strong>Acompte {{ quote.numero }}</strong>
+					dans le libellé de votre virement ou au dos de votre chèque.
+				</p>
+			</div>
+
+			<div class="flex gap-4 justify-center">
+				<a href="{{ magic_link(quote, 'view') }}" class="btn-secondary px-8 py-3">
+					Retour au devis
+				</a>
+			</div>
+		</div>
+	</div>
+{% endblock %}

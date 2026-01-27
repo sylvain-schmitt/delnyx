@@ -68,7 +68,7 @@ class ProjectRepository extends ServiceEntityRepository
     }
 
     /**
-     * Recherche de projets par terme
+     * Recherche de projets par terme (public)
      *
      * @return Project[] Returns an array of Project objects
      */
@@ -81,6 +81,57 @@ class ProjectRepository extends ServiceEntityRepository
             ->setParameter('statut', Project::STATUT_PUBLIE)
             ->setParameter('term', '%' . $term . '%')
             ->orderBy('p.dateCreation', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Recherche des projets par terme (admin - tous les projets)
+     *
+     * @return Project[]
+     */
+    public function searchByTerm(string $term, int $limit = 5): array
+    {
+        $searchTerm = '%' . mb_strtolower(trim($term)) . '%';
+
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.technologies', 't')
+            ->where('LOWER(p.titre) LIKE :term')
+            ->orWhere('LOWER(p.description) LIKE :term')
+            ->orWhere('LOWER(COALESCE(t.nom, \'\')) LIKE :term')
+            ->setParameter('term', $searchTerm)
+            ->orderBy('p.dateCreation', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Recherche paginée des projets
+     */
+    public function createSearchQueryBuilder(string $term): \Doctrine\ORM\QueryBuilder
+    {
+        $searchTerm = '%' . mb_strtolower(trim($term)) . '%';
+
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.technologies', 't')
+            ->where('LOWER(p.titre) LIKE :term')
+            ->orWhere('LOWER(p.description) LIKE :term')
+            ->orWhere('LOWER(COALESCE(t.nom, \'\')) LIKE :term')
+            ->setParameter('term', $searchTerm)
+            ->orderBy('p.dateCreation', 'DESC');
+    }
+
+    /**
+     * Recherche avec pagination native (offset/limit)
+     *
+     * @return Project[]
+     */
+    public function searchByTermPaginated(string $term, int $limit = 20, int $offset = 0): array
+    {
+        return $this->createSearchQueryBuilder($term)
+            ->setMaxResults($limit)
+            ->setFirstResult($offset)
             ->getQuery()
             ->getResult();
     }

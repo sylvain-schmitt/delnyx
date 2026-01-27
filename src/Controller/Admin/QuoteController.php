@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\Quote;
+use App\Entity\Deposit;
 use App\Entity\QuoteStatus;
 use App\Form\QuoteType;
 use App\Repository\QuoteRepository;
@@ -106,7 +107,7 @@ class QuoteController extends AbstractController
         $amendments = $this->amendmentRepository->createQueryBuilder('a')
             ->where('a.quote = :quote')
             ->setParameter('quote', $quote)
-            ->orderBy('a.dateCreation', 'DESC')
+            ->orderBy('a.dateCreation', 'ASC')
             ->getQuery()
             ->getResult();
 
@@ -784,10 +785,7 @@ class QuoteController extends AbstractController
             } catch (\RuntimeException $e) {
                 // Si la transition échoue, on continue quand même pour permettre le renvoi
                 // (cas où le devis est déjà SENT)
-                $this->logger->warning('Transition de statut échouée lors de l\'envoi', [
-                    'quote_id' => $quote->getId(),
-                    'error' => $e->getMessage()
-                ]);
+                // (cas où le devis est déjà SENT)
             }
 
             // 2. Envoyer l'email
@@ -803,6 +801,73 @@ class QuoteController extends AbstractController
             }
         } catch (\Exception $e) {
             $this->addFlash('error', 'Erreur lors de l\'envoi de l\'email : ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+    }
+
+    /**
+     * Demande un accompte pour un devis signé
+     */
+    #[Route('/{id}/request-deposit', name: 'request_deposit', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function requestDeposit(
+        Quote $quote,
+        Request $request,
+        \App\Service\DepositService $depositService,
+        \App\Service\EmailService $emailService
+    ): Response {
+        if (!$this->isCsrfTokenValid('request_deposit_' . $quote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);
+        }
+
+        try {
+            // Vérifier que le devis peut recevoir un accompte
+            if (!$quote->canRequestDeposit()) {
+                throw new \RuntimeException('Ce devis ne peut pas recevoir d\'accompte (doit être signé et non facturé).');
+            }
+
+            // Récupérer les données du formulaire
+            $percentage = $request->request->get('percentage');
+            $amount = $request->request->get('amount');
+
+            // Si le pourcentage est vide mais qu'on a un montant, on passe null pour le pourcentage par défaut
+            // Le service recalculera le pourcentage basé sur le montant
+            $percentageFloat = $percentage !== null && $percentage !== '' ? (float) $percentage : Deposit::DEFAULT_PERCENTAGE;
+
+            // Convertir montant en centimes si présent
+            $amountInCents = $amount !== null && $amount !== '' ? (int) round((float) $amount * 100) : null;
+
+            $deposit = $depositService->createDeposit($quote, $percentageFloat, $amountInCents);
+
+            // 1. Créer la facture d'acompte (obligation légale pour acompte demandé)
+            $depositService->getOrCreateDepositInvoice($deposit, \App\Entity\InvoiceStatus::ISSUED);
+
+            // Envoyer automatiquement l'email de demande d'acompte
+            $client = $quote->getClient();
+            if ($client && $client->getEmail()) {
+                try {
+                    $emailService->sendDepositRequest($deposit);
+                    $this->addFlash('success', sprintf(
+                        'Accompte de %s créé et email envoyé au client.',
+                        $deposit->getFormattedAmount()
+                    ));
+                } catch (\Exception $emailException) {
+                    $this->addFlash('warning', sprintf(
+                        'Accompte de %s créé mais l\'email n\'a pas pu être envoyé : %s',
+                        $deposit->getFormattedAmount(),
+                        $emailException->getMessage()
+                    ));
+                }
+            } else {
+                $this->addFlash('success', sprintf(
+                    'Accompte de %s créé avec succès (pas d\'email client).',
+                    $deposit->getFormattedAmount()
+                ));
+            }
+        } catch (\Exception $e) {
+            $this->addFlash('error', $e->getMessage());
         }
 
         return $this->redirectToRoute('admin_quote_show', ['id' => $quote->getId()]);

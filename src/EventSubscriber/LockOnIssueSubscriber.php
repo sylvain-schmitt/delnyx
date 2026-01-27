@@ -13,10 +13,10 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * EventSubscriber pour verrouiller les factures émises
- * 
+ *
  * Empêche toute modification d'une facture une fois qu'elle est émise (ISSUED, PAID, CANCELLED)
  * Conformité légale française : une facture émise est immuable
- * 
+ *
  * @package App\EventSubscriber
  */
 #[AsDoctrineListener(event: Events::preUpdate, priority: 500)]
@@ -83,7 +83,7 @@ class LockOnIssueSubscriber
             // - dateModification (mis à jour automatiquement)
             // - pdfFilename (nom du fichier PDF généré, technique)
             // - pdfHash (hash du PDF généré, technique)
-            $allowedFields = ['statut', 'datePaiement', 'dateEnvoi', 'sentCount', 'deliveryChannel', 'dateModification', 'pdfFilename', 'pdfHash'];
+            $allowedFields = ['statut', 'datePaiement', 'dateEnvoi', 'sentCount', 'deliveryChannel', 'dateModification', 'pdfFilename', 'pdfHash', 'subscription'];
             $changedFields = array_keys($args->getEntityChangeSet());
 
             foreach ($changedFields as $field) {
@@ -100,4 +100,3 @@ class LockOnIssueSubscriber
         }
     }
 }
-

@@ -14,9 +14,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Bundle\SecurityBundle\Security;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\Address;
-use Symfony\Component\Mime\Email;
+use App\Service\EmailService;
 
 /**
  * Service pour gérer les transitions d'état et les opérations métier sur les factures
@@ -38,30 +36,39 @@ class InvoiceService
         private readonly Security $security,
         private readonly LoggerInterface $logger,
         private readonly InvoiceNumberGenerator $numberGenerator,
-        private readonly MailerInterface $mailer,
+        private readonly EmailService $emailService,
         private readonly PdfGeneratorService $pdfGeneratorService,
+        private readonly CreditNoteService $creditNoteService,
     ) {}
 
     /**
      * Injection optionnelle d'AuditService (pour éviter la dépendance circulaire)
      */
     private ?AuditService $auditService = null;
+    private ?DepositService $depositService = null;
 
     public function setAuditService(AuditService $auditService): void
     {
         $this->auditService = $auditService;
     }
 
+    public function setDepositService(DepositService $depositService): void
+    {
+        $this->depositService = $depositService;
+    }
+
     /**
      * Émet une facture (DRAFT → ISSUED)
      *
+     * @param Invoice $invoice
+     * @param bool $forceSecurityBypass Si true, ignore les vérifications de permissions (pour usage système/tâche planifiée)
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
-    public function issue(Invoice $invoice): void
+    public function issue(Invoice $invoice, bool $forceSecurityBypass = false): void
     {
-        // Vérifier les permissions
-        if (!$this->authorizationChecker->isGranted('INVOICE_ISSUE', $invoice)) {
+        // Vérifier les permissions (sauf si bypass forcé)
+        if (!$forceSecurityBypass && !$this->authorizationChecker->isGranted('INVOICE_ISSUE', $invoice)) {
             throw new AccessDeniedException('Vous n\'avez pas la permission d\'émettre cette facture.');
         }
 
@@ -120,54 +127,26 @@ class InvoiceService
     }
 
     /**
-     * Émet et envoie une facture en une seule action (DRAFT → ISSUED → SENT)
-     *
-     * Raccourci pour émettre et envoyer directement une facture en brouillon
-     *
-     * @param string|null $channel Canal d'envoi ('email', 'pdp', 'both'). Si null, utilise 'email' par défaut
-     * @throws AccessDeniedException si l'utilisateur n'a pas la permission
-     * @throws \RuntimeException si la transition n'est pas possible
+     * Émet et envoie une facture en une seule action
      */
-    public function issueAndSend(Invoice $invoice, ?string $channel = 'email'): void
+    public function issueAndSend(Invoice $invoice, ?string $channel = 'email', bool $forceSecurityBypass = false): void
     {
-        // Vérifier les permissions
-        if (!$this->authorizationChecker->isGranted('INVOICE_ISSUE', $invoice)) {
-            throw new AccessDeniedException('Vous n\'avez pas la permission d\'émettre cette facture.');
-        }
-
-        // Vérifier que la facture peut être émise
-        $statutEnum = $invoice->getStatutEnum();
-        if (!$statutEnum || !$statutEnum->canBeIssued()) {
-            throw new \RuntimeException(
-                sprintf(
-                    'La facture ne peut pas être émise depuis l\'état "%s".',
-                    $statutEnum?->getLabel() ?? 'inconnu'
-                )
-            );
-        }
-
-        // Émettre d'abord (DRAFT → ISSUED)
-        $this->issue($invoice);
-
-        // Puis envoyer (ISSUED → SENT)
-        $this->send($invoice, $channel);
+        // ... (shortcut, implementation delegates)
+        $this->issue($invoice, $forceSecurityBypass);
+        $this->send($invoice, $channel, $forceSecurityBypass);
     }
 
     /**
-     * Envoie une facture au client (DRAFT → SENT direct, ISSUED → SENT, ou SENT → SENT pour relance)
+     * Envoie une facture au client
      *
-     * Si DRAFT, émet automatiquement la facture avant d'envoyer
-     * Peut être fait plusieurs fois (relances)
-     * Envoie par email et/ou PDP selon la configuration
-     *
-     * @param string|null $channel Canal d'envoi ('email', 'pdp', 'both'). Si null, utilise 'email' par défaut
-     * @throws AccessDeniedException si l'utilisateur n'a pas la permission
-     * @throws \RuntimeException si la facture ne peut pas être envoyée
+     * @param Invoice $invoice
+     * @param string|null $channel
+     * @param bool $forceSecurityBypass Si true, ignore les vérifications de permissions
      */
-    public function send(Invoice $invoice, ?string $channel = 'email'): void
+    public function send(Invoice $invoice, ?string $channel = 'email', bool $forceSecurityBypass = false): void
     {
         // Vérifier les permissions
-        if (!$this->authorizationChecker->isGranted('INVOICE_SEND', $invoice)) {
+        if (!$forceSecurityBypass && !$this->authorizationChecker->isGranted('INVOICE_SEND', $invoice)) {
             throw new AccessDeniedException('Vous n\'avez pas la permission d\'envoyer cette facture.');
         }
 
@@ -184,11 +163,11 @@ class InvoiceService
 
         // Si DRAFT, émettre automatiquement avant d'envoyer
         if ($statutEnum === InvoiceStatus::DRAFT) {
-            // Vérifier la permission d'émission
-            if (!$this->authorizationChecker->isGranted('INVOICE_ISSUE', $invoice)) {
+            // Vérifier la permission d'émission (bypass propagé)
+            if (!$forceSecurityBypass && !$this->authorizationChecker->isGranted('INVOICE_ISSUE', $invoice)) {
                 throw new AccessDeniedException('Vous n\'avez pas la permission d\'émettre cette facture.');
             }
-            $this->issue($invoice);
+            $this->issue($invoice, $forceSecurityBypass);
         }
 
         // Vérifier que le client a une adresse email
@@ -272,7 +251,7 @@ class InvoiceService
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
-    public function markPaid(Invoice $invoice, ?float $amount = null): void
+    public function markPaid(Invoice $invoice, ?float $amount = null, bool $skipSubscriptions = false): void
     {
         // Vérifier les permissions
         if (!$this->authorizationChecker->isGranted('INVOICE_MARK_PAID', $invoice)) {
@@ -282,6 +261,10 @@ class InvoiceService
         // Vérifier que la transition est possible
         $statutEnum = $invoice->getStatutEnum();
         if (!$statutEnum || !$statutEnum->canBeMarkedPaid()) {
+            // Si déjà payée, on ne fait rien (idempotent)
+            if ($statutEnum === InvoiceStatus::PAID) {
+                return;
+            }
             throw new \RuntimeException(
                 sprintf(
                     'La facture ne peut pas être marquée comme payée depuis l\'état "%s".',
@@ -312,8 +295,38 @@ class InvoiceService
             $oldStatus = $statutEnum;
             $invoice->setStatutEnum(InvoiceStatus::PAID);
 
+            // Réinitialiser le PDF pour forcer sa régénération avec le tampon "PAYÉE"
+            $invoice->setPdfFilename(null);
+            $invoice->setPdfHash(null);
+
             // Enregistrer l'audit
             $this->logStatusChange($invoice, $oldStatus, InvoiceStatus::PAID, 'mark_paid');
+
+            // Envoyer l'email de confirmation au client
+            try {
+                if ($invoice->getClient() && $invoice->getClient()->getEmail()) {
+                    $this->emailService->sendPaymentConfirmation($invoice, $montantPaye);
+                }
+            } catch (\Exception $e) {
+                $this->logger->error('Erreur lors de l\'envoi de l\'email de confirmation de paiement', [
+                    'invoice_id' => $invoice->getId(),
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            // Créer les abonnements manuels si nécessaire
+            if (!$skipSubscriptions) {
+                $this->createManualSubscriptionFromInvoice($invoice);
+            }
+
+            // SYNCHRONISATION ACOMPTE
+            if ($invoice->getSourceDeposit()) {
+                $deposit = $invoice->getSourceDeposit();
+                if ($deposit->getStatus() !== \App\Entity\DepositStatus::PAID) {
+                    $deposit->setStatus(\App\Entity\DepositStatus::PAID);
+                    $deposit->setPaidAt(new \DateTimeImmutable());
+                }
+            }
         }
         // TODO: Gérer les paiements partiels avec une entité Payment
 
@@ -337,7 +350,7 @@ class InvoiceService
      * @param float|null $amount Montant payé (null = paiement total)
      * @throws \RuntimeException si la transition n'est pas possible
      */
-    public function markPaidByExternalPayment(Invoice $invoice, ?float $amount = null): void
+    public function markPaidByExternalPayment(Invoice $invoice, ?float $amount = null, bool $skipSubscriptions = false, ?\DateTimeInterface $paymentDate = null): void
     {
         // Vérifier que la transition est possible
         $statutEnum = $invoice->getStatutEnum();
@@ -355,18 +368,49 @@ class InvoiceService
         }
 
         $montantTTC = (float) $invoice->getMontantTTC();
-        $montantPaye = $amount ?? $montantTTC;
+        $balanceDue = (float) $invoice->getBalanceDue();
+        $montantPaye = $amount ?? $balanceDue;
 
         // Enregistrer le paiement
-        $invoice->setDatePaiement(new \DateTime());
+        $invoice->setDatePaiement($paymentDate ?? new \DateTime());
 
-        // Si paiement total, passer à PAID
-        if (abs($montantPaye - $montantTTC) < 0.01) {
+        // Si paiement total (égal ou supérieur au solde dû), passer à PAID
+        if ($montantPaye >= ($balanceDue - 0.01)) {
             $oldStatus = $statutEnum;
             $invoice->setStatutEnum(InvoiceStatus::PAID);
 
+            // Réinitialiser le PDF pour forcer sa régénération avec le tampon "PAYÉE"
+            $invoice->setPdfFilename(null);
+            $invoice->setPdfHash(null);
+
             // Enregistrer l'audit
             $this->logStatusChange($invoice, $oldStatus, InvoiceStatus::PAID, 'external_payment');
+
+            // Envoyer l'email de confirmation au client
+            try {
+                if ($invoice->getClient() && $invoice->getClient()->getEmail()) {
+                    $this->emailService->sendPaymentConfirmation($invoice, $montantPaye);
+                }
+            } catch (\Exception $e) {
+                $this->logger->error('Erreur lors de l\'envoi de l\'email de confirmation de paiement (externe)', [
+                    'invoice_id' => $invoice->getId(),
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            // Créer les abonnements manuels si nécessaire
+            if (!$skipSubscriptions) {
+                $this->createManualSubscriptionFromInvoice($invoice);
+            }
+
+            // SYNCHRONISATION ACOMPTE
+            if ($invoice->getSourceDeposit()) {
+                $deposit = $invoice->getSourceDeposit();
+                if ($deposit->getStatus() !== \App\Entity\DepositStatus::PAID) {
+                    $deposit->setStatus(\App\Entity\DepositStatus::PAID);
+                    $deposit->setPaidAt(new \DateTimeImmutable());
+                }
+            }
         }
 
         // Persister
@@ -499,6 +543,9 @@ class InvoiceService
             $invoiceLine->setQuantity($quoteLine->getQuantity());
             $invoiceLine->setUnitPrice($quoteLine->getUnitPrice());
             $invoiceLine->setTvaRate($quoteLine->getTvaRate() ?? $quote->getTauxTVA());
+            // Copie des infos d'abonnement
+            $invoiceLine->setSubscriptionMode($quoteLine->getSubscriptionMode());
+            $invoiceLine->setRecurrenceAmount($quoteLine->getRecurrenceAmount());
             $invoiceLine->recalculateTotalHt();
             $invoice->addLine($invoiceLine);
         }
@@ -512,6 +559,8 @@ class InvoiceService
                     $invoiceLine->setQuantity($amendmentLine->getQuantity() ?? 1);
                     $invoiceLine->setUnitPrice($amendmentLine->getUnitPrice());
                     $invoiceLine->setTvaRate($amendmentLine->getTvaRate() ?? $quote->getTauxTVA());
+                    // Note: Les avenants n'ont pas encore de subscriptionMode, on laisse null par défaut
+                    // ou on rajoute le champ sur AmendmentLine si nécessaire (hors scope actuel phase 5.4)
                     $invoiceLine->recalculateTotalHt();
                     $invoice->addLine($invoiceLine);
                 }
@@ -525,6 +574,11 @@ class InvoiceService
         $this->entityManager->persist($invoice);
         $this->entityManager->flush();
 
+        // Déduire automatiquement les acomptes payés du devis
+        if ($this->depositService !== null) {
+            $this->depositService->deductDepositsToInvoice($invoice, $quote);
+        }
+
         // Si demandé, émettre immédiatement
         if ($issueImmediately) {
             $this->issue($invoice);
@@ -534,6 +588,7 @@ class InvoiceService
             'invoice_id' => $invoice->getId(),
             'quote_id' => $quote->getId(),
             'quote_number' => $quote->getNumero(),
+            'deposits_deducted' => $invoice->hasDepositsDeducted(),
         ]);
 
         return $invoice;
@@ -588,5 +643,144 @@ class InvoiceService
             userId: $userId,
             metadata: $metadata
         );
+    }
+
+    /**
+     * Crée un abonnement manuel à partir des lignes d'une facture payée
+     */
+    private function createManualSubscriptionFromInvoice(Invoice $invoice): void
+    {
+        // Ne pas créer d'abonnement s'il y en a déjà un (ex: Stripe déjà synchro par Webhook)
+        if ($invoice->getSubscription() !== null) {
+            return;
+        }
+        foreach ($invoice->getLines() as $line) {
+            $subscriptionMode = $line->getSubscriptionMode();
+
+            // Si c'est une ligne d'abonnement (mensuel ou annuel)
+            if ($subscriptionMode && in_array($subscriptionMode, ['monthly', 'yearly'])) {
+
+                // Vérifier si un abonnement existe déjà pour ce client et ce tarif (ou libellé similaire)
+                // Pour simplifier : on crée un nouvel abonnement à chaque fois pour l'instant
+                // IDÉALEMENT : On devrait vérifier si c'est un RENOUVELLEMENT d'un abo existant.
+                // TODO: Logique de renouvellement vs création. Ici on suppose création ou ré-abonnement.
+
+                $subscription = new \App\Entity\Subscription();
+                $subscription->setClient($invoice->getClient());
+                $subscription->setTariff($line->getTariff());
+                $subscription->setCustomLabel($line->getDescription());
+                $subscription->setIntervalUnit($subscriptionMode === 'monthly' ? 'month' : 'year');
+
+                // On stocke le montant total TTC de la récurrence (pour affichage et futurs renouvellements)
+                $tvaRate = (float) ($line->getTvaRate() ?? 0);
+                $recurrenceAmount = $line->getRecurrenceAmount() ? ($line->getRecurrenceAmount() * (1 + ($tvaRate / 100))) : $line->getTotalTtc();
+                $subscription->setAmount((string) $recurrenceAmount);
+
+                $subscription->setStatus('active');
+
+                // Dates
+                $startDate = new \DateTime();
+                $subscription->setCurrentPeriodStart($startDate);
+
+                // Date de fin = Date de début + période
+                $endDate = clone $startDate;
+                if ($subscriptionMode === 'monthly') {
+                    $endDate->modify('+1 month');
+                } else {
+                    $endDate->modify('+1 year');
+                }
+                $subscription->setCurrentPeriodEnd($endDate);
+
+                // Pas de Stripe ID pour les manuels
+                $subscription->setStripeSubscriptionId(null);
+
+                $this->entityManager->persist($subscription);
+                $invoice->setSubscription($subscription);
+
+                $this->logger->info('Abonnement manuel créé suite au paiement de la facture', [
+                    'invoice_id' => $invoice->getId(),
+                    'client_id' => $invoice->getClient()->getId(),
+                    'mode' => $subscriptionMode,
+                    'amount' => $recurrenceAmount
+                ]);
+            }
+        }
+
+        $this->entityManager->flush();
+    }
+
+    /**
+     * Crée une facture (ou doit déclencher la création d'un avoir) à partir d'un avenant
+     */
+    public function createFromAmendment(\App\Entity\Amendment $amendment): void
+    {
+        // 1. Identifier les lignes par direction de Delta
+        $hasPositive = false;
+        $hasNegative = false;
+
+        foreach ($amendment->getLines() as $line) {
+            $delta = (float) $line->getDelta();
+            if ($delta > 0.009) {
+                $hasPositive = true;
+            } elseif ($delta < -0.009) {
+                $hasNegative = true;
+            }
+        }
+
+        // 2. Créer une facture pour les deltas positifs
+        if ($hasPositive) {
+            $this->createInvoiceFromPositiveAmendment($amendment);
+        }
+
+        // 3. Créer un avoir pour les deltas négatifs
+        if ($hasNegative) {
+            $this->creditNoteService->createFromAmendment($amendment);
+        }
+    }
+
+    private function createInvoiceFromPositiveAmendment(\App\Entity\Amendment $amendment): void
+    {
+        $invoice = new Invoice();
+        $invoice->setClient($amendment->getQuote()->getClient());
+        $invoice->setQuote($amendment->getQuote()); // Lien vers le devis d'origine
+        $invoice->setCompanyId($amendment->getCompanyId());
+        $invoice->setStatutEnum(InvoiceStatus::DRAFT);
+        $invoice->setAmendment($amendment); // Lien OneToOne
+
+        $invoice->setNotes(sprintf(
+            "Facture complémentaire suite à l'avenant %s.\n\nMotif : %s",
+            $amendment->getNumero(),
+            $amendment->getMotif()
+        ));
+        $invoice->setDateEcheance((new \DateTime())->modify('+30 days'));
+
+        // Créer les lignes
+        foreach ($amendment->getLines() as $amendmentLine) {
+            // On ne facture que ce qui a augmenté (delta positif)
+            if ((float)$amendmentLine->getDelta() <= 0.009) {
+                continue;
+            }
+
+            $invoiceLine = new \App\Entity\InvoiceLine();
+            $invoiceLine->setDescription($amendmentLine->getDescription() . " (Régularisation)");
+
+            // Subtilité : Une ligne d'avenant a Qté, PU, OldValue.
+            // Le TotalHT est le Delta.
+            // Pour la facture, on veut afficher une ligne simple correspondant au montant dû.
+            // On met Qté = 1 et PU = Delta.
+
+            $invoiceLine->setQuantity(1);
+            $invoiceLine->setUnitPrice($amendmentLine->getDelta()); // Le montant de la ligne est le delta HT
+            $invoiceLine->setTvaRate($amendmentLine->getTvaRate() ?? 20.0);
+
+            $invoiceLine->recalculateTotalHt();
+            $invoice->addLine($invoiceLine);
+        }
+
+        $invoice->recalculateTotalsFromLines();
+        $this->entityManager->persist($invoice);
+        $this->entityManager->flush();
+
+        $this->logger->info('Facture de régularisation (Avenant) créée', ['invoice_id' => $invoice->getId()]);
     }
 }

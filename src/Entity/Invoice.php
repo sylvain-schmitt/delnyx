@@ -174,6 +174,13 @@ class Invoice
     #[Groups(['invoice:read'])]
     private ?string $pdfHash = null;
 
+    /**
+     * ID de la facture Stripe associée (pour idempotence)
+     */
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true, unique: true)]
+    #[Groups(['invoice:read'])]
+    private ?string $stripeInvoiceId = null;
+
     // ===== CHAMPS PDP (Plateforme de Dématérialisation Partenaire) =====
 
     #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
@@ -191,6 +198,23 @@ class Invoice
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['invoice:read'])]
     private ?string $pdpResponse = null; // Réponse de la PDP (JSON ou texte)
+
+    // ===== CHAMPS TYPE FACTURE =====
+
+    /**
+     * Type de facture (standard, acompte, finale)
+     */
+    #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => 'standard'])]
+    #[Groups(['invoice:read'])]
+    private string $type = 'standard';
+
+    /**
+     * Acompte lié (uniquement pour les factures d'acompte)
+     */
+    #[ORM\OneToOne(targetEntity: Deposit::class, inversedBy: 'depositInvoice')]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['invoice:read'])]
+    private ?Deposit $sourceDeposit = null;
 
     // Relations
     #[ORM\OneToOne(targetEntity: Quote::class, inversedBy: 'invoice')]
@@ -218,6 +242,31 @@ class Invoice
     #[Groups(['invoice:read'])]
     private Collection $creditNotes;
 
+    /**
+     * Accomptes déduits sur cette facture
+     * @var Collection<int, Deposit>
+     */
+    #[ORM\OneToMany(targetEntity: Deposit::class, mappedBy: 'invoice')]
+    #[Groups(['invoice:read'])]
+    private Collection $deposits;
+
+    /**
+     * @var Collection<int, Payment>
+     */
+    #[ORM\OneToMany(targetEntity: Payment::class, mappedBy: 'invoice')]
+    #[Groups(['invoice:read'])]
+    private Collection $payments;
+
+    #[ORM\ManyToOne(targetEntity: Subscription::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['invoice:read', 'invoice:write'])]
+    private ?Subscription $subscription = null;
+
+    #[ORM\OneToOne(targetEntity: Amendment::class, cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['invoice:read', 'invoice:write'])]
+    private ?Amendment $amendment = null;
+
     public function __construct()
     {
         $this->dateCreation = new \DateTime();
@@ -225,7 +274,43 @@ class Invoice
         $this->statut = InvoiceStatus::DRAFT->value;
         $this->lines = new ArrayCollection();
         $this->creditNotes = new ArrayCollection();
+        $this->deposits = new ArrayCollection();
+        $this->payments = new ArrayCollection();
     }
+
+    public function getSubscription(): ?Subscription
+    {
+        return $this->subscription;
+    }
+
+    public function setSubscription(?Subscription $subscription): self
+    {
+        $this->subscription = $subscription;
+        return $this;
+    }
+
+    public function getAmendment(): ?Amendment
+    {
+        return $this->amendment;
+    }
+
+    public function setAmendment(?Amendment $amendment): self
+    {
+        $this->amendment = $amendment;
+        return $this;
+    }
+
+    public function getStripeInvoiceId(): ?string
+    {
+        return $this->stripeInvoiceId;
+    }
+
+    public function setStripeInvoiceId(?string $stripeInvoiceId): self
+    {
+        $this->stripeInvoiceId = $stripeInvoiceId;
+        return $this;
+    }
+
     #[ORM\PreUpdate]
     public function checkImmutability(PreUpdateEventArgs $args): void
     {
@@ -590,6 +675,36 @@ class Invoice
     public function setClient(?Client $client): self
     {
         $this->client = $client;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Payment>
+     */
+    public function getPayments(): Collection
+    {
+        return $this->payments;
+    }
+
+    public function addPayment(Payment $payment): self
+    {
+        if (!$this->payments->contains($payment)) {
+            $this->payments->add($payment);
+            $payment->setInvoice($this);
+        }
+
+        return $this;
+    }
+
+    public function removePayment(Payment $payment): self
+    {
+        if ($this->payments->removeElement($payment)) {
+            // set the owning side to null (unless already changed)
+            if ($payment->getInvoice() === $this) {
+                $payment->setInvoice(null);
+            }
+        }
+
         return $this;
     }
 
@@ -991,5 +1106,155 @@ class Invoice
     {
         $montant = (float) $this->getTotalCorrected();
         return number_format($montant, 2, ',', ' ') . ' €';
+    }
+
+    // ==================== ACCOMPTES (DEPOSITS) ====================
+
+    /**
+     * @return Collection<int, Deposit>
+     */
+    public function getDeposits(): Collection
+    {
+        return $this->deposits;
+    }
+
+    public function addDeposit(Deposit $deposit): static
+    {
+        if (!$this->deposits->contains($deposit)) {
+            $this->deposits->add($deposit);
+            $deposit->setInvoice($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDeposit(Deposit $deposit): static
+    {
+        if ($this->deposits->removeElement($deposit)) {
+            if ($deposit->getInvoice() === $this) {
+                $deposit->setInvoice(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Calcule le total des accomptes déduits (en centimes)
+     */
+    public function getTotalDepositsDeducted(): int
+    {
+        $total = 0;
+        foreach ($this->deposits as $deposit) {
+            // On déduit les acomptes liés qui ne sont pas annulés
+            if ($deposit->getStatus() !== \App\Entity\DepositStatus::CANCELLED) {
+                $total += $deposit->getAmount();
+            }
+        }
+        return $total;
+    }
+
+    /**
+     * Retourne le total des accomptes déduits formaté
+     */
+    public function getTotalDepositsDeductedFormatted(): string
+    {
+        return number_format($this->getTotalDepositsDeducted() / 100, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Calcule le solde restant après déduction des accomptes et avoirs
+     * Montant à payer réellement par le client
+     */
+    public function getBalanceDue(): float
+    {
+        if ($this->getStatutEnum() === InvoiceStatus::PAID) {
+            return 0.0;
+        }
+
+        // getSoldeFinal() retourne déjà le montant après déduction des avoirs
+        $soldeApresAvoirs = (float) $this->getSoldeFinal();
+        $depositsDeducted = $this->getTotalDepositsDeducted() / 100; // Convertir centimes → euros
+
+        return $soldeApresAvoirs - $depositsDeducted;
+    }
+
+    /**
+     * Retourne le solde restant formaté
+     */
+    public function getBalanceDueFormatted(): string
+    {
+        return number_format($this->getBalanceDue(), 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Vérifie s'il y a des accomptes déduits sur cette facture
+     */
+    public function hasDepositsDeducted(): bool
+    {
+        return $this->getTotalDepositsDeducted() > 0;
+    }
+
+    // ===== GETTERS/SETTERS TYPE ET SOURCE DEPOSIT =====
+
+    /**
+     * Retourne le type de facture
+     */
+    public function getType(): InvoiceType
+    {
+        return InvoiceType::tryFrom($this->type) ?? InvoiceType::STANDARD;
+    }
+
+    /**
+     * Définit le type de facture
+     */
+    public function setType(InvoiceType $type): self
+    {
+        $this->type = $type->value;
+        return $this;
+    }
+
+    /**
+     * Vérifie si c'est une facture d'acompte
+     */
+    public function isDepositInvoice(): bool
+    {
+        return $this->getType() === InvoiceType::DEPOSIT;
+    }
+
+    /**
+     * Vérifie si c'est une facture finale
+     */
+    public function isFinalInvoice(): bool
+    {
+        return $this->getType() === InvoiceType::FINAL;
+    }
+
+    /**
+     * Retourne l'acompte source (pour factures d'acompte)
+     */
+    public function getSourceDeposit(): ?Deposit
+    {
+        return $this->sourceDeposit;
+    }
+
+    /**
+     * Définit l'acompte source et synchronise la relation inverse
+     */
+    public function setSourceDeposit(?Deposit $deposit): self
+    {
+        // Unset the owning side of the relation if needed
+        if ($this->sourceDeposit !== null && $this->sourceDeposit !== $deposit) {
+            $this->sourceDeposit->setDepositInvoice(null);
+        }
+
+        $this->sourceDeposit = $deposit;
+
+        // Sync the inverse side
+        if ($deposit !== null && $deposit->getDepositInvoice() !== $this) {
+            $deposit->setDepositInvoice($this);
+        }
+
+        return $this;
     }
 }

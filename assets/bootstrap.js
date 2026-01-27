@@ -13,7 +13,7 @@ app.debug = false;
 // sont chargés automatiquement. L'enregistrement manuel ci-dessous est redondant
 // et peut causer des conflits.
 
-/*
+
 // Import des contrôleurs personnalisés
 import PortfolioController from './controllers/portfolio_controller.js';
 import AdminFormController from './controllers/admin_form_controller.js';
@@ -33,4 +33,16 @@ app.register('tva-settings', TvaSettingsController);
 app.register('invoice-form', InvoiceFormController);
 app.register('cancel-modal', CancelModalController);
 app.register('cancel-modal-trigger', CancelModalTriggerController);
-*/
+
+
+// ============ ENREGISTREMENT MANUEL DES NOUVEAUX CONTRÔLEURS ============
+// (car l'auto-discovery du bundle Stimulus semble cassée)
+
+// Utiliser les clés de l'importmap au lieu des chemins relatifs
+import ConfirmModalTriggerController from 'confirm-modal-trigger';
+import RequestDepositModalController from 'request-deposit-modal';
+import RequestDepositModalTriggerController from 'request-deposit-modal-trigger';
+
+app.register('confirm-modal-trigger', ConfirmModalTriggerController);
+app.register('request-deposit-modal', RequestDepositModalController);
+app.register('request-deposit-modal-trigger', RequestDepositModalTriggerController);

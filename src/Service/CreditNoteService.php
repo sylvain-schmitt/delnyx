@@ -14,16 +14,19 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Bundle\SecurityBundle\Security;
 use Psr\Log\LoggerInterface;
+use App\Entity\Amendment;
+use App\Entity\CreditNoteLine;
+use App\Entity\Tariff;
 
 /**
  * Service pour gérer les transitions d'état et les opérations métier sur les avoirs
- * 
+ *
  * Ce service centralise toute la logique métier liée aux avoirs :
  * - Création depuis une facture émise
  * - Transitions d'état (issue, send, cancel)
  * - Validation des règles métier
  * - Audit et traçabilité
- * 
+ *
  * @package App\Service
  */
 class CreditNoteService
@@ -36,8 +39,7 @@ class CreditNoteService
         private readonly CreditNoteNumberGenerator $numberGenerator,
         private readonly PdfGeneratorService $pdfGeneratorService,
         private readonly \Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface $params,
-    ) {
-    }
+    ) {}
 
     /**
      * Injection optionnelle d'AuditService (pour éviter la dépendance circulaire)
@@ -51,7 +53,7 @@ class CreditNoteService
 
     /**
      * Crée un avoir à partir d'une facture émise
-     * 
+     *
      * @throws AccessDeniedException si la facture n'est pas émise
      * @throws \RuntimeException si un avoir total existe déjà
      */
@@ -100,7 +102,7 @@ class CreditNoteService
 
     /**
      * Émet un avoir (DRAFT → ISSUED)
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -172,7 +174,7 @@ class CreditNoteService
 
     /**
      * Envoie un avoir (DRAFT → SENT avec émission auto, ou ISSUED → SENT, ou SENT → SENT pour relance)
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -210,7 +212,7 @@ class CreditNoteService
             // Si l'avoir est déjà envoyé, on ne change pas le statut mais on enregistre juste l'envoi
             $this->logStatusChange($creditNote, $oldStatus, $oldStatus, 'resend');
         }
-        
+
         // Toujours enregistrer la date d'envoi et incrémenter le compteur
         $creditNote->setSentAt(new \DateTime());
         $creditNote->incrementSentCount();
@@ -233,7 +235,7 @@ class CreditNoteService
 
     /**
      * Annule un avoir (DRAFT → CANCELLED ou ISSUED → CANCELLED)
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -264,7 +266,7 @@ class CreditNoteService
             $currentNotes = $creditNote->getReason() ?? '';
             $creditNote->setReason(
                 ($currentNotes ? $currentNotes . "\n\n" : '') .
-                "Annulation le " . date('d/m/Y H:i') . " : " . $reason
+                    "Annulation le " . date('d/m/Y H:i') . " : " . $reason
             );
         }
 
@@ -325,7 +327,7 @@ class CreditNoteService
     {
         // Émettre d'abord (DRAFT → ISSUED)
         $this->issue($creditNote);
-        
+
         // Puis envoyer (ISSUED → SENT)
         $this->send($creditNote);
     }
@@ -370,5 +372,60 @@ class CreditNoteService
             ], $metadata)
         );
     }
-}
 
+    /**
+     * Crée un avoir à partir d'un avenant négatif
+     */
+    public function createFromAmendment(\App\Entity\Amendment $amendment): CreditNote
+    {
+        $invoice = $amendment->getQuote()->getInvoice();
+        if (!$invoice) {
+            throw new \RuntimeException('Impossible de créer un avoir pour un avenant dont le devis n\'a pas encore de facture émise.');
+        }
+
+        $creditNote = new CreditNote();
+        $creditNote->setInvoice($invoice);
+        $creditNote->setAmendment($amendment);
+        $creditNote->setCompanyId($amendment->getCompanyId());
+        $creditNote->setStatut(CreditNoteStatus::DRAFT);
+        $creditNote->setTauxTVA($amendment->getTauxTVA() ?? '20.00');
+        $creditNote->setReason("Avoir de régularisation suite à l'avenant " . $amendment->getNumero());
+
+        // Créer les lignes d'avoir
+        foreach ($amendment->getLines() as $amendmentLine) {
+            $deltaAmt = (float) $amendmentLine->getDelta();
+
+            // On ne prend que les deltas négatifs (crédits)
+            if ($deltaAmt >= -0.01) {
+                continue;
+            }
+
+            $creditNoteLine = new CreditNoteLine();
+            $creditNoteLine->setDescription($amendmentLine->getDescription() . " (Réduction Avenant)");
+            $creditNoteLine->setQuantity(1);
+
+            // Pour CreditNoteLine, unitPrice doit être le montant à créditer (positif dans unitPrice, le service le rendra négatif ?)
+            // Voyons CreditNoteLine::recalculateTotalHt() :
+            // $delta = -abs((float) $this->unitPrice * $this->quantity);
+            // Donc on passe le montant positif.
+            $creditNoteLine->setUnitPrice(number_format(abs($deltaAmt), 2, '.', ''));
+            $creditNoteLine->setTvaRate($amendmentLine->getTvaRate() ?? '20.00');
+
+            $creditNote->addLine($creditNoteLine);
+        }
+
+        // Recalculer les totaux
+        $creditNote->recalculateTotals();
+
+        // Persister
+        $this->entityManager->persist($creditNote);
+        $this->entityManager->flush();
+
+        $this->logger->info('Avoir créé depuis avenant négatif', [
+            'credit_note_id' => $creditNote->getId(),
+            'amendment_id' => $amendment->getId()
+        ]);
+
+        return $creditNote;
+    }
+}

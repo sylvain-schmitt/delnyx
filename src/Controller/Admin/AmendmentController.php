@@ -367,7 +367,7 @@ class AmendmentController extends AbstractController
 
                         // S'assurer que oldValue est défini avant de recalculer
                         if ($line->getSourceLine() && (!$line->getOldValue() || $line->getOldValue() === '0.00')) {
-                            $oldValue = (float) $line->getSourceLine()->getTotalHt();
+                            $oldValue = $this->amendmentService->getCurrentTotalHtForLine($line->getSourceLine());
                             $line->setOldValue(number_format($oldValue, 2, '.', ''));
                         }
 
@@ -442,7 +442,7 @@ class AmendmentController extends AbstractController
 
                     // S'assurer que oldValue est défini avant de recalculer
                     if ($line->getSourceLine() && (!$line->getOldValue() || $line->getOldValue() === '0.00')) {
-                        $oldValue = (float) $line->getSourceLine()->getTotalHt();
+                        $oldValue = $this->amendmentService->getCurrentTotalHtForLine($line->getSourceLine());
                         $line->setOldValue(number_format($oldValue, 2, '.', ''));
                     }
 

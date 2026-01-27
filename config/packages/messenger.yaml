@@ -16,6 +16,7 @@ framework:
         routing:
             # Route les messages de régénération PDF vers le transport asynchrone
             'App\Message\RegeneratePdfMessage': async
+            'App\Message\RenewManualSubscriptionMessage': async
 
 # when@test:
 #    framework:

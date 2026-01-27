@@ -3,7 +3,6 @@
 namespace App\Controller\Public;
 
 use App\Entity\Quote;
-use App\Entity\Amendment;
 use App\Entity\Invoice;
 use App\Entity\CreditNote;
 use App\Entity\QuoteStatus;
@@ -20,6 +19,8 @@ use App\Service\QuoteService;
 use App\Service\InvoiceService;
 use App\Service\SignatureService;
 use App\Service\PaymentService;
+use App\Service\EmailService;
+use App\Service\DepositService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -43,6 +44,9 @@ class PublicDocumentController extends AbstractController
         private EntityManagerInterface $entityManager,
         private QuoteService $quoteService,
         private InvoiceService $invoiceService,
+        private \App\Repository\CompanySettingsRepository $companySettingsRepository,
+        private \App\Repository\UserRepository $userRepository,
+        private \App\Service\StripeService $stripeService,
     ) {}
 
     // ==================== DEVIS (Quote) ====================
@@ -77,13 +81,18 @@ class PublicDocumentController extends AbstractController
         int $id,
         Request $request,
         QuoteRepository $repository,
-        SignatureService $signatureService
+        SignatureService $signatureService,
+        DepositService $depositService,
+        EmailService $emailService,
+        InvoiceService $invoiceService
     ): Response {
         $quote = $this->verifyAndGetDocument($repository, $id, 'quote', 'sign', $request);
 
         // Vérifier que le devis peut être signé (DRAFT ou SENT)
         if (!in_array($quote->getStatut(), [QuoteStatus::DRAFT, QuoteStatus::SENT], true)) {
-            throw new AccessDeniedHttpException('Ce devis ne peut plus être signé.');
+            // Si déjà signé (ou autre état), générer un nouveau magic link pour la vue
+            $viewLink = $this->magicLinkService->generateViewLink($quote);
+            return $this->redirect($viewLink);
         }
 
         if ($request->isMethod('POST')) {
@@ -141,6 +150,26 @@ class PublicDocumentController extends AbstractController
                 );
                 $this->entityManager->flush();
 
+                // === AUTOMATISATION ACCOMPTE ===
+                // Si le devis a un pourcentage d'acompte > 0, créer automatiquement l'accompte et envoyer l'email
+                $this->createAndSendDepositIfNeeded($quote, $depositService, $emailService);
+
+                // === AUTOMATISATION FACTURE (Si pas d'acompte) ===
+                if ($quote->getAcomptePourcentage() <= 0) {
+                    try {
+                        // Créer la facture
+                        $invoice = $invoiceService->createFromQuote($quote, true); // true = issue immediately
+
+                        // Envoyer la facture par email
+                        $invoiceService->send($invoice);
+
+                        $this->addFlash('success', 'La facture a été générée et envoyée automatiquement.');
+                    } catch (\Exception $e) {
+                        error_log('Erreur création automatique facture: ' . $e->getMessage());
+                        // On ne bloque pas le flux de signature, mais on log l'erreur
+                    }
+                }
+
                 // Générer un nouveau magic link pour la vue (l'ancien était pour sign)
                 $viewLink = $this->magicLinkService->generateViewLink($quote);
                 return $this->redirect($viewLink);
@@ -161,7 +190,9 @@ class PublicDocumentController extends AbstractController
 
         // Vérifier que le devis peut être refusé
         if ($quote->getStatut() !== QuoteStatus::SENT) {
-            throw new AccessDeniedHttpException('Ce devis ne peut plus être refusé.');
+            // Si déjà signé/refusé, générer un nouveau magic link pour la vue
+            $viewLink = $this->magicLinkService->generateViewLink($quote);
+            return $this->redirect($viewLink);
         }
 
         if ($request->isMethod('POST')) {
@@ -233,13 +264,16 @@ class PublicDocumentController extends AbstractController
         int $id,
         Request $request,
         AmendmentRepository $repository,
-        SignatureService $signatureService
+        SignatureService $signatureService,
+        \App\Service\AmendmentBillingService $billingService
     ): Response {
         $amendment = $this->verifyAndGetDocument($repository, $id, 'amendment', 'sign', $request);
 
         // Vérifier que l'avenant peut être signé (DRAFT ou SENT)
         if (!in_array($amendment->getStatut(), [AmendmentStatus::DRAFT, AmendmentStatus::SENT], true)) {
-            throw new AccessDeniedHttpException('Cet avenant ne peut plus être signé.');
+            // Si déjà signé (ou annulé), générer un nouveau magic link pour la vue
+            $viewLink = $this->magicLinkService->generateViewLink($amendment);
+            return $this->redirect($viewLink);
         }
 
         if ($request->isMethod('POST')) {
@@ -298,6 +332,26 @@ class PublicDocumentController extends AbstractController
                 );
                 $this->entityManager->flush();
 
+                // Facturation automatique : créer facture (positif) ou avoir (négatif)
+                try {
+                    $billingResult = $billingService->handleSignedAmendment($amendment);
+
+                    if ($billingResult instanceof Invoice) {
+                        $this->addFlash('success', sprintf(
+                            'Facture complémentaire %s créée automatiquement.',
+                            $billingResult->getNumero()
+                        ));
+                    } elseif ($billingResult instanceof CreditNote) {
+                        $this->addFlash('success', sprintf(
+                            'Avoir %s créé automatiquement.',
+                            $billingResult->getNumber()
+                        ));
+                    }
+                } catch (\Exception $e) {
+                    // Log l'erreur mais ne bloque pas la signature
+                    error_log('Erreur facturation auto avenant: ' . $e->getMessage());
+                }
+
                 // Générer un nouveau magic link pour la vue
                 $viewLink = $this->magicLinkService->generateViewLink($amendment);
                 return $this->redirect($viewLink);
@@ -317,7 +371,9 @@ class PublicDocumentController extends AbstractController
         $amendment = $this->verifyAndGetDocument($repository, $id, 'amendment', 'refuse', $request);
 
         if ($amendment->getStatut() !== AmendmentStatus::SENT) {
-            throw new AccessDeniedHttpException('Cet avenant ne peut plus être refusé.');
+            // Si déjà signé/annulé, générer un nouveau magic link pour la vue
+            $viewLink = $this->magicLinkService->generateViewLink($amendment);
+            return $this->redirect($viewLink);
         }
 
         if ($request->isMethod('POST')) {
@@ -378,42 +434,89 @@ class PublicDocumentController extends AbstractController
         int $id,
         Request $request,
         InvoiceRepository $repository,
-        PaymentService $paymentService
+        PaymentService $paymentService,
+        EmailService $emailService
     ): Response {
         $invoice = $this->verifyAndGetDocument($repository, $id, 'invoice', 'pay', $request);
+
+        // Récupérer les paramètres de l'entreprise
+        $companySettings = null;
+        if ($invoice->getCompanyId()) {
+            $companySettings = $this->companySettingsRepository->findByCompanyId($invoice->getCompanyId());
+        }
+
+        // Fallback sur le premier si non trouvé
+        if (!$companySettings) {
+            $companySettings = $this->companySettingsRepository->findOneBy([]);
+        }
 
         if (!in_array($invoice->getStatutEnum(), [InvoiceStatus::ISSUED, InvoiceStatus::SENT], true)) {
             throw new AccessDeniedHttpException('Cette facture ne peut plus être payée.');
         }
 
         if ($request->isMethod('POST')) {
-            // Générer les URLs de retour pour Stripe
-            $successUrl = $this->generateUrl('public_invoice_payment_success', [
-                'id' => $id,
-                'expires' => $request->query->get('expires'),
-                'signature' => $request->query->get('signature'),
-                'session_id' => '{CHECKOUT_SESSION_ID}', // Placeholder Stripe
-            ], UrlGeneratorInterface::ABSOLUTE_URL);
+            $provider = $request->request->get('provider'); // 'stripe' ou 'manual'
 
-            $cancelUrl = $this->generateUrl('public_invoice_view', [
-                'id' => $id,
-                'expires' => $request->query->get('expires'),
-                'signature' => $request->query->get('signature'),
-            ], UrlGeneratorInterface::ABSOLUTE_URL);
+            if ($provider === 'manual') {
+                if (!$request->request->get('confirm_manual')) {
+                    $this->addFlash('error', 'Veuillez confirmer votre engagement de paiement.');
+                } else {
+                    // 1. Envoyer notification à l'admin
+                    $emailService->sendManualPaymentNotification($invoice);
 
-            try {
-                // Créer la session Stripe et rediriger
-                $checkoutUrl = $paymentService->createPaymentIntent($invoice, $successUrl, $cancelUrl);
+                    // 2. Envoyer instructions au client
+                    $emailService->sendManualPaymentInstructions($invoice);
 
-                // Utiliser RedirectResponse directement pour éviter toute modification de l'URL
-                return new \Symfony\Component\HttpFoundation\RedirectResponse($checkoutUrl, 303);
-            } catch (\Exception $e) {
-                $this->addFlash('error', 'Erreur lors de l\'initialisation du paiement : ' . $e->getMessage());
+                    // 3. Afficher page de confirmation
+                    $owner = $this->userRepository->findOneBy([]);
+                    $ownerName = $owner ? $owner->getNomComplet() : 'Sylvain Schmitt';
+
+                    return $this->render('public/invoice/manual_payment_confirmation.html.twig', [
+                        'invoice' => $invoice,
+                        'companySettings' => $companySettings,
+                        'ownerName' => $ownerName,
+                    ]);
+                }
+            } elseif ($provider === 'stripe') {
+                // ... Stripe Logic ...
+                if (!$request->request->get('confirm_payment')) {
+                    $this->addFlash('error', 'Veuillez accepter les conditions de paiement.');
+                } else {
+                    // Générer les URLs de retour pour Stripe
+                    $successUrl = $this->generateUrl('public_invoice_payment_success', [
+                        'id' => $id,
+                        'expires' => $request->query->get('expires'),
+                        'signature' => $request->query->get('signature'),
+                        'session_id' => '{CHECKOUT_SESSION_ID}', // Placeholder Stripe
+                    ], UrlGeneratorInterface::ABSOLUTE_URL);
+
+                    $cancelUrl = $this->generateUrl('public_invoice_pay', [ // Retour à "pay" au lieu de "view" pour réessayer
+                        'id' => $id,
+                        'expires' => $request->query->get('expires'),
+                        'signature' => $request->query->get('signature'),
+                    ], UrlGeneratorInterface::ABSOLUTE_URL);
+
+                    try {
+                        // Créer la session Stripe et rediriger
+                        $checkoutUrl = $paymentService->createPaymentIntent($invoice, $successUrl, $cancelUrl);
+
+                        // Utiliser RedirectResponse directement pour éviter toute modification de l'URL
+                        return new \Symfony\Component\HttpFoundation\RedirectResponse($checkoutUrl, 303);
+                    } catch (\Exception $e) {
+                        $this->addFlash('error', 'Erreur lors de l\'initialisation du paiement : ' . $e->getMessage());
+                    }
+                }
             }
         }
 
+        // Récupérer le nom de l'utilisateur (propriétaire)
+        $owner = $this->userRepository->findOneBy([]);
+        $ownerName = $owner ? $owner->getNomComplet() : 'Sylvain Schmitt';
+
         return $this->render('public/invoice/pay.html.twig', [
             'invoice' => $invoice,
+            'companySettings' => $companySettings,
+            'ownerName' => $ownerName,
         ]);
     }
 
@@ -422,24 +525,25 @@ class PublicDocumentController extends AbstractController
         int $id,
         Request $request,
         InvoiceRepository $repository,
-        \App\Service\InvoiceService $invoiceService,
-        \App\Service\EmailService $emailService
+        InvoiceService $invoiceService,
+        EmailService $emailService
     ): Response {
         // On utilise l'action 'pay' car c'est la suite logique et la signature est la même
         $invoice = $this->verifyAndGetDocument($repository, $id, 'invoice', 'pay', $request);
+
+        // Calculer le montant qui a probablement été payé (le solde avant marquage PAID)
+        $amountPaid = (float) $invoice->getBalanceDue();
+        if ($amountPaid <= 0 && $invoice->getStatutEnum() === InvoiceStatus::PAID) {
+            // Déjà payé, on essaye de retrouver le dernier paiement réussi
+            $lastPayment = $this->entityManager->getRepository(\App\Entity\Payment::class)->findOneBy(['invoice' => $invoice], ['id' => 'DESC']);
+            $amountPaid = $lastPayment ? $lastPayment->getAmountInEuros() : (float)$invoice->getMontantTTC();
+        }
 
         // Si la facture n'est pas encore marquée comme payée, on la met à jour
         // (Fallback si le webhook n'a pas encore été reçu ou en environnement local)
         if ($invoice->getStatutEnum() !== InvoiceStatus::PAID) {
             try {
-                $invoiceService->markPaidByExternalPayment($invoice, (float) $invoice->getMontantTTC());
-
-                // Envoyer l'email de confirmation
-                $client = $invoice->getClient();
-                if ($client && $client->getEmail()) {
-                    $emailService->sendPaymentConfirmation($invoice);
-                }
-
+                $invoiceService->markPaidByExternalPayment($invoice, $amountPaid);
                 $this->entityManager->flush();
             } catch (\Exception $e) {
                 // Log l'erreur mais ne bloque pas l'affichage de la page de succès
@@ -447,8 +551,177 @@ class PublicDocumentController extends AbstractController
             }
         }
 
+        // Fallback: Synchroniser l'abonnement si c'est un paiement Stripe Subscription
+        // Utile si le webhook n'a pas (encore) été reçu
+        try {
+            $payment = $this->entityManager->getRepository(\App\Entity\Payment::class)->findOneBy(['invoice' => $invoice], ['id' => 'DESC']);
+            if ($payment && $payment->getProviderPaymentId() && str_starts_with($payment->getProviderPaymentId(), 'cs_')) {
+                $session = $this->stripeService->retrieveSession($payment->getProviderPaymentId());
+                if ($session && $session->mode === 'subscription') {
+                    error_log('DEBUG: Fallback sync for session ' . $session->id);
+                    $this->stripeService->createOrUpdateSubscriptionFromSession($session);
+                }
+            }
+        } catch (\Exception $e) {
+            error_log('Error syncing subscription fallback: ' . $e->getMessage());
+        }
+
         return $this->render('public/invoice/payment_success.html.twig', [
             'invoice' => $invoice,
+            'amountPaid' => $amountPaid,
+        ]);
+    }
+
+    // ==================== ACCOMPTES (Deposit) ====================
+
+    #[Route('/public/deposit/{id}/pay', name: 'public_deposit_pay')]
+    public function payDeposit(
+        int $id,
+        Request $request,
+        \App\Repository\DepositRepository $repository,
+        \App\Service\DepositService $depositService,
+        \App\Service\EmailService $emailService
+    ): Response {
+        $deposit = $this->verifyAndGetDocument($repository, $id, 'deposit', 'pay', $request);
+
+        // Vérifier que l'accompte est en attente
+        if ($deposit->getStatus() !== \App\Entity\DepositStatus::PENDING) {
+            return $this->render('public/deposit/already_paid.html.twig', [
+                'deposit' => $deposit,
+            ]);
+        }
+
+        // Récupérer les paramètres de l'entreprise
+        $companySettings = null;
+        if ($deposit->getQuote()->getCompanyId()) {
+            $companySettings = $this->companySettingsRepository->findByCompanyId($deposit->getQuote()->getCompanyId());
+        }
+
+        if (!$companySettings) {
+            $companySettings = $this->companySettingsRepository->findOneBy([]);
+        }
+
+        // Si c'est une soumission de formulaire
+        if ($request->isMethod('POST')) {
+            $provider = $request->request->get('provider', 'stripe');
+
+            if ($provider === 'manual') {
+                if (!$request->request->get('confirm_payment')) {
+                    $this->addFlash('error', 'Veuillez confirmer votre engagement de paiement.');
+                } else {
+                    // 0. Créer la facture d'acompte SI non existante (ISSUED)
+                    $depositService->getOrCreateDepositInvoice($deposit, \App\Entity\InvoiceStatus::ISSUED);
+
+                    // 1. Envoyer notification à l'admin
+                    $emailService->sendManualDepositPaymentNotification($deposit);
+
+                    // 2. Envoyer instructions au client
+                    $emailService->sendManualDepositPaymentInstructions($deposit);
+
+                    // 3. Afficher page de confirmation
+                    $owner = $this->userRepository->findOneBy([]);
+                    $ownerName = $owner ? $owner->getNomComplet() : 'Sylvain Schmitt';
+
+                    return $this->render('public/deposit/manual_payment_confirmation.html.twig', [
+                        'deposit' => $deposit,
+                        'quote' => $deposit->getQuote(),
+                        'companySettings' => $companySettings,
+                        'ownerName' => $ownerName,
+                    ]);
+                }
+            } else {
+                // Stripe provider
+                if (!$request->request->get('confirm_payment')) {
+                    $this->addFlash('error', 'Veuillez accepter les conditions de paiement.');
+                } else {
+                    // Construire les URLs de retour avec les mêmes paramètres de signature
+                    $expires = $request->query->getInt('expires');
+                    $signature = $request->query->get('signature');
+
+                    $successUrl = $this->generateUrl('public_deposit_payment_success', [
+                        'id' => $id,
+                        'expires' => $expires,
+                        'signature' => $signature,
+                    ], UrlGeneratorInterface::ABSOLUTE_URL);
+
+                    $cancelUrl = $this->generateUrl('public_deposit_pay', [
+                        'id' => $id,
+                        'expires' => $expires,
+                        'signature' => $signature,
+                    ], UrlGeneratorInterface::ABSOLUTE_URL);
+
+                    try {
+                        $checkoutUrl = $depositService->createPaymentSession($deposit, $successUrl, $cancelUrl);
+                        return new \Symfony\Component\HttpFoundation\RedirectResponse($checkoutUrl, 303);
+                    } catch (\Exception $e) {
+                        $this->addFlash('error', 'Erreur lors de l\'initialisation du paiement : ' . $e->getMessage());
+                    }
+                }
+            }
+        }
+
+        return $this->render('public/deposit/pay.html.twig', [
+            'deposit' => $deposit,
+            'quote' => $deposit->getQuote(),
+            'companySettings' => $companySettings,
+        ]);
+    }
+
+    #[Route('/public/deposit/{id}/payment/success', name: 'public_deposit_payment_success')]
+    public function depositPaymentSuccess(
+        int $id,
+        Request $request,
+        \App\Repository\DepositRepository $repository,
+        \App\Service\DepositService $depositService,
+        \App\Service\EmailService $emailService,
+        \App\Service\StripeService $stripeService
+    ): Response {
+        $deposit = $this->verifyAndGetDocument($repository, $id, 'deposit', 'pay', $request);
+
+        // Fallback: Synchroniser l'ID client Stripe si manquant (utile si webhook local échoue)
+        $client = $deposit->getQuote()->getClient();
+        if ($client && !$client->getStripeCustomerId() && $deposit->getStripeSessionId()) {
+            try {
+                $session = $stripeService->retrieveSession($deposit->getStripeSessionId());
+                if ($session && $session->customer) {
+                    $client->setStripeCustomerId((string) $session->customer);
+                    $repository->getEntityManager()->flush();
+                }
+            } catch (\Exception $e) {
+                // On continue même si la synchro échoue
+                error_log('Erreur synchro fallback Stripe Customer ID: ' . $e->getMessage());
+            }
+        }
+
+        // Marquer comme payé si pas déjà fait
+        if ($deposit->getStatus() !== \App\Entity\DepositStatus::PAID) {
+            try {
+                $depositService->markPaid($deposit);
+
+                // Envoyer l'email de confirmation
+                $quote = $deposit->getQuote();
+                if ($client && $client->getEmail()) {
+                    $emailService->sendDepositPaymentConfirmation($deposit);
+                }
+
+                // === AUTOMATISATION FACTURE FINALE ===
+                // Une fois l'acompte payé, on peut générer la facture finale si nécessaire
+                if ($quote && $quote->getStatut() === QuoteStatus::SIGNED && !$quote->getInvoice()) {
+                    try {
+                        $finalInvoice = $this->invoiceService->createFromQuote($quote, true);
+                        $this->invoiceService->send($finalInvoice);
+                    } catch (\Exception $e) {
+                        error_log('Erreur création automatique facture finale: ' . $e->getMessage());
+                    }
+                }
+            } catch (\Exception $e) {
+                error_log('Error marking deposit as paid: ' . $e->getMessage());
+            }
+        }
+
+        return $this->render('public/deposit/payment_success.html.twig', [
+            'deposit' => $deposit,
+            'quote' => $deposit->getQuote(),
         ]);
     }
 
@@ -565,5 +838,48 @@ class PublicDocumentController extends AbstractController
         }
 
         return $document;
+    }
+
+    /**
+     * Crée automatiquement un accompte et envoie l'email au client si nécessaire
+     */
+    private function createAndSendDepositIfNeeded(
+        Quote $quote,
+        DepositService $depositService,
+        EmailService $emailService
+    ): void {
+
+        $acomptePourcentage = (float) $quote->getAcomptePourcentage();
+
+        error_log("=== PUBLIC CONTROLLER DEPOSIT AUTO ===");
+        error_log("Quote ID: " . $quote->getId());
+        error_log("Acompte Pourcentage: " . $acomptePourcentage);
+
+        if ($acomptePourcentage <= 0) {
+            error_log("Condition FAILED - acomptePourcentage <= 0");
+            return;
+        }
+
+        try {
+            error_log("Creating deposit...");
+            // Créer l'accompte
+            $deposit = $depositService->createDeposit($quote, $acomptePourcentage);
+            error_log("Deposit created with ID: " . $deposit->getId());
+
+            // Générer le lien de paiement
+            $paymentUrl = $this->magicLinkService->generateDepositPayLink($deposit);
+            error_log("Payment URL: " . $paymentUrl);
+
+            // Envoyer l'email au client
+            $client = $quote->getClient();
+            if ($client && $client->getEmail()) {
+                error_log("Sending email to: " . $client->getEmail());
+                $emailService->sendDepositRequest($deposit, $quote, $paymentUrl);
+                error_log("Email sent successfully");
+            }
+        } catch (\Exception $e) {
+            error_log("ERROR creating deposit: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+        }
     }
 }

@@ -272,6 +272,14 @@ class Quote
     private Collection $amendments;
 
     /**
+     * Accomptes associés au devis
+     * @var Collection<int, Deposit>
+     */
+    #[ORM\OneToMany(targetEntity: Deposit::class, mappedBy: 'quote', cascade: ['persist', 'remove'])]
+    #[Groups(['quote:read'])]
+    private Collection $deposits;
+
+    /**
      * @var Collection<int, QuoteLine>
      */
     #[ORM\OneToMany(targetEntity: QuoteLine::class, mappedBy: 'quote', cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -285,6 +293,7 @@ class Quote
         $this->dateModification = new \DateTime();
         $this->lines = new ArrayCollection();
         $this->amendments = new ArrayCollection();
+        $this->deposits = new ArrayCollection();
         // Taux de TVA par défaut à 0.00 (sera remplacé par CompanySettings si disponible)
         $this->tauxTVA = '0.00';
     }
@@ -367,6 +376,10 @@ class Quote
             if ($this->id !== null || !$this->lines->isEmpty()) {
                 $this->validateCanBeSigned();
             }
+
+            // Réinitialiser le PDF pour forcer sa régénération avec le tampon "SIGNÉ"
+            $this->pdfFilename = null;
+            $this->pdfHash = null;
         }
 
         $this->statut = $statut;
@@ -375,7 +388,7 @@ class Quote
 
     /**
      * Valide que le devis peut être signé
-     * 
+     *
      * @throws \RuntimeException si le devis ne peut pas être signé
      */
     public function validateCanBeSigned(): void
@@ -434,6 +447,47 @@ class Quote
         return $this;
     }
 
+    // ===== MONTANTS INITIAUX (HORS AVENANTS) =====
+
+    public function getMontantHTInitial(): float
+    {
+        $totalHt = 0.0;
+        foreach ($this->lines as $line) {
+            $totalHt += (float) $line->getTotalHt();
+        }
+        return round($totalHt, 2);
+    }
+
+    public function getMontantHTInitialFormate(): string
+    {
+        return number_format($this->getMontantHTInitial(), 2, ',', ' ') . ' €';
+    }
+
+    public function getMontantTTCInitial(): float
+    {
+        $totalTtc = 0.0;
+        foreach ($this->lines as $line) {
+            // Utilise la méthode getTotalTtc() de la ligne qui gère déjà la TVA (propre ou globale)
+            $totalTtc += (float) $line->getTotalTtc();
+        }
+        return round($totalTtc, 2);
+    }
+
+    public function getMontantTTCInitialFormate(): string
+    {
+        return number_format($this->getMontantTTCInitial(), 2, ',', ' ') . ' €';
+    }
+
+    public function getMontantTVAInitial(): float
+    {
+        return round($this->getMontantTTCInitial() - $this->getMontantHTInitial(), 2);
+    }
+
+    public function getMontantTVAInitialFormate(): string
+    {
+        return number_format($this->getMontantTVAInitial(), 2, ',', ' ') . ' €';
+    }
+
     public function getAcomptePourcentage(): string
     {
         return $this->acomptePourcentage;
@@ -443,6 +497,80 @@ class Quote
     {
         $this->acomptePourcentage = $acomptePourcentage;
         return $this;
+    }
+
+    /**
+     * Retourne le montant de l'acompte calculé
+     */
+    public function getAcompteAmount(): float
+    {
+        $percentage = (float) $this->acomptePourcentage;
+        $montantTTC = (float) $this->montantTTC;
+        return $montantTTC * ($percentage / 100);
+    }
+
+    /**
+     * Retourne le montant de l'acompte formaté
+     */
+    public function getAcompteFormatted(): string
+    {
+        return number_format($this->getAcompteAmount(), 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Retourne le solde après acompte
+     */
+    public function getSoldeApresAcompte(): float
+    {
+        return (float) $this->montantTTC - $this->getAcompteAmount();
+    }
+
+    /**
+     * Retourne le solde après acompte formaté
+     */
+    public function getSoldeApresAcompteFormatted(): string
+    {
+        return number_format($this->getSoldeApresAcompte(), 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Retourne le total des acomptes déjà payés (en euros)
+     */
+    public function getTotalPaidDeposits(): float
+    {
+        $total = 0.0;
+        foreach ($this->deposits as $deposit) {
+            if ($deposit->getStatus() === DepositStatus::PAID) {
+                $total += $deposit->getAmountInEuros();
+            }
+        }
+        return $total;
+    }
+
+    /**
+     * Retourne le total des acomptes déjà payés formaté
+     */
+    public function getTotalPaidDepositsFormatted(): string
+    {
+        return number_format($this->getTotalPaidDeposits(), 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Retourne le solde restant après un acompte spécifique (considérant les autres acomptes payés)
+     */
+    public function balanceAfterDeposit(Deposit $deposit): float
+    {
+        $totalPaid = $this->getTotalPaidDeposits();
+        $depositAmount = $deposit->getAmountInEuros();
+        return (float) $this->montantTTC - $totalPaid - $depositAmount;
+    }
+
+    /**
+     * Retourne le solde restant après un acompte spécifique formaté
+     */
+    public function balanceAfterDepositFormatted(Deposit $deposit): string
+    {
+        return number_format($this->balanceAfterDeposit($deposit), 2, ',', ' ') . ' €';
     }
 
     public function getConditionsPaiement(): ?string
@@ -783,11 +911,12 @@ class Quote
     }
 
     /**
-     * Vérifie si le devis peut être accepté
+     * Vérifie si le devis peut être signé (accepté)
+     * Note: Dans le workflow simplifié, "accepter" = "signer"
      */
-    public function canBeAccepted(): bool
+    public function canBeSigned(): bool
     {
-        return $this->statut && $this->statut->canBeAccepted();
+        return $this->statut && $this->statut->canBeSigned();
     }
 
     /**
@@ -844,8 +973,8 @@ class Quote
     /**
      * Calcule le total corrigé du devis en tenant compte des avenants modifiables
      * totalCorrected = totalOriginal + sum(all deltas from modifiable amendments)
-     * 
-     * CONFORMITÉ LÉGALE : 
+     *
+     * CONFORMITÉ LÉGALE :
      * - Les avenants en brouillon (DRAFT) ou envoyés (SENT) peuvent encore être modifiés, donc on les inclut dans le calcul
      * - Les avenants signés (SIGNED) sont définitifs et doivent être inclus
      * - Les avenants annulés (CANCELLED) ne doivent pas être inclus
@@ -1122,5 +1251,85 @@ class Quote
         }
 
         return $this;
+    }
+
+    // ==================== ACCOMPTES (DEPOSITS) ====================
+
+    /**
+     * @return Collection<int, Deposit>
+     */
+    public function getDeposits(): Collection
+    {
+        return $this->deposits;
+    }
+
+    public function addDeposit(Deposit $deposit): static
+    {
+        if (!$this->deposits->contains($deposit)) {
+            $this->deposits->add($deposit);
+            $deposit->setQuote($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDeposit(Deposit $deposit): static
+    {
+        if ($this->deposits->removeElement($deposit)) {
+            if ($deposit->getQuote() === $this) {
+                $deposit->setQuote(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Retourne les accomptes payés
+     * @return Collection<int, Deposit>
+     */
+    public function getPaidDeposits(): Collection
+    {
+        return $this->deposits->filter(fn(Deposit $d) => $d->isPaid());
+    }
+
+
+    /**
+     * Vérifie si un accompte peut être demandé (devis signé, pas déjà facturé)
+     */
+    public function canRequestDeposit(): bool
+    {
+        $status = $this->getStatut();
+        return $status === QuoteStatus::SIGNED && $this->invoice === null;
+    }
+
+    /**
+     * Calcule le reste à payer après déduction des acomptes payés
+     * Prend en compte le montant TTC + avenants signés - acomptes payés
+     */
+    public function getResteAPayer(): float
+    {
+        // Montant de base
+        $total = (float) $this->getMontantTTC();
+
+        // Ajouter les avenants signés
+        foreach ($this->amendments as $amendment) {
+            if ($amendment->getStatut()?->value === 'signed') {
+                $total += (float) $amendment->getMontantTTC();
+            }
+        }
+
+        // Soustraire les acomptes payés
+        $total -= $this->getTotalPaidDeposits();
+
+        return max(0, $total);
+    }
+
+    /**
+     * Retourne le reste à payer formaté
+     */
+    public function getResteAPayerFormatted(): string
+    {
+        return number_format($this->getResteAPayer(), 2, ',', ' ') . ' €';
     }
 }

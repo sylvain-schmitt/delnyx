@@ -2,6 +2,9 @@
 
 {% block content %}
 	<!-- En-tête -->
+	{% if credit_note.statutEnum.value == 'refunded' %}
+		<div class="watermark watermark-refunded">REMBOURSÉ</div>
+	{% endif %}
 	<div class="header">
 		<div class="company-info">
 			<div class="company-logo">
@@ -155,6 +158,25 @@
 					<td class="label">Total TTC (Avoir):</td>
 					<td class="amount">{{ credit_note.montantTTCFormatted }}</td>
 				</tr>
+
+				{# Total Global Corrigé : Devis initial + tous les avenants signés #}
+				{% if credit_note.invoice and credit_note.invoice.quote %}
+					{% set quote = credit_note.invoice.quote %}
+					{% set totalGlobalTTC = quote.getMontantTTCInitial() %}
+					{% set avenantsSignes = quote.amendments|filter(a => a.statut.value == 'signed') %}
+					{% for amendment in avenantsSignes %}
+						{% set totalGlobalTTC = totalGlobalTTC + amendment.montantDeltaTTC %}
+					{% endfor %}
+					<tr style="background-color: #f0f9ff;">
+						<td class="label" style="color: #1e40af;">
+							<strong>Total Global Corrigé:</strong>
+						</td>
+						<td class="amount" style="color: #1e40af;">
+							<strong>{{ totalGlobalTTC|number_format(2, ',', ' ') }}
+								€</strong>
+						</td>
+					</tr>
+				{% endif %}
 			</table>
 		</div>
 
@@ -163,7 +185,7 @@
 			<strong>Mentions légales:</strong><br>
 			Avoir émis le
 			{{ credit_note.dateEmission|date('d/m/Y') }}.<br>
-			Cet avoir vient en déduction de la facture référencée ou sera remboursé selon les conditions convenues.<br><br>
+			Cet avoir vient en déduction de la facture référencée ou sera remboursé selon les conditions convenues.<br>
 			{% if company %}
 				{{ company.raisonSociale }}
 				-
@@ -181,6 +203,10 @@
 					{{ company.assuranceRCPro }}<br>
 				{% endif %}
 			{% endif %}
+			<strong>Pénalités de retard:</strong>
+			À défaut de paiement, pénalité de 10,00% par an ou 3 fois le taux d'intérêt légal.<br>
+			<strong>Escompte:</strong>
+			Pas d'escompte pour paiement anticipé.<br>
 			{% if company and not company.isTvaEnabled() %}
 				<strong>Micro-entrepreneur:</strong>
 				TVA non applicable selon l'article 293 B du Code Général des Impôts.

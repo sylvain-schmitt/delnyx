@@ -64,7 +64,7 @@ class PdfGeneratorService
 
     /**
      * Génère et sauvegarde un PDF avec hash SHA256 pour archivage légal
-     * 
+     *
      * @return array ['response' => Response, 'filename' => string, 'hash' => string, 'path' => string]
      */
     public function generateAndSavePdf(string $template, array $data, string $storageDir = 'generated_pdfs'): array
@@ -130,7 +130,7 @@ class PdfGeneratorService
 
     /**
      * Génère un PDF de devis
-     * 
+     *
      * @param mixed $devis Le devis (Quote entity)
      * @param bool $save Si true, sauvegarde le PDF et retourne un array avec hash
      * @return Response|array Response si $save=false, array si $save=true
@@ -159,7 +159,7 @@ class PdfGeneratorService
 
     /**
      * Génère un PDF de facture
-     * 
+     *
      * @param mixed $facture La facture (Invoice entity)
      * @param bool $save Si true, sauvegarde le PDF et retourne un array avec hash
      * @return Response|array Response si $save=false, array si $save=true
@@ -172,23 +172,34 @@ class PdfGeneratorService
             $company = $this->companySettingsRepository->findByCompanyId($facture->getCompanyId());
         }
 
+        // Déterminer le template selon le type de facture
+        $isDepositInvoice = $facture->isDepositInvoice();
+        $template = $isDepositInvoice ? 'pdf/facture_acompte.html.twig' : 'pdf/facture.html.twig';
+        $filenamePrefix = $isDepositInvoice ? 'facture-acompte-' : 'facture-';
+
         $data = [
             'invoice' => $facture,
             'company' => $company,
             'client' => $facture->getClient(),
-            'filename' => 'facture-' . ($facture->getNumero() ?? $facture->getId())
+            'logo_base64' => $this->getLogoBase64($company),
+            'filename' => $filenamePrefix . ($facture->getNumero() ?? $facture->getId())
         ];
 
-        if ($save) {
-            return $this->generateAndSavePdf('pdf/facture.html.twig', $data);
+        // Ajouter les données du deposit si facture d'acompte
+        if ($isDepositInvoice && $facture->getSourceDeposit()) {
+            $data['deposit'] = $facture->getSourceDeposit();
         }
 
-        return $this->generatePdf('pdf/facture.html.twig', $data);
+        if ($save) {
+            return $this->generateAndSavePdf($template, $data);
+        }
+
+        return $this->generatePdf($template, $data);
     }
 
     /**
      * Génère un PDF d'avenant
-     * 
+     *
      * @param mixed $avenant L'avenant (Amendment entity)
      * @param bool $save Si true, sauvegarde le PDF et retourne un array avec hash
      * @return Response|array Response si $save=false, array si $save=true
@@ -218,7 +229,7 @@ class PdfGeneratorService
 
     /**
      * Génère un PDF d'avoir
-     * 
+     *
      * @param mixed $creditNote L'avoir (CreditNote entity)
      * @param bool $save Si true, sauvegarde le PDF et retourne un array avec hash
      * @return Response|array Response si $save=false, array si $save=true
@@ -248,32 +259,32 @@ class PdfGeneratorService
 
     /**
      * Récupère le logo en base64 (entreprise ou par défaut)
-     * 
+     *
      * @param mixed $company CompanySettings ou null
      * @return string Logo en base64 ou chaîne vide
      */
     private function getLogoBase64($company): string
     {
         $logoPath = null;
-        
+
         // Priorité au logo de l'entreprise s'il existe
         if ($company && method_exists($company, 'getLogoPath') && $company->getLogoPath()) {
             $logoPath = $this->kernel->getProjectDir() . '/public' . $company->getLogoPath();
         }
-        
+
         // Fallback sur le logo par défaut
         if (!$logoPath || !file_exists($logoPath)) {
             $logoPath = $this->kernel->getProjectDir() . '/assets/images/logo-delnyx.svg';
         }
-        
+
         if (!file_exists($logoPath)) {
             return '';
         }
-        
+
         // Lire le fichier et déterminer le type MIME
         $logoData = file_get_contents($logoPath);
         $extension = strtolower(pathinfo($logoPath, PATHINFO_EXTENSION));
-        
+
         // Déterminer le type MIME selon l'extension
         $mimeType = match ($extension) {
             'svg' => 'image/svg+xml',
@@ -283,7 +294,7 @@ class PdfGeneratorService
             'webp' => 'image/webp',
             default => 'image/svg+xml', // Par défaut SVG
         };
-        
+
         return 'data:' . $mimeType . ';base64,' . base64_encode($logoData);
     }
 }

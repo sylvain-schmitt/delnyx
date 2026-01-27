@@ -36,7 +36,15 @@
         </p>
     </div>
 
-    <p>Cet avoir sera déduit de votre prochaine facture ou vous sera remboursé selon les modalités convenues.</p>
+    {% if creditNote.stripeRefundId %}
+        <div style="background-color: #f0fdf4; border-left: 4px solid #22c55e; padding: 15px; margin: 30px 0;">
+            <p style="margin: 0; color: #166534;">
+                ✅ <strong>Bonne nouvelle :</strong> Un remboursement de {{ creditNote.montantTTCFormatted }} a été déclenché sur votre carte bancaire Stripe. Les fonds apparaîtront sur votre compte d'ici 5 à 10 jours ouvrés.
+            </p>
+        </div>
+    {% else %}
+        <p>Cet avoir sera déduit de votre prochaine facture ou vous sera remboursé selon les modalités convenues.</p>
+    {% endif %}
 
     <p style="margin-top: 30px;">
         Cordialement,<br>

@@ -88,6 +88,30 @@ class Tariff
     #[Groups(['tariff:read', 'tariff:write'])]
     private ?string $caracteristiques = null;
 
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
+    #[Groups(['tariff:read', 'tariff:write'])]
+    private bool $hasRecurrence = false;
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
+    #[Groups(['tariff:read', 'tariff:write'])]
+    private ?string $prixMensuel = null;
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
+    #[Groups(['tariff:read', 'tariff:write'])]
+    private ?string $prixAnnuel = null;
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['tariff:read', 'tariff:write'])]
+    private ?string $stripeProductId = null;
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['tariff:read', 'tariff:write'])]
+    private ?string $stripePriceIdMonthly = null;
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['tariff:read', 'tariff:write'])]
+    private ?string $stripePriceIdYearly = null;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     #[Groups(['tariff:read'])]
     private ?\DateTimeInterface $dateCreation = null;
@@ -202,6 +226,72 @@ class Tariff
     public function setCaracteristiques(?string $caracteristiques): self
     {
         $this->caracteristiques = $caracteristiques;
+        return $this;
+    }
+
+    public function isHasRecurrence(): bool
+    {
+        return $this->hasRecurrence;
+    }
+
+    public function setHasRecurrence(bool $hasRecurrence): self
+    {
+        $this->hasRecurrence = $hasRecurrence;
+        return $this;
+    }
+
+    public function getPrixMensuel(): ?string
+    {
+        return $this->prixMensuel;
+    }
+
+    public function setPrixMensuel(?string $prixMensuel): self
+    {
+        $this->prixMensuel = $prixMensuel;
+        return $this;
+    }
+
+    public function getPrixAnnuel(): ?string
+    {
+        return $this->prixAnnuel;
+    }
+
+    public function setPrixAnnuel(?string $prixAnnuel): self
+    {
+        $this->prixAnnuel = $prixAnnuel;
+        return $this;
+    }
+
+    public function getStripeProductId(): ?string
+    {
+        return $this->stripeProductId;
+    }
+
+    public function setStripeProductId(?string $stripeProductId): self
+    {
+        $this->stripeProductId = $stripeProductId;
+        return $this;
+    }
+
+    public function getStripePriceIdMonthly(): ?string
+    {
+        return $this->stripePriceIdMonthly;
+    }
+
+    public function setStripePriceIdMonthly(?string $stripePriceIdMonthly): self
+    {
+        $this->stripePriceIdMonthly = $stripePriceIdMonthly;
+        return $this;
+    }
+
+    public function getStripePriceIdYearly(): ?string
+    {
+        return $this->stripePriceIdYearly;
+    }
+
+    public function setStripePriceIdYearly(?string $stripePriceIdYearly): self
+    {
+        $this->stripePriceIdYearly = $stripePriceIdYearly;
         return $this;
     }
 

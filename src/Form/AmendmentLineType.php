@@ -28,7 +28,8 @@ class AmendmentLineType extends AbstractType
                 'label' => 'Ligne du devis à modifier (optionnel)',
                 'class' => QuoteLine::class,
                 'choice_label' => function (QuoteLine $line) {
-                    return sprintf('%s - %s × %s € = %s € HT', 
+                    return sprintf(
+                        '%s - %s × %s € = %s € HT',
                         $line->getDescription(),
                         $line->getQuantity(),
                         number_format((float)$line->getUnitPrice(), 2, ',', ' '),
@@ -52,10 +53,10 @@ class AmendmentLineType extends AbstractType
                 'help' => 'Sélectionnez une ligne du devis à modifier, ou laissez vide pour ajouter une nouvelle ligne',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ]);
-            
-            // Plus besoin du ModelTransformer car le query_builder retourne maintenant toutes les lignes
-            // EntityType peut donc trouver n'importe quelle ligne QuoteLine
-        
+
+        // Plus besoin du ModelTransformer car le query_builder retourne maintenant toutes les lignes
+        // EntityType peut donc trouver n'importe quelle ligne QuoteLine
+
         $builder
             ->add('tariff', EntityType::class, [
                 'label' => 'Tarif du catalogue',
@@ -90,8 +91,8 @@ class AmendmentLineType extends AbstractType
                 'label' => 'Prix unitaire (€)',
                 'required' => false,
                 'scale' => 2,
-                'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0],
-                'help' => 'Prix unitaire en euros',
+                'attr' => ['class' => 'form-input', 'step' => '0.01'],
+                'help' => 'Prix unitaire en euros (négatif pour une réduction/remise)',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('tvaRate', ChoiceType::class, [
@@ -119,4 +120,3 @@ class AmendmentLineType extends AbstractType
         $resolver->setAllowedTypes('amendment', ['null', \App\Entity\Amendment::class]);
     }
 }
-

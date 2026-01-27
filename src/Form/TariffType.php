@@ -58,6 +58,50 @@ class TariffType extends AbstractType
                 'help' => 'Mode de facturation (forfait, par mois, etc.)',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
+            ->add('hasRecurrence', CheckboxType::class, [
+                'label' => 'Disponible en abonnement ?',
+                'required' => false,
+                'attr' => ['class' => 'form-checkbox'],
+                'help' => 'Cochez si ce service peut être vendu en abonnement',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('prixMensuel', NumberType::class, [
+                'label' => 'Prix Mensuel (€)',
+                'scale' => 2,
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0, 'placeholder' => 'Ex: 10.00'],
+                'help' => 'Prix pour un abonnement mensuel',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('prixAnnuel', NumberType::class, [
+                'label' => 'Prix Annuel (€)',
+                'scale' => 2,
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0, 'placeholder' => 'Ex: 100.00'],
+                'help' => 'Prix pour un abonnement annuel',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('stripeProductId', TextType::class, [
+                'label' => 'Stripe Product ID',
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'placeholder' => 'prod_...'],
+                'help' => 'ID du produit dans Stripe (optionnel)',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('stripePriceIdMonthly', TextType::class, [
+                'label' => 'Stripe Price ID (Mensuel)',
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'placeholder' => 'price_...'],
+                'help' => 'ID du prix mensuel dans Stripe',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('stripePriceIdYearly', TextType::class, [
+                'label' => 'Stripe Price ID (Annuel)',
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'placeholder' => 'price_...'],
+                'help' => 'ID du prix annuel dans Stripe',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
             ->add('caracteristiques', TextareaType::class, [
                 'label' => 'Caractéristiques',
                 'required' => false,

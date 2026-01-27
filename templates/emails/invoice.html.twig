@@ -20,6 +20,10 @@
             <p><strong>Date d'échéance :</strong> {{ invoice.dateEcheance|date('d/m/Y') }}</p>
         {% endif %}
         <p><strong>Montant TTC :</strong> <span style="font-size: 18px; color: #1e293b;">{{ invoice.montantTTCFormate }}</span></p>
+        {% if invoice.hasDepositsDeducted() %}
+            <p style="color: #059669;"><strong>Acomptes déduits :</strong> - {{ invoice.totalDepositsDeductedFormatted }}</p>
+            <p><strong>Solde à régler :</strong> <span style="font-size: 20px; color: #059669; font-weight: bold;">{{ invoice.balanceDueFormatted }}</span></p>
+        {% endif %}
         <p><strong>Statut :</strong> {{ invoice.statutEnum.label }}</p>
     </div>
 

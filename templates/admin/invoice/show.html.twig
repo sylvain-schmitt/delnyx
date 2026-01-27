@@ -98,12 +98,12 @@
 							<p class="text-sm text-white/60 mb-1">Statut</p>
 							{% set status = invoice.statutEnum %}
 							<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-																																				                            {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-																																				                            {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
-																																				                            {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
-																																				                            {% elseif status.value == 'paid' %}bg-green-500/20 text-green-300
-																																				                            {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
-																																				                            {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+																																													                            {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+																																													                            {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
+																																													                            {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
+																																													                            {% elseif status.value == 'paid' %}bg-green-500/20 text-green-300
+																																													                            {% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+																																													                            {% else %}bg-gray-500/20 text-gray-300{% endif %}">
 								{{ status.label }}
 							</span>
 						</div>
@@ -288,11 +288,11 @@
 												</a>
 												{% set status = creditNote.statutEnum %}
 												<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-																											{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-																											{% elseif status.value == 'issued' %}bg-green-500/20 text-green-300
-																											{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
-																											{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
-																											{% else %}bg-gray-500/20 text-gray-300{% endif %}">
+																																									{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+																																									{% elseif status.value == 'issued' %}bg-green-500/20 text-green-300
+																																									{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+																																									{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+																																									{% else %}bg-gray-500/20 text-gray-300{% endif %}">
 													{{ status.label }}
 												</span>
 											</div>
@@ -494,23 +494,28 @@
 							</span>
 						</div>
 
-						{% if invoice.montantAcompte and invoice.montantAcompte > 0 %}
-							{% set totalCorrige = invoice.totalCorrected|number_format(2, '.', '') %}
-							{% set montantAcompte = invoice.montantAcompte|number_format(2, '.', '') %}
-							{% set resteAPayer = totalCorrige - montantAcompte %}
+						{% if invoice.hasDepositsDeducted %}
 							<div class="pt-4 border-t border-white/20">
-								<div class="flex justify-between items-center mb-2">
-									<span class="text-white/60">Acompte</span>
-									<span class="text-white font-semibold">
-										{{ invoice.montantAcompte|number_format(2, ',', ' ') }}
-										€
-									</span>
+								<p class="text-sm text-white/60 mb-2">Accomptes déduits</p>
+								{% for deposit in invoice.deposits %}
+									{% if deposit.isDeducted %}
+										<div class="flex justify-between items-center text-sm mb-1">
+											<span class="text-white/60">Acompte du
+												{{ deposit.paidAt|date('d/m/Y') }}</span>
+											<span class="text-white">-
+												{{ deposit.formattedAmount }}</span>
+										</div>
+									{% endif %}
+								{% endfor %}
+								<div class="flex justify-between items-center mt-2 pt-2 border-t border-white/10">
+									<span class="text-white font-medium">Total accomptes</span>
+									<span class="text-white font-semibold">-
+										{{ invoice.totalDepositsDeductedFormatted }}</span>
 								</div>
-								<div class="flex justify-between items-center">
-									<span class="text-white font-medium">Reste à payer</span>
-									<span class="text-white font-bold">
-										{{ resteAPayer|number_format(2, ',', ' ') }}
-										€
+								<div class="flex justify-between items-center mt-2">
+									<span class="text-white font-bold">Reste à payer</span>
+									<span class="text-white font-bold text-lg {% if invoice.balanceDue <= 0 %}text-green-400{% endif %}">
+										{{ invoice.balanceDueFormatted }}
 									</span>
 								</div>
 							</div>

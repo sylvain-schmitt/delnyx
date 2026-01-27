@@ -1,23 +1,16 @@
 {% extends 'admin/layout/base.html.twig' %}
 
-{% block title %}Devis
-	{{ quote.numero }}
-	- Administration Delnyx
-{% endblock %}
+{% block title %}Devis {{ quote.numero }} - Administration Delnyx{% endblock %}
 
-{% block page_title %}Devis
-	{{ quote.numero }}
-{% endblock %}
+{% block page_title %}Devis {{ quote.numero }}{% endblock %}
 
 {% block body %}
-	<div
-		class="space-y-6">
+	<div class="space-y-6">
 
 		{# Header avec breadcrumb #}
 		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
 			<div>
-				<h1 class="text-2xl font-bold text-white">Devis
-					{{ quote.numero }}</h1>
+				<h1 class="text-2xl font-bold text-white">Devis {{ quote.numero }}</h1>
 				<nav class="flex items-center space-x-2 text-sm text-white/60 mt-1">
 					<a href="{{ path('admin_dashboard') }}" class="hover:text-white transition-colors duration-200">Dashboard</a>
 					<span>{{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}</span>
@@ -26,9 +19,21 @@
 					<span class="text-white">{{ quote.numero }}</span>
 				</nav>
 			</div>
-			<div
-				class="flex gap-3 flex-wrap">
-				{# Bouton Retour #}
+			<div class="flex gap-3 flex-wrap">
+				{% if quote.statut.value == 'draft' %}
+					<a href="{{ path('admin_quote_edit', {id: quote.id}) }}" class="btn-secondary flex items-center gap-2">
+						{{ ux_icon('lucide:pencil', {class: 'w-4 h-4'}) }}
+						Modifier
+					</a>
+				{% endif %}
+				{# Bouton Créer un avenant (si signé) #}
+				{% if quote.statut.value == 'signed' %}
+					{# CORRECTION ROUTE : ajout de quote_id #}
+					<a href="{{ path('admin_amendment_new', {quote_id: quote.id}) }}" class="btn-primary flex items-center gap-2">
+						{{ ux_icon('lucide:file-plus', {class: 'w-4 h-4'}) }}
+						Créer un avenant
+					</a>
+				{% endif %}
 				<a href="{{ path('admin_quote_index') }}" class="btn-secondary flex items-center gap-2">
 					{{ ux_icon('lucide:arrow-left', {class: 'w-4 h-4'}) }}
 					Retour
@@ -36,7 +41,19 @@
 			</div>
 		</div>
 
-		{# Alerte immutabilité si devis émis ou signé #}
+		{# Alerte si devis signé (immuable) #}
+		{% if quote.statut.value == 'signed' %}
+			<div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 scroll-animate">
+				<div class="flex items-start gap-3">
+					{{ ux_icon('lucide:lock', {class: 'w-5 h-5 text-blue-400 mt-0.5'}) }}
+					<div class="flex-1">
+						<p class="text-blue-300 font-medium mb-1">Document immuable</p>
+						<p class="text-blue-200/80 text-sm">Ce devis est signé et ne peut plus être modifié. Pour apporter des modifications, créez un avenant.</p>
+					</div>
+				</div>
+			</div>
+		{% endif %}
+
 		{# Alerte si devis annulé #}
 		{% if quote.statut.value == 'cancelled' %}
 			<div class="bg-red-500/20 border border-red-500/30 rounded-xl p-4 scroll-animate">
@@ -44,37 +61,16 @@
 					{{ ux_icon('lucide:x-circle', {class: 'w-5 h-5 text-red-400 mt-0.5'}) }}
 					<div class="flex-1">
 						<p class="text-red-300 font-medium mb-1">Devis annulé</p>
-						<p class="text-red-200/80 text-sm">Ce devis a été annulé. Voir la section "Conditions et notes" pour la raison.</p>
-					</div>
-				</div>
-			</div>
-			{# Alerte pour les autres statuts (émis, signé, etc.) #}
-		{% elseif quote.statut.value in ['sent', 'signed', 'refused', 'expired'] %}
-			<div class="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 scroll-animate">
-				<div class="flex items-start gap-3">
-					{{ ux_icon('lucide:lock', {class: 'w-5 h-5 text-blue-400 mt-0.5'}) }}
-					<div class="flex-1">
-						<p class="text-blue-300 font-medium mb-1">Document immuable</p>
-						<p class="text-blue-200/80 text-sm">Ce devis est
-							{% if quote.statut.value == 'signed' %}signé{% else %}émis
-							{% endif %}
-							et ne peut plus être modifié.
-							{% if quote.statut.value == 'signed' %}
-								Pour apporter des modifications, créez un avenant.
-							{% endif %}
-						</p>
+						<p class="text-red-200/80 text-sm">Ce devis a été annulé.</p>
 					</div>
 				</div>
 			</div>
 		{% endif %}
 
-		{# Informations principales #}
-		<div
-			class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
 			{# Colonne principale #}
-			<div
-				class="lg:col-span-2 space-y-6">
+			<div class="lg:col-span-2 space-y-6">
 
 				{# Informations du devis #}
 				<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate">
@@ -86,30 +82,29 @@
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<div>
 							<p class="text-sm text-white/60 mb-1">Client</p>
-							{% if quote.client.companyName %}
-								<p class="text-white font-medium">{{ quote.client.companyName }}</p>
-								<p class="text-sm text-white/80">{{ quote.client.prenom }}
-									{{ quote.client.nom }}</p>
-								<p class="text-sm text-white/60">{{ quote.client.email }}</p>
+							{% if quote.client %}
+								{# CORRECTION ROUTE : admin_client_edit au lieu de admin_client_show #}
+								<a href="{{ path('admin_client_edit', {id: quote.client.id}) }}" class="text-white hover:text-blue-300 transition-colors font-medium">
+									{{ quote.client.nomComplet }}
+								</a>
+								{% if quote.client.email %}
+									<p class="text-sm text-blue-400 mt-0.5">{{ quote.client.email }}</p>
+								{% endif %}
 							{% else %}
-								<p class="text-white font-medium">{{ quote.client.prenom }}
-									{{ quote.client.nom }}</p>
-								<p class="text-sm text-white/60">{{ quote.client.email }}</p>
+								<p class="text-white">Client inconnu</p>
 							{% endif %}
 						</div>
 
 						<div>
 							<p class="text-sm text-white/60 mb-1">Statut</p>
+							{# CORRECTION : quote.statut au lieu de quote.statutEnum #}
 							{% set status = quote.statut %}
 							<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-																	{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-																	{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
-																	{% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
-																	{% elseif status.value == 'accepted' %}bg-green-500/20 text-green-300
-																	{% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
-																	{% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
-																	{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
-																	{% else %}bg-gray-500/20 text-gray-300{% endif %}">
+								{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+								{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+								{% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
+								{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+								{% else %}bg-gray-500/20 text-gray-300{% endif %}">
 								{{ status.label }}
 							</span>
 						</div>
@@ -119,36 +114,27 @@
 							<p class="text-white">{{ quote.dateCreation|date('d/m/Y à H:i') }}</p>
 						</div>
 
-						{% if quote.dateValidite %}
-							<div>
-								<p class="text-sm text-white/60 mb-1">Date de validité</p>
-								<p class="text-white">{{ quote.dateValidite|date('d/m/Y') }}</p>
-							</div>
-						{% endif %}
-
-						{% if quote.dateAcceptation %}
-							<div>
-								<p class="text-sm text-white/60 mb-1">Date d'acceptation</p>
-								<p class="text-white">{{ quote.dateAcceptation|date('d/m/Y à H:i') }}</p>
-							</div>
-						{% endif %}
-
-						{% if quote.statut.value != 'draft' %}
-							<div>
-								{% if quote.dateEnvoi %}
-									<p class="text-sm text-white/60 mb-1">Date d'envoi</p>
-									<p class="text-white">{{ quote.dateEnvoi|date('d/m/Y à H:i') }}</p>
+						<div>
+							<p class="text-sm text-white/60 mb-1">Date de validité</p>
+							<p class="text-white">
+								{% if quote.dateValidite %}
+									{{ quote.dateValidite|date('d/m/Y') }}
+								{% else %}
+									<span class="text-white/40 italic">Non définie</span>
 								{% endif %}
+							</p>
+						</div>
+
+						{# CORRECTION : dateEnvoi au lieu de sentAt #}
+						{% if quote.dateEnvoi %}
+							<div>
+								<p class="text-sm text-white/60 mb-1">Date d'envoi</p>
+								<p class="text-white">{{ quote.dateEnvoi|date('d/m/Y à H:i') }}</p>
 								{% if quote.sentCount > 0 %}
-									<p class="text-xs text-white/60">Envoyé
-										{{ quote.sentCount }}
-										fois</p>
-								{% elseif quote.statut.value == 'sent' %}
-									<p class="text-xs text-white/60">Statut : Envoyé</p>
+									<p class="text-xs text-white/60">Envoyé {{ quote.sentCount }} fois</p>
 								{% endif %}
 								{% if quote.deliveryChannel %}
-									<p class="text-xs text-white/60">Canal :
-										{{ quote.deliveryChannel }}</p>
+									<p class="text-xs text-blue-300 mt-1">Canal : {{ quote.deliveryChannel }}</p>
 								{% endif %}
 							</div>
 						{% endif %}
@@ -260,8 +246,7 @@
 						<p class="text-white/60 text-center py-8">Aucune ligne dans ce devis</p>
 					{% endif %}
 				</div>
-
-				{# Avenants #}
+                				{# Avenants #}
 				{% if amendments|length > 0 %}
 					<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
 						<h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
@@ -278,13 +263,14 @@
 												<a href="{{ path('admin_amendment_show', {id: amendment.id}) }}" class="text-blue-400 hover:text-blue-300 transition-colors font-medium">
 													{{ amendment.numero }}
 												</a>
-												{% set status = amendment.statutEnum %}
+												{# CORRECTION : utilisation de statut au lieu de statutEnum #}
+												{% set status = amendment.statut %}
 												<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-																											{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-																											{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
-																											{% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
-																											{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
-																											{% else %}bg-gray-500/20 text-gray-300{% endif %}">
+													{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+													{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+													{% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
+													{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+													{% else %}bg-gray-500/20 text-gray-300{% endif %}">
 													{{ status.label }}
 												</span>
 											</div>
@@ -348,8 +334,7 @@
 			</div>
 
 			{# Colonne latérale #}
-			<div
-				class="space-y-6">
+			<div class="space-y-6">
 
 				{# Montants #}
 				<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-100">
@@ -360,118 +345,184 @@
 
 					<div class="space-y-4">
 						{% if companySettings and companySettings.isTvaEnabled() %}
-							<div class="flex justify-between items-center">
-								<span class="text-white/60">Montant HT initial</span>
-								<span class="text-white font-semibold">{{ quote.montantHTFormate }}</span>
+							<div class="flex justify-between items-center mb-1">
+								<span class="text-white/60">Total HT initial</span>
+								<span class="text-white font-semibold">{{ quote.montantHTInitialFormate }}</span>
 							</div>
 
-							{% if quote.usePerLineTva %}
-								{# TVA par ligne : afficher le détail des taux #}
-								{% set tvaDetail = quote.tvaRatesDetail %}
-								{% if tvaDetail|length > 0 %}
-									<div class="space-y-2">
-										{% for tauxKey, detail in tvaDetail %}
-											<div class="flex justify-between items-center">
-												<span class="text-white/60">TVA
-													{{ detail.rate }}%</span>
-												<span class="text-white font-semibold">{{ detail.tva|number_format(2, ',', ' ') }}
-													€</span>
-											</div>
-										{% endfor %}
-										<div class="pt-2 border-t border-white/10 flex justify-between items-center">
-											<span class="text-white/60 font-medium">Total TVA</span>
-											<span class="text-white font-semibold">{{ quote.montantTVAFormate }}</span>
-										</div>
-									</div>
-								{% else %}
-									<div class="flex justify-between items-center">
-										<span class="text-white/60">TVA</span>
-										<span class="text-white font-semibold">{{ quote.montantTVAFormate }}</span>
-									</div>
-								{% endif %}
-							{% else %}
-								{# TVA globale #}
+							{# TVA #}
+                            {% if quote.usePerLineTva %}
 								<div class="flex justify-between items-center">
-									<span class="text-white/60">TVA ({{ quote.tauxTVA }}%)</span>
-									<span class="text-white font-semibold">{{ quote.montantTVAFormate }}</span>
+									<span class="text-white/60">Total TVA initial</span>
+									<span class="text-white font-semibold">{{ quote.montantTVAInitialFormate }}</span>
+								</div>
+							{% else %}
+								<div class="flex justify-between items-center">
+									<span class="text-white/60">TVA ({{ quote.tauxTVA }}%) initial</span>
+									<span class="text-white font-semibold">{{ quote.montantTVAInitialFormate }}</span>
 								</div>
 							{% endif %}
 
 							<div class="pt-2 border-t border-white/10 flex justify-between items-center">
 								<span class="text-white/60">Total TTC initial</span>
-								<span class="text-white font-semibold">{{ quote.montantTTCFormate }}</span>
+								<span class="text-white font-semibold">{{ quote.montantTTCInitialFormate }}</span>
 							</div>
 						{% else %}
 							{# TVA désactivée : afficher TTC au lieu de HT #}
 							<div class="flex justify-between items-center">
 								<span class="text-white/60">Total TTC initial</span>
-								<span class="text-white font-semibold">{{ quote.montantTTCFormate }}</span>
+								<span class="text-white font-semibold">{{ quote.montantTTCInitialFormate }}</span>
 							</div>
 						{% endif %}
 
-						{# Afficher les avenants signés s'il y en a #}
-						{% set avenantsSignes = amendments|filter(a => a.statutEnum.value == 'signed') %}
+						{# Calcul Séquentiel des Avenants #}
+						{% set currentTotal = quote.montantTTCInitial %}
+						{% set avenantsSignes = amendments|filter(a => a.statut.value == 'signed') %}
+
 						{% if avenantsSignes|length > 0 %}
 							<div class="pt-4 border-t border-white/20">
-								<p class="text-sm text-white/60 mb-2">Avenants signés ({{ avenantsSignes|length }})</p>
-								{% set totalAvenants = 0 %}
+								<p class="text-sm text-white/60 mb-2">Historique des modifications</p>
 								{% for amendment in avenantsSignes %}
-									{% set totalAvenants = totalAvenants + (amendment.montantTTC|number_format(2, '.', '')) %}
+									{# Utilisation du delta réel de l'avenant (fix cumulatif) #}
+									{% set delta = amendment.montantDeltaTTC %}
+
 									<div class="flex justify-between items-center text-sm mb-1">
 										<span class="text-white/60">{{ amendment.numero }}</span>
-										<span class="text-white">+
-											{{ amendment.montantTTCFormate }}</span>
+										<span class="{% if delta > 0 %}text-blue-300{% elseif delta < 0 %}text-green-300{% else %}text-white{% endif %}">
+											{% if delta > 0 %}+{% endif %}{{ delta|number_format(2, ',', ' ') }} €
+										</span>
 									</div>
+									{% set currentTotal = currentTotal + delta %}
 								{% endfor %}
-								<div class="pt-2 border-t border-white/10 flex justify-between items-center mt-2">
-									<span class="text-white/60 font-medium">Total avenants</span>
-									<span class="text-white font-semibold">+
-										{{ totalAvenants|number_format(2, ',', ' ') }}
-										€</span>
-								</div>
 							</div>
 						{% endif %}
 
+						{# Total Final #}
 						<div class="pt-4 border-t border-white/20 flex justify-between items-center">
 							<span class="text-white font-semibold text-lg">Total TTC final</span>
 							<span class="text-white font-bold text-xl">
-								{% if avenantsSignes|length > 0 %}
-									{% set montantInitial = quote.montantTTC|number_format(2, '.', '') %}
-									{% set totalFinal = montantInitial + totalAvenants %}
-									{{ totalFinal|number_format(2, ',', ' ') }}
-									€
-								{% else %}
-									{{ quote.montantTTCFormate }}
-								{% endif %}
+								{{ currentTotal|number_format(2, ',', ' ') }} €
 							</span>
 						</div>
 
-						{% if quote.acomptePourcentage > 0 %}
-							{% set totalFinal = quote.montantTTC|number_format(2, '.', '') %}
-							{% if avenantsSignes|length > 0 %}
-								{% set montantInitial = quote.montantTTC|number_format(2, '.', '') %}
-								{% set totalFinal = montantInitial + totalAvenants %}
+						{# Calcul du total payé (règlements effectifs) #}
+						{% set totalPaid = 0 %}
+
+						{# 1. Facture Principale (Initial) #}
+						{% if quote.invoice and quote.invoice.statut == 'paid' %}
+							{% set totalPaid = quote.montantTTCInitial %}
+						{% else %}
+							{% set totalPaid = quote.totalPaidDeposits %}
+						{% endif %}
+
+						{# 2. Factures des avenants et remoursements d'avoirs #}
+						{% for amendment in avenantsSignes %}
+							{# Complément d'avenant payé #}
+							{% if amendment.invoice and amendment.invoice.statut == 'paid' %}
+								{% set totalPaid = totalPaid + amendment.invoice.montantTTC %}
 							{% endif %}
-							{% set montantAcompte = quote.montantAcompte|number_format(2, '.', '') %}
-							{% set resteAPayer = totalFinal - montantAcompte %}
+
+							{# Avoir remboursé (soustraire du payé car l'argent est retourné au client) #}
+							{% if amendment.creditNote and amendment.creditNote.statut == 'refunded' %}
+								{% set totalPaid = totalPaid - amendment.creditNote.montantTTC %}
+							{% endif %}
+						{% endfor %}
+
+						{% if totalPaid > 0 %}
 							<div class="pt-4 border-t border-white/20">
 								<div class="flex justify-between items-center mb-2">
-									<span class="text-white/60">Acompte ({{ quote.acomptePourcentage }}%)</span>
-									<span class="text-white font-semibold">
-										{{ quote.montantAcompteFormate }}
+									<span class="text-white/60">Déjà réglé</span>
+									<span class="text-green-400 font-semibold">
+										{{ totalPaid|number_format(2, ',', ' ') }} €
 									</span>
 								</div>
+
+								{% set solde = currentTotal - totalPaid %}
 								<div class="flex justify-between items-center">
-									<span class="text-white font-medium">Reste à payer</span>
+									<span class="text-white font-medium">
+										{% if solde < 0 %}Reste à rembourser{% else %}Reste à payer{% endif %}
+									</span>
 									<span class="text-white font-bold">
-										{{ resteAPayer|number_format(2, ',', ' ') }}
-										€
+										{{ solde|abs|number_format(2, ',', ' ') }} €
 									</span>
 								</div>
 							</div>
 						{% endif %}
 					</div>
 				</div>
+
+				{# Accomptes #}
+				{% if quote.statut.value == 'signed' %}
+					<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-150">
+						<h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+							{{ ux_icon('lucide:credit-card', {class: 'w-5 h-5'}) }}
+							Accomptes
+						</h2>
+
+						{% if quote.deposits|length > 0 %}
+							<div class="space-y-3 mb-4">
+								{% for deposit in quote.deposits %}
+									<div class="bg-white/5 border border-white/10 rounded-lg p-3">
+										<div class="flex justify-between items-start">
+											<div>
+												<span class="text-white font-medium">{{ deposit.formattedAmount }}</span>
+												{% if deposit.percentage %}
+													<span class="text-white/60 text-sm">({{ deposit.percentage|number_format(0) }}%)</span>
+												{% endif %}
+											</div>
+											<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+												{% if deposit.status.value == 'pending' %}bg-yellow-500/20 text-yellow-300
+												{% elseif deposit.status.value == 'paid' %}bg-green-500/20 text-green-300
+												{% elseif deposit.status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+												{% elseif deposit.status.value == 'refunded' %}bg-blue-500/20 text-blue-300
+												{% endif %}">
+												{{ deposit.status.label }}
+											</span>
+
+											{% if deposit.status.value == 'pending' %}
+												<button type="button" class="inline-block ml-2 text-blue-400 hover:text-blue-300 transition-colors" title="Renvoyer l'email" data-controller="confirm-modal-trigger" data-confirm-modal-trigger-url-value="{{ path('admin_deposit_resend_email', {id: deposit.id}) }}" data-confirm-modal-trigger-csrf-token-value="{{ csrf_token('resend_email_' ~ deposit.id) }}" data-confirm-modal-trigger-title-value="Renvoyer l'email" data-confirm-modal-trigger-message-value="Voulez-vous renvoyer l'email de demande d'acompte au client ?" data-confirm-modal-trigger-button-text-value="Renvoyer" data-action="click->confirm-modal-trigger#open">
+													{{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
+												</button>
+											{% endif %}
+										</div>
+										<div class="text-xs text-white/60 mt-1">
+											Demandé le
+											{{ deposit.requestedAt|date('d/m/Y') }}
+											{% if deposit.paidAt %}
+												- Payé le
+												{{ deposit.paidAt|date('d/m/Y') }}
+											{% endif %}
+										</div>
+									</div>
+								{% endfor %}
+							</div>
+
+							{% if quote.totalPaidDeposits > 0 %}
+								<div class="flex justify-between items-center pt-3 border-t border-white/20 mb-4">
+									<span class="text-white/60">Total accomptes payés</span>
+									<span class="text-green-400 font-semibold">{{ quote.totalPaidDepositsFormatted }}</span>
+								</div>
+							{% endif %}
+						{% else %}
+							<p class="text-white/60 text-sm mb-4">Aucun accompte demandé pour ce devis.</p>
+						{% endif %}
+
+						{% if quote.invoice is null %}
+							<button type="button" class="btn-primary w-full flex items-center justify-center gap-2" data-controller="request-deposit-modal-trigger" data-request-deposit-modal-trigger-url-value="{{ path('admin_quote_request_deposit', {id: quote.id}) }}" data-request-deposit-modal-trigger-csrf-token-value="{{ csrf_token('request_deposit_' ~ quote.id) }}" data-request-deposit-modal-trigger-total-ttc-value="{{ quote.montantTTC }}" data-request-deposit-modal-trigger-default-percentage-value="{{ quote.acomptePourcentage }}" data-action="click->request-deposit-modal-trigger#open">
+								{{ ux_icon('lucide:plus-circle', {class: 'w-4 h-4'}) }}
+								Demander un accompte
+							</button>
+						{% else %}
+							<div class="text-center">
+								<p class="text-sm text-white/60 mb-2">Facture générée</p>
+								<a href="{{ path('admin_invoice_show', {id: quote.invoice.id}) }}" class="text-blue-400 hover:text-blue-300 text-sm">
+									Voir la facture
+									{{ quote.invoice.numero }}
+								</a>
+							</div>
+						{% endif %}
+					</div>
+				{% endif %}
 
 				{# Actions #}
 				<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200">
@@ -480,11 +531,10 @@
 						Actions
 					</h2>
 
-					<div
-						class="space-y-3">
+					<div class="space-y-3">
 						{# Composant Actions #}
-						{{ component('EntityActions', { 
-							entity: quote, 
+						{{ component('EntityActions', {
+							entity: quote,
 							type: 'quote',
 							layout: 'vertical'
 						}) }}
@@ -509,6 +559,11 @@
 	{# Modal d'envoi d'email #}
 	{{ component('EmailModal') }}
 
+	{# Note: ConfirmModal n'est pas nécessaire ici car base.html.twig a déjà le contrôleur confirm-modal sur le body #}
+
+	{# Modal de demande d'acompte #}
+	{{ component('RequestDepositModal') }}
+
 	{# Modal d'annulation avec raisons #}
-	{{ component('CancelModal') }}
+{{ component('CancelModal') }}
 {% endblock %}

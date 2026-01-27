@@ -1,0 +1,33 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block body %}
+	<p>Bonjour
+		{{ client.prenom ?? 'Cher client' }},</p>
+
+	<p>Nous avons bien reçu votre paiement d'accompte. Merci !</p>
+
+	<div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+		<p style="margin: 0; font-size: 14px; color: #155724;">Paiement confirmé</p>
+		<p style="margin: 10px 0; font-size: 28px; font-weight: bold; color: #155724;">{{ deposit.formattedAmount }}</p>
+		<p style="margin: 0; font-size: 14px; color: #155724;">Accompte pour le devis
+			{{ quote.numero }}</p>
+	</div>
+
+	<p style="font-size: 14px; color: #666;">
+		<strong>Détails du paiement :</strong><br>
+		Date :
+		{{ deposit.paidAt|date('d/m/Y à H:i') }}<br>
+		Référence devis :
+		{{ quote.numero }}<br>
+		Montant :
+		{{ deposit.formattedAmount }}
+	</p>
+
+	<p>
+		Le solde restant de
+		<strong>{{ quote.resteAPayerFormatted }}</strong>
+		vous sera facturé ultérieurement.
+	</p>
+
+	<p>Cordialement,</p>
+{% endblock %}

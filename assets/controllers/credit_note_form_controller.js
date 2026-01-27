@@ -25,7 +25,6 @@ export default class extends Controller {
             document.querySelector('#credit_note_lines')
 
         if (linesContainer) {
-            console.log('CreditNoteFormController: Lines container found, attaching observer')
             this.linesObserver = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     mutation.addedNodes.forEach((node) => {
@@ -35,7 +34,6 @@ export default class extends Controller {
                             const select = node.matches('select[name*="[sourceLine]"]') ? node : node.querySelector('select[name*="[sourceLine]"]')
 
                             if (select && this.currentInvoiceData) {
-                                console.log('CreditNoteFormController: New line added, updating select options')
                                 this.updateSelectOptions(select, this.currentInvoiceData.lines)
                             }
                         }
@@ -167,14 +165,6 @@ export default class extends Controller {
 
             const data = await response.json()
             this.currentInvoiceData = data
-
-            // Debug: afficher les données reçues
-            console.log('CreditNoteFormController: Données facture reçues:', {
-                invoiceId: data.id,
-                statut: data.statut,
-                linesCount: data.linesCount,
-                lines: data.lines
-            })
 
             // Afficher les lignes de la facture
             if (data.lines && data.lines.length > 0) {

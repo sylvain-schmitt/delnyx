@@ -14,8 +14,9 @@ use App\Repository\InvoiceRepository;
 use App\Repository\CompanySettingsRepository;
 use App\Repository\TariffRepository;
 use App\Service\CreditNoteService;
-use App\Service\PdfGeneratorService;
 use App\Service\EmailService;
+use App\Service\PaymentService;
+use App\Service\PdfGeneratorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -37,7 +38,8 @@ class CreditNoteController extends AbstractController
         private EntityManagerInterface $entityManager,
         private CreditNoteService $creditNoteService,
         private PdfGeneratorService $pdfGeneratorService,
-        private EmailService $emailService
+        private EmailService $emailService,
+        private PaymentService $paymentService
     ) {}
 
     #[Route('/api/invoice/{id}', name: 'api_invoice_info', requirements: ['id' => '\d+'], methods: ['GET'])]
@@ -522,7 +524,7 @@ class CreditNoteController extends AbstractController
 
         // S'assurer que la facture est bien chargée avec ses lignes si elle existe
         $invoice = $creditNote->getInvoice();
-        if ($invoice && !$invoice->getLines()->isInitialized()) {
+        if ($invoice && method_exists($invoice->getLines(), 'isInitialized') && !$invoice->getLines()->isInitialized()) {
             // Recharger la facture avec ses lignes si elles ne sont pas initialisées
             $invoice = $this->invoiceRepository->createQueryBuilder('i')
                 ->leftJoin('i.lines', 'l')
@@ -1011,6 +1013,71 @@ class CreditNoteController extends AbstractController
             }
         } catch (\Exception $e) {
             $this->addFlash('error', 'Erreur lors de l\'envoi de l\'email : ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+    }
+
+    #[Route('/{id}/issue-and-refund', name: 'issue_and_refund', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function issueAndRefund(Request $request, CreditNote $creditNote): Response
+    {
+        // Vérifier le token CSRF
+        if (!$this->isCsrfTokenValid('credit_note_issue_and_refund_' . $creditNote->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
+        }
+
+        // Vérifier le multi-tenant
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+
+        if ($companyId && $creditNote->getCompanyId() !== $companyId) {
+            $this->addFlash('error', 'Vous n\'avez pas accès à cet avoir.');
+            return $this->redirectToRoute('admin_credit_note_index');
+        }
+
+        try {
+            // 1. Émettre l'avoir (DRAFT -> ISSUED)
+            $this->creditNoteService->issue($creditNote);
+
+            // 2. Tenter le remboursement Stripe
+            $this->paymentService->refundPayment($creditNote);
+
+            // 3. Marquer comme remboursé (ISSUED -> REFUNDED)
+            $this->creditNoteService->apply($creditNote);
+
+            // 4. Envoyer par email
+            $invoice = $creditNote->getInvoice();
+            $client = $invoice ? $invoice->getClient() : null;
+            if ($client && $client->getEmail()) {
+                $customMessage = $request->request->get('custom_message');
+                $uploadedFiles = $request->files->get('attachments', []);
+                $this->emailService->sendCreditNote($creditNote, $customMessage, $uploadedFiles);
+            }
+
+            // Message de succès combiné
+            $this->addFlash('success', 'Avoir émis, remboursement Stripe effectué et envoyé au client.');
+
+            // Vérifier si la facture doit être annulée (avoir total)
+            if ($invoice) {
+                $this->entityManager->refresh($invoice);
+                if ($invoice->getStatutEnum() === InvoiceStatus::CANCELLED) {
+                    $this->addFlash('info', sprintf(
+                        'La facture %s a été automatiquement annulée car le total des avoirs émis annule complètement la facture.',
+                        $invoice->getNumero()
+                    ));
+                }
+            }
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+            $this->addFlash('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', 'Erreur lors de l\'émission : ' . $e->getMessage());
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors du remboursement Stripe : ' . $e->getMessage());
         }
 
         return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);

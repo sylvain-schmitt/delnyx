@@ -183,9 +183,10 @@
 								{{ form_macros.simple_field(line, 'tariff', 'select', {'disabled': isReadOnly}) }}
 								{{ form_macros.simple_field(line, 'description', 'text', {'disabled': isReadOnly}) }}
 							</div>
-							<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+							<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
 								{{ form_macros.simple_field(line, 'quantity', 'number', {'disabled': isReadOnly}) }}
 								{{ form_macros.simple_field(line, 'unitPrice', 'number', {'disabled': isReadOnly}) }}
+								{{ form_macros.simple_field(line, 'subscriptionMode', 'select', {'disabled': isReadOnly}) }}
 								{% if companySettings and companySettings.isTvaEnabled() %}
 									{# TVA par ligne : afficher le champ (masqué par défaut, visible si bouton activé) #}
 									<div data-tva-per-line-target="rateWrapper" style="display: none;">
@@ -231,7 +232,7 @@
 								<input type="text" name="quote[lines][__name__][description]" class="form-input" data-admin-form-target="field" required>
 							</div>
 						</div>
-						<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
 							<div class="form-group">
 								<label class="form-label">Quantité</label>
 								<input type="number" name="quote[lines][__name__][quantity]" class="form-input" data-admin-form-target="field" min="1" value="1" required>
@@ -239,6 +240,14 @@
 							<div class="form-group">
 								<label class="form-label">Prix unitaire (€)</label>
 								<input type="number" name="quote[lines][__name__][unitPrice]" class="form-input" data-admin-form-target="field" step="0.01" min="0" required>
+							</div>
+							<div class="form-group">
+								<label class="form-label">Récurrence</label>
+								<select name="quote[lines][__name__][subscriptionMode]" class="form-select" data-admin-form-target="field">
+									<option value="">Aucune</option>
+									<option value="monthly">Mensuel</option>
+									<option value="yearly">Annuel</option>
+								</select>
 							</div>
 							{% if companySettings and companySettings.isTvaEnabled() %}
 								<div class="form-group" data-tva-per-line-target="rateWrapper" style="display: none;">

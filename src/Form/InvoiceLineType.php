@@ -43,6 +43,18 @@ class InvoiceLineType extends AbstractType
                 'help' => 'Description de la prestation',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
+            ->add('subscriptionMode', ChoiceType::class, [
+                'label' => 'Récurrence',
+                'required' => false,
+                'choices' => [
+                    'Aucune' => null,
+                    'Mensuel' => 'monthly',
+                    'Annuel' => 'yearly',
+                ],
+                'attr' => ['class' => 'form-select'],
+                'help' => 'Choisir si cette ligne est un abonnement récurrent',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
             ->add('quantity', IntegerType::class, [
                 'label' => 'Quantité',
                 'required' => false,
@@ -54,8 +66,8 @@ class InvoiceLineType extends AbstractType
                 'label' => 'Prix unitaire HT',
                 'required' => false,
                 'scale' => 2,
-                'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0],
-                'help' => 'Prix unitaire en euros',
+                'attr' => ['class' => 'form-input', 'step' => '0.01'],
+                'help' => 'Prix unitaire HT en euros (possibilité de négatif)',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('tvaRate', ChoiceType::class, [
@@ -81,4 +93,3 @@ class InvoiceLineType extends AbstractType
         ]);
     }
 }
-

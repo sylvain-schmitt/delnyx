@@ -84,6 +84,16 @@
 				</div>
 			</div>
 
+			{# Configuration Bancaire #}
+			<div class="space-y-4 pt-6 border-t border-white/20">
+				<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Configuration Bancaire</h3>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{{ form_macros.simple_field(form, 'iban') }}
+					{{ form_macros.simple_field(form, 'bic') }}
+				</div>
+			</div>
+
 			{# Configuration TVA #}
 			<div class="space-y-4 pt-6 border-t border-white/20">
 				<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Configuration TVA</h3>
@@ -132,36 +142,118 @@
 				</div>
 			</div>
 
-			{# Automatisation #}
+			{# Configuration Stripe #}
 			<div class="space-y-4 pt-6 border-t border-white/20">
-				<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Automatisation</h3>
+				<div class="flex items-center justify-between pb-2 border-b border-white/20">
+					<h3 class="text-lg font-semibold text-white/90">Paiement en ligne (Stripe)</h3>
+					<a href="https://dashboard.stripe.com/apikeys" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+						{{ ux_icon('lucide:external-link', {class: 'w-3 h-3'}) }}
+						Obtenir vos clés
+					</a>
+				</div>
 
-				<div class="bg-white/5 border border-white/10 rounded-lg p-4">
-					<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-						<div class="flex items-start gap-4">
-							{{ ux_icon('lucide:bell', {class: 'w-8 h-8 text-blue-400 flex-shrink-0'}) }}
-							<div>
-								<h4 class="text-white font-medium">Relances automatiques</h4>
-								<p class="text-white/60 text-sm">Configurez des règles pour envoyer automatiquement des rappels aux clients avec des factures impayées.</p>
-							</div>
-						</div>
-						<a href="{{ path('admin_reminder_index') }}" class="btn-secondary flex items-center justify-center gap-2 text-sm flex-shrink-0">
-							{{ ux_icon('lucide:settings', {class: 'w-4 h-4'}) }}
-							Configurer
-						</a>
+				{# Checkbox d'activation #}
+				<div class="form-group flex items-center gap-3 bg-white/5 p-4 rounded-lg">
+					{{ form_widget(form.stripeEnabled, {'attr': {'class': 'form-checkbox', 'data-admin-form-target': 'field'}}) }}
+					<div>
+						<span class="text-white font-medium">{{ form.stripeEnabled.vars.label }}</span>
+						<p class="text-white/60 text-sm">Permet de payer les factures et acomptes par carte bancaire</p>
 					</div>
 				</div>
-			</div>
 
-			{# Submit Button #}
-			<div class="pt-6 border-t border-white/20">
-				{{ form_widget(form.submit, {'attr': {
+				<div
+					class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{# Clé publique #}
+					<div class="form-group">
+						{{ form_label(form.stripePublishableKey, null, {'label_attr': {'class': 'form-label'}}) }}
+						{{ form_widget(form.stripePublishableKey, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+						{% if companySettings.stripePublishableKey %}
+							<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
+								{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+								Clé configurée (pk_***{{ companySettings.stripePublishableKey[-8:] }})
+							</p>
+						{% endif %}
+						{{ form_help(form.stripePublishableKey) }}
+						{{ form_errors(form.stripePublishableKey) }}
+					</div>
+
+					{# Clé secrète #}
+					<div class="form-group">
+						{{ form_label(form.stripeSecretKey, null, {'label_attr': {'class': 'form-label'}}) }}
+						{{ form_widget(form.stripeSecretKey, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+						{% if companySettings.stripeSecretKey %}
+							<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
+								{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+								Clé configurée (sk_***...{{ companySettings.stripeSecretKey[-4:] }})
+							</p>
+						{% else %}
+							<p class="text-amber-400 text-xs mt-1 flex items-center gap-1">
+								{{ ux_icon('lucide:alert-circle', {class: 'w-3 h-3'}) }}
+								Non configurée
+							</p>
+						{% endif %}
+						{{ form_help(form.stripeSecretKey) }}
+						{{ form_errors(form.stripeSecretKey) }}
+					</div>
+				</div>
+
+				{# Secret webhook #}
+				<div class="form-group">
+					{{ form_label(form.stripeWebhookSecret, null, {'label_attr': {'class': 'form-label'}}) }}
+					{{ form_widget(form.stripeWebhookSecret, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+					{% if companySettings.stripeWebhookSecret %}
+						<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
+							{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+							Secret configuré (whsec_***...{{ companySettings.stripeWebhookSecret[-4:] }})
+						</p>
+					{% else %}
+						<p class="text-amber-400 text-xs mt-1 flex items-center gap-1">
+							{{ ux_icon('lucide:alert-circle', {class: 'w-3 h-3'}) }}
+							Non configuré
+						</p>
+					{% endif %}
+					{{ form_help(form.stripeWebhookSecret) }}
+					{{ form_errors(form.stripeWebhookSecret) }}
+				</div>
+
+				<div class="text-sm text-blue-200">
+					<p class="font-medium">Configuration du webhook Stripe</p>
+					<p class="text-blue-300/80 mt-1">Dans votre
+						<a href="https://dashboard.stripe.com/webhooks" target="_blank" class="underline hover:text-blue-200">Dashboard Stripe → Webhooks</a>, ajoutez cette URL :</p>
+					<code class="block bg-blue-900/50 px-3 py-2 rounded text-xs mt-2 select-all">{{ app.request.schemeAndHttpHost }}/webhook/stripe</code>
+					<p class="text-blue-400/70 text-xs mt-2 italic">⚠️ Cette URL n'est pas visitable directement - elle accepte uniquement les requêtes POST envoyées par Stripe.</p>
+				</div>
+                
+				{# Automatisation #}
+				<div class="space-y-4 pt-6 border-t border-white/20">
+					<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Automatisation</h3>
+
+					<div class="bg-white/5 border border-white/10 rounded-lg p-4">
+						<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+							<div class="flex items-start gap-4">
+								{{ ux_icon('lucide:bell', {class: 'w-8 h-8 text-blue-400 flex-shrink-0'}) }}
+								<div>
+									<h4 class="text-white font-medium">Relances automatiques</h4>
+									<p class="text-white/60 text-sm">Configurez des règles pour envoyer automatiquement des rappels aux clients avec des factures impayées.</p>
+								</div>
+							</div>
+							<a href="{{ path('admin_reminder_index') }}" class="btn-secondary flex items-center justify-center gap-2 text-sm flex-shrink-0">
+								{{ ux_icon('lucide:settings', {class: 'w-4 h-4'}) }}
+								Configurer
+							</a>
+						</div>
+					</div>
+				</div>
+
+				{# Submit Button #}
+				<div class="pt-6 border-t border-white/20">
+					{{ form_widget(form.submit, {'attr': {
                 'class': 'px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40',
                 'data-admin-form-target': 'submit'
             }}) }}
-			</div>
+				</div>
 
-			{{ form_end(form) }}
+				{{ form_end(form) }}
+			</div>
 		</div>
-	</div>
-{% endblock %}
+	{% endblock %}

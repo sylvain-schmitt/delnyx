@@ -1,0 +1,66 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block title %}Instructions de règlement acompte -
+	{{ quote.numero }}
+{% endblock %}
+
+{% block body %}
+	<h1>Instructions de règlement de votre acompte</h1>
+
+	<p>Bonjour {{ client.prenom }},</p>
+
+	<p>Vous avez choisi de régler l'acompte pour le devis
+		<strong>{{ quote.numero }}</strong>
+		d'un montant de
+		<strong>{{ deposit.formattedAmount }}</strong>
+		par virement bancaire ou chèque.</p>
+
+	<div class="info-box">
+		<h3 style="margin-top: 0; color: #1e293b;">Option 1 : Virement Bancaire</h3>
+		{% if companySettings is defined and companySettings.iban %}
+			<p>Merci d'effectuer votre virement sur le compte suivant :</p>
+			<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+				<tr>
+					<td style="padding: 8px; color: #64748b; width: 30%;">Titulaire :</td>
+					<td style="padding: 8px; font-weight: bold;">{{ companySettings.raisonSociale ?: ownerName }}</td>
+				</tr>
+				<tr>
+					<td style="padding: 8px; color: #64748b;">IBAN :</td>
+					<td style="padding: 8px; font-variant-numeric: tabular-nums; font-family: monospace;">{{ companySettings.iban }}</td>
+				</tr>
+				<tr>
+					<td style="padding: 8px; color: #64748b;">BIC :</td>
+					<td style="padding: 8px; font-family: monospace;">{{ companySettings.bic }}</td>
+				</tr>
+			</table>
+		{% else %}
+			<p>Nos coordonnées bancaires vous seront communiquées séparément. N'hésitez pas à nous les demander si besoin.</p>
+		{% endif %}
+
+		<h3 style="color: #1e293b;">Option 2 : Règlement par Chèque</h3>
+		<p>Le chèque doit être libellé à l'ordre de :
+			<strong>{{ ownerName }}</strong>
+		</p>
+		<p>Adresse d'envoi :<br>
+			{{ ownerName }}<br>
+			{{ companySettings.adresse|nl2br }}<br>
+			{{ companySettings.codePostal }}
+			{{ companySettings.ville }}
+		</p>
+	</div>
+
+	<p style="background: #f1f5f9; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+		<strong>Important :</strong>
+		Veuillez indiquer la référence
+		<strong>Acompte {{ quote.numero }}</strong>
+		dans le libellé de votre virement ou au dos de votre chèque.
+	</p>
+
+	<p>Votre acompte sera validé dès réception des fonds, ce qui nous permettra de débuter les prestations prévues.</p>
+
+	<div style="text-align: center; margin-top: 30px;">
+		<a href="{{ magic_link(quote, 'view') }}" class="button">
+			Consulter le devis en ligne
+		</a>
+	</div>
+{% endblock %}

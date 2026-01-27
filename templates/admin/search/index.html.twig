@@ -1,0 +1,295 @@
+{% extends 'admin/layout/base.html.twig' %}
+
+{% block page_title %}Recherche
+{% endblock %}
+
+{% block breadcrumb %}
+	<span class="text-white/40">/</span>
+	<span class="text-white/80">Recherche :
+		{{ query }}</span>
+{% endblock %}
+
+{% block body %}
+	<div
+		class="space-y-6">
+		{# En-tête de recherche #}
+		<div class="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+			<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+				<div>
+					<h2 class="text-2xl font-bold text-white">Recherche</h2>
+					{% if query %}
+						<p class="text-white/60 mt-1">
+							{{ counts.clients + counts.quotes + counts.invoices + counts.projects }}
+							résultats pour "{{ query }}"
+						</p>
+					{% endif %}
+				</div>
+
+				{# Formulaire de recherche #}
+				<form action="{{ path('admin_search_results') }}" method="GET" class="flex-1 max-w-md">
+					<div class="relative">
+						<input type="text" name="q" value="{{ query }}" placeholder="Rechercher..." class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500">
+						{{ ux_icon('lucide:search', {class: 'absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60'}) }}
+					</div>
+				</form>
+			</div>
+		</div>
+
+		{% if query|length >= 2 %}
+			{# Filtres par type #}
+			<div class="flex flex-wrap gap-2">
+				<a href="{{ path('admin_search_results', {q: query, type: 'all'}) }}" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {{ type == 'all' ? 'bg-blue-500 text-white' : 'bg-white/10 text-white/80 hover:bg-white/20' }}">
+					Tous ({{ counts.clients + counts.quotes + counts.invoices + counts.projects }})
+				</a>
+				<a href="{{ path('admin_search_results', {q: query, type: 'clients'}) }}" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {{ type == 'clients' ? 'bg-blue-500 text-white' : 'bg-white/10 text-white/80 hover:bg-white/20' }}">
+					{{ ux_icon('lucide:users', {class: 'w-4 h-4 inline mr-1'}) }}
+					Clients ({{ counts.clients }})
+				</a>
+				<a href="{{ path('admin_search_results', {q: query, type: 'quotes'}) }}" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {{ type == 'quotes' ? 'bg-blue-500 text-white' : 'bg-white/10 text-white/80 hover:bg-white/20' }}">
+					{{ ux_icon('lucide:file-text', {class: 'w-4 h-4 inline mr-1'}) }}
+					Devis ({{ counts.quotes }})
+				</a>
+				<a href="{{ path('admin_search_results', {q: query, type: 'invoices'}) }}" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {{ type == 'invoices' ? 'bg-blue-500 text-white' : 'bg-white/10 text-white/80 hover:bg-white/20' }}">
+					{{ ux_icon('lucide:receipt', {class: 'w-4 h-4 inline mr-1'}) }}
+					Factures ({{ counts.invoices }})
+				</a>
+				<a href="{{ path('admin_search_results', {q: query, type: 'projects'}) }}" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {{ type == 'projects' ? 'bg-blue-500 text-white' : 'bg-white/10 text-white/80 hover:bg-white/20' }}">
+					{{ ux_icon('lucide:folder', {class: 'w-4 h-4 inline mr-1'}) }}
+					Projets ({{ counts.projects }})
+				</a>
+			</div>
+
+			{# Résultats #}
+			<div class="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+				{% if type == 'all' %}
+					{# Affichage groupé pour "Tous" #}
+					{% if results.clients|length > 0 %}
+						<div class="border-b border-white/10">
+							<div class="px-6 py-3 bg-white/5 flex items-center justify-between">
+								<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+									{{ ux_icon('lucide:users', {class: 'w-5 h-5 text-blue-400'}) }}
+									Clients
+								</h3>
+								{% if counts.clients > 10 %}
+									<a href="{{ path('admin_search_results', {q: query, type: 'clients'}) }}" class="text-sm text-blue-400 hover:text-blue-300">
+										Voir tout →
+									</a>
+								{% endif %}
+							</div>
+							<div class="divide-y divide-white/10">
+								{% for client in results.clients %}
+									<a href="{{ path('admin_client_edit', {id: client.id}) }}" class="flex items-center px-6 py-4 hover:bg-white/5 transition-colors">
+										<div class="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center mr-4">
+											{{ ux_icon('lucide:user', {class: 'w-5 h-5 text-blue-400'}) }}
+										</div>
+										<div>
+											<p class="text-white font-medium">{{ client.companyName ?: (client.prenom ~ ' ' ~ client.nom) }}</p>
+											<p class="text-white/60 text-sm">{{ client.email }}</p>
+										</div>
+									</a>
+								{% endfor %}
+							</div>
+						</div>
+					{% endif %}
+
+					{% if results.quotes|length > 0 %}
+						<div class="border-b border-white/10">
+							<div class="px-6 py-3 bg-white/5 flex items-center justify-between">
+								<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+									{{ ux_icon('lucide:file-text', {class: 'w-5 h-5 text-green-400'}) }}
+									Devis
+								</h3>
+								{% if counts.quotes > 10 %}
+									<a href="{{ path('admin_search_results', {q: query, type: 'quotes'}) }}" class="text-sm text-blue-400 hover:text-blue-300">
+										Voir tout →
+									</a>
+								{% endif %}
+							</div>
+							<div class="divide-y divide-white/10">
+								{% for quote in results.quotes %}
+									<a href="{{ path('admin_quote_show', {id: quote.id}) }}" class="flex items-center px-6 py-4 hover:bg-white/5 transition-colors">
+										<div class="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center mr-4">
+											{{ ux_icon('lucide:file-text', {class: 'w-5 h-5 text-green-400'}) }}
+										</div>
+										<div class="flex-1">
+											<p class="text-white font-medium">Devis
+												{{ quote.numero }}</p>
+											<p class="text-white/60 text-sm">{{ quote.client.companyName ?: quote.client.nom }}</p>
+										</div>
+										<span class="px-2 py-1 text-xs rounded-full
+																																		{% if quote.statut.value == 'signed' %}bg-green-500/20 text-green-400
+																																		{% elseif quote.statut.value == 'sent' %}bg-blue-500/20 text-blue-400
+																																		{% else %}bg-white/10 text-white/60{% endif %}">
+											{{ quote.statut.value|capitalize }}
+										</span>
+									</a>
+								{% endfor %}
+							</div>
+						</div>
+					{% endif %}
+
+					{% if results.invoices|length > 0 %}
+						<div class="border-b border-white/10">
+							<div class="px-6 py-3 bg-white/5 flex items-center justify-between">
+								<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+									{{ ux_icon('lucide:receipt', {class: 'w-5 h-5 text-amber-400'}) }}
+									Factures
+								</h3>
+								{% if counts.invoices > 10 %}
+									<a href="{{ path('admin_search_results', {q: query, type: 'invoices'}) }}" class="text-sm text-blue-400 hover:text-blue-300">
+										Voir tout →
+									</a>
+								{% endif %}
+							</div>
+							<div class="divide-y divide-white/10">
+								{% for invoice in results.invoices %}
+									<a href="{{ path('admin_invoice_show', {id: invoice.id}) }}" class="flex items-center px-6 py-4 hover:bg-white/5 transition-colors">
+										<div class="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center mr-4">
+											{{ ux_icon('lucide:receipt', {class: 'w-5 h-5 text-amber-400'}) }}
+										</div>
+										<div class="flex-1">
+											<p class="text-white font-medium">Facture
+												{{ invoice.numero }}</p>
+											<p class="text-white/60 text-sm">{{ invoice.client.companyName ?: invoice.client.nom }}</p>
+										</div>
+										<span class="px-2 py-1 text-xs rounded-full
+																																		{% if invoice.statut == 'paid' %}bg-green-500/20 text-green-400
+																																		{% elseif invoice.statut == 'sent' %}bg-blue-500/20 text-blue-400
+																																		{% elseif invoice.statut == 'overdue' %}bg-red-500/20 text-red-400
+																																		{% else %}bg-white/10 text-white/60{% endif %}">
+											{{ invoice.statut|capitalize }}
+										</span>
+									</a>
+								{% endfor %}
+							</div>
+						</div>
+					{% endif %}
+
+					{% if results.projects|length > 0 %}
+						<div>
+							<div class="px-6 py-3 bg-white/5 flex items-center justify-between">
+								<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+									{{ ux_icon('lucide:folder', {class: 'w-5 h-5 text-purple-400'}) }}
+									Projets
+								</h3>
+								{% if counts.projects > 10 %}
+									<a href="{{ path('admin_search_results', {q: query, type: 'projects'}) }}" class="text-sm text-blue-400 hover:text-blue-300">
+										Voir tout →
+									</a>
+								{% endif %}
+							</div>
+							<div class="divide-y divide-white/10">
+								{% for project in results.projects %}
+									<a href="{{ path('admin_project_edit', {id: project.id}) }}" class="flex items-center px-6 py-4 hover:bg-white/5 transition-colors">
+										<div class="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center mr-4">
+											{{ ux_icon('lucide:folder', {class: 'w-5 h-5 text-purple-400'}) }}
+										</div>
+										<div>
+											<p class="text-white font-medium">{{ project.titre }}</p>
+											<p class="text-white/60 text-sm">{{ project.description|slice(0, 60) }}...</p>
+										</div>
+									</a>
+								{% endfor %}
+							</div>
+						</div>
+					{% endif %}
+
+					{% if results.clients|length == 0 and results.quotes|length == 0 and results.invoices|length == 0 and results.projects|length == 0 %}
+						<div class="p-12 text-center">
+							{{ ux_icon('lucide:search-x', {class: 'w-16 h-16 text-white/20 mx-auto mb-4'}) }}
+							<p class="text-white/60 text-lg">Aucun résultat pour "{{ query }}"</p>
+							<p class="text-white/40 text-sm mt-2">Essayez avec d'autres mots-clés</p>
+						</div>
+					{% endif %}
+
+				{% else %}
+					{# Affichage paginé pour un type spécifique #}
+					{% if items|length > 0 %}
+						<div class="divide-y divide-white/10">
+							{% for item in items %}
+								{% if type == 'clients' %}
+									<a href="{{ path('admin_client_edit', {id: item.id}) }}" class="flex items-center px-6 py-4 hover:bg-white/5 transition-colors">
+										<div class="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center mr-4">
+											{{ ux_icon('lucide:user', {class: 'w-5 h-5 text-blue-400'}) }}
+										</div>
+										<div>
+											<p class="text-white font-medium">{{ item.companyName ?: (item.prenom ~ ' ' ~ item.nom) }}</p>
+											<p class="text-white/60 text-sm">{{ item.email }}</p>
+										</div>
+									</a>
+								{% elseif type == 'quotes' %}
+									<a href="{{ path('admin_quote_show', {id: item.id}) }}" class="flex items-center px-6 py-4 hover:bg-white/5 transition-colors">
+										<div class="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center mr-4">
+											{{ ux_icon('lucide:file-text', {class: 'w-5 h-5 text-green-400'}) }}
+										</div>
+										<div class="flex-1">
+											<p class="text-white font-medium">Devis
+												{{ item.numero }}</p>
+											<p class="text-white/60 text-sm">{{ item.client.companyName ?: item.client.nom }}</p>
+										</div>
+									</a>
+								{% elseif type == 'invoices' %}
+									<a href="{{ path('admin_invoice_show', {id: item.id}) }}" class="flex items-center px-6 py-4 hover:bg-white/5 transition-colors">
+										<div class="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center mr-4">
+											{{ ux_icon('lucide:receipt', {class: 'w-5 h-5 text-amber-400'}) }}
+										</div>
+										<div class="flex-1">
+											<p class="text-white font-medium">Facture
+												{{ item.numero }}</p>
+											<p class="text-white/60 text-sm">{{ item.client.companyName ?: item.client.nom }}</p>
+										</div>
+									</a>
+								{% elseif type == 'projects' %}
+									<a href="{{ path('admin_project_edit', {id: item.id}) }}" class="flex items-center px-6 py-4 hover:bg-white/5 transition-colors">
+										<div class="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center mr-4">
+											{{ ux_icon('lucide:folder', {class: 'w-5 h-5 text-purple-400'}) }}
+										</div>
+										<div>
+											<p class="text-white font-medium">{{ item.titre }}</p>
+											<p class="text-white/60 text-sm">{{ item.description|slice(0, 60) }}...</p>
+										</div>
+									</a>
+								{% endif %}
+							{% endfor %}
+						</div>
+
+						{# Pagination #}
+						{% if total_pages > 1 %}
+							<div class="px-6 py-4 bg-white/5 flex items-center justify-between">
+								<p class="text-white/60 text-sm">
+									Page
+									{{ current_page }}
+									sur
+									{{ total_pages }}
+								</p>
+								<div class="flex gap-2">
+									{% if current_page > 1 %}
+										<a href="{{ path('admin_search_results', {q: query, type: type, page: current_page - 1}) }}" class="px-3 py-1 bg-white/10 rounded text-white/80 hover:bg-white/20 text-sm">
+											← Précédent
+										</a>
+									{% endif %}
+									{% if current_page < total_pages %}
+										<a href="{{ path('admin_search_results', {q: query, type: type, page: current_page + 1}) }}" class="px-3 py-1 bg-white/10 rounded text-white/80 hover:bg-white/20 text-sm">
+											Suivant →
+										</a>
+									{% endif %}
+								</div>
+							</div>
+						{% endif %}
+					{% else %}
+						<div class="p-12 text-center">
+							{{ ux_icon('lucide:search-x', {class: 'w-16 h-16 text-white/20 mx-auto mb-4'}) }}
+							<p class="text-white/60 text-lg">Aucun résultat dans cette catégorie</p>
+						</div>
+					{% endif %}
+				{% endif %}
+			</div>
+		{% else %}
+			{# Message quand la recherche est trop courte #}
+			<div class="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-12 text-center">
+				{{ ux_icon('lucide:search', {class: 'w-16 h-16 text-white/20 mx-auto mb-4'}) }}
+				<p class="text-white/60 text-lg">Entrez au moins 2 caractères pour rechercher</p>
+			</div>
+		{% endif %}
+	</div>
+{% endblock %}

@@ -12,8 +12,8 @@ use Doctrine\Persistence\Event\LifecycleEventArgs;
 
 /**
  * EventSubscriber pour verrouiller les factures après émission
- * 
- * Conformité légale française : une facture émise (SENT, PAID, OVERDUE) 
+ *
+ * Conformité légale française : une facture émise (SENT, PAID, OVERDUE)
  * ne peut plus être modifiée.
  */
 #[AsEntityListener(event: Events::preUpdate, method: 'preUpdate')]
@@ -34,7 +34,7 @@ class LockOnInvoiceEmissionSubscriber
         $changeset = $uow->getEntityChangeSet($invoice);
 
         $statutEnum = $invoice->getStatutEnum();
-        
+
         // Vérifier si la facture est émise (ne peut plus être modifiée)
         if ($statutEnum && $statutEnum->isEmitted()) {
             $this->preventModifications($invoice, $changeset);
@@ -43,7 +43,7 @@ class LockOnInvoiceEmissionSubscriber
 
     /**
      * Empêche les modifications d'une facture émise
-     * 
+     *
      * @throws \RuntimeException si une tentative de modification est détectée
      */
     private function preventModifications(Invoice $invoice, array $changeset): void
@@ -59,7 +59,8 @@ class LockOnInvoiceEmissionSubscriber
             'pdpTransmissionDate', // Date transmission PDP
             'pdpResponse',      // Réponse PDP
             'pdfFilename',      // Nom du fichier PDF généré (technique, ne change pas le contenu)
-            'pdfHash'           // Hash du PDF généré (technique, ne change pas le contenu)
+            'pdfHash',           // Hash du PDF généré (technique, ne change pas le contenu)
+            'subscription'      // Lien avec l'abonnement Stripe
         ];
 
         foreach ($changeset as $field => $change) {
@@ -75,4 +76,3 @@ class LockOnInvoiceEmissionSubscriber
         }
     }
 }
-

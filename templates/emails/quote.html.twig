@@ -20,6 +20,14 @@
             <p><strong>Valide jusqu'au :</strong> {{ quote.dateValidite|date('d/m/Y') }}</p>
         {% endif %}
         <p><strong>Montant TTC :</strong> <span style="font-size: 18px; color: #1e293b;">{{ quote.montantTTCFormate }}</span></p>
+
+        {% if quote.acomptePourcentage > 0 %}
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #e5e7eb;">
+                <p style="color: #059669; margin-bottom: 5px;"><strong>💰 Conditions de paiement :</strong></p>
+                <p style="margin: 3px 0;">• Acompte de {{ quote.acomptePourcentage|number_format(0) }}% à la signature : <strong>{{ quote.acompteFormatted }}</strong></p>
+                <p style="margin: 3px 0;">• Solde de {{ (100 - quote.acomptePourcentage)|number_format(0) }}% à la livraison : <strong>{{ quote.soldeApresAcompteFormatted }}</strong></p>
+            </div>
+        {% endif %}
     </div>
 
     {# Boutons d'action avec magic links #}

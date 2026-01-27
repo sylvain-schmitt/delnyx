@@ -118,6 +118,36 @@ class CompanySettings
     #[Groups(['company_settings:read', 'company_settings:write'])]
     private ?string $telephone = null;
 
+    // ===== CONFIGURATION BANCAIRE (SEPA) =====
+
+    #[ORM\Column(type: Types::STRING, length: 34, nullable: true)]
+    #[Assert\Iban(message: 'L\'IBAN n\'est pas valide')]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?string $iban = null;
+
+    #[ORM\Column(type: Types::STRING, length: 11, nullable: true)]
+    #[Assert\Bic(message: 'Le BIC n\'est pas valide')]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?string $bic = null;
+
+    // ===== CONFIGURATION STRIPE (Paiement en ligne) =====
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['company_settings:write'])] // Pas en read pour sécurité
+    private ?string $stripeSecretKey = null;
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?string $stripePublishableKey = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['company_settings:write'])] // Pas en read pour sécurité
+    private ?string $stripeWebhookSecret = null;
+
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private bool $stripeEnabled = false;
+
     // ===== CONFIGURATION SIGNATURE ÉLECTRONIQUE =====
 
     #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
@@ -466,5 +496,82 @@ class CompanySettings
     public function getIndemniteForfaitaireRecouvrementFormatee(): string
     {
         return number_format((float) $this->indemniteForfaitaireRecouvrement, 2, ',', ' ') . ' €';
+    }
+    public function getIban(): ?string
+    {
+        return $this->iban;
+    }
+
+    public function setIban(?string $iban): static
+    {
+        $this->iban = $iban;
+        return $this;
+    }
+
+    public function getBic(): ?string
+    {
+        return $this->bic;
+    }
+
+    public function setBic(?string $bic): static
+    {
+        $this->bic = $bic;
+        return $this;
+    }
+
+    // ===== GETTERS/SETTERS STRIPE =====
+
+    public function getStripeSecretKey(): ?string
+    {
+        return $this->stripeSecretKey;
+    }
+
+    public function setStripeSecretKey(?string $stripeSecretKey): static
+    {
+        $this->stripeSecretKey = $stripeSecretKey;
+        return $this;
+    }
+
+    public function getStripePublishableKey(): ?string
+    {
+        return $this->stripePublishableKey;
+    }
+
+    public function setStripePublishableKey(?string $stripePublishableKey): static
+    {
+        $this->stripePublishableKey = $stripePublishableKey;
+        return $this;
+    }
+
+    public function getStripeWebhookSecret(): ?string
+    {
+        return $this->stripeWebhookSecret;
+    }
+
+    public function setStripeWebhookSecret(?string $stripeWebhookSecret): static
+    {
+        $this->stripeWebhookSecret = $stripeWebhookSecret;
+        return $this;
+    }
+
+    public function isStripeEnabled(): bool
+    {
+        return $this->stripeEnabled;
+    }
+
+    public function setStripeEnabled(bool $stripeEnabled): static
+    {
+        $this->stripeEnabled = $stripeEnabled;
+        return $this;
+    }
+
+    /**
+     * Vérifie si la configuration Stripe est complète et activée
+     */
+    public function hasValidStripeConfig(): bool
+    {
+        return $this->stripeEnabled
+            && !empty($this->stripeSecretKey)
+            && !empty($this->stripePublishableKey);
     }
 }

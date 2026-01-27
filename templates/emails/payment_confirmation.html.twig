@@ -18,11 +18,11 @@
 			{{ invoice.numero }}</p>
 		<p style="margin: 5px 0;">
 			<strong>Montant payé :</strong>
-			<span style="font-size: 18px; color: #16a34a; font-weight: bold;">{{ invoice.montantTTCFormate }}</span>
+			<span style="font-size: 18px; color: #16a34a; font-weight: bold;">{{ amountPaid ? amountPaid|number_format(2, ',', ' ') ~ ' €' : invoice.montantTTCFormate }}</span>
 		</p>
 		<p style="margin: 5px 0;">
 			<strong>Date de paiement :</strong>
-			{{ "now"|date('d/m/Y à H:i') }}</p>
+			{{ invoice.datePaiement|date('d/m/Y à H:i') }}</p>
 	</div>
 
 	{# Bouton d'action avec magic link #}

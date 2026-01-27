@@ -25,37 +25,44 @@
 
 		{# Dashboard #}
 		<a href="{{ path('admin_dashboard') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
-				           {{ app.request.attributes.get('_route') == 'admin_dashboard' ? 'bg-white/20 text-white' : '' }}">
+								           {{ app.request.attributes.get('_route') == 'admin_dashboard' ? 'bg-white/20 text-white' : '' }}">
 			{{ ux_icon('lucide:layout', {class: 'w-5 h-5'}) }}
 			<span class="font-medium">Dashboard</span>
 		</a>
 
 		{# Clients #}
 		<a href="{{ path('admin_client_index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
-				           {{ app.request.attributes.get('_route') starts with 'admin_client' ? 'bg-white/20 text-white' : '' }}">
+								           {{ app.request.attributes.get('_route') starts with 'admin_client' ? 'bg-white/20 text-white' : '' }}">
 			{{ ux_icon('lucide:users', {class: 'w-5 h-5'}) }}
 			<span class="font-medium">Clients</span>
 		</a>
 
 		{# Devis #}
 		<a href="{{ path('admin_quote_index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
-				           {{ app.request.attributes.get('_route') starts with 'admin_quote' ? 'bg-white/20 text-white' : '' }}">
+								           {{ app.request.attributes.get('_route') starts with 'admin_quote' ? 'bg-white/20 text-white' : '' }}">
 			{{ ux_icon('lucide:file-text', {class: 'w-5 h-5'}) }}
 			<span class="font-medium">Devis</span>
 		</a>
 
 		{# Factures #}
 		<a href="{{ path('admin_invoice_index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
-				           {{ app.request.attributes.get('_route') starts with 'admin_invoice' ? 'bg-white/20 text-white' : '' }}">
+								           {{ app.request.attributes.get('_route') starts with 'admin_invoice' ? 'bg-white/20 text-white' : '' }}">
 			{{ ux_icon('lucide:credit-card', {class: 'w-5 h-5'}) }}
 			<span class="font-medium">Factures</span>
 		</a>
 
 		{# Tarifs / Catalogue #}
 		<a href="{{ path('admin_tariff_index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
-				           {{ app.request.attributes.get('_route') starts with 'admin_tariff' ? 'bg-white/20 text-white' : '' }}">
+								           {{ app.request.attributes.get('_route') starts with 'admin_tariff' ? 'bg-white/20 text-white' : '' }}">
 			{{ ux_icon('lucide:tag', {class: 'w-5 h-5'}) }}
 			<span class="font-medium">Catalogue</span>
+		</a>
+
+		{# Abonnements #}
+		<a href="{{ path('admin_subscription_index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
+								           {{ app.request.attributes.get('_route') starts with 'admin_subscription' ? 'bg-white/20 text-white' : '' }}">
+			{{ ux_icon('lucide:calendar-clock', {class: 'w-5 h-5'}) }}
+			<span class="font-medium">Abonnements</span>
 		</a>
 
 		{# Séparateur - Automatisation #}
@@ -66,7 +73,7 @@
 
 		{# Relances #}
 		<a href="{{ path('admin_reminder_index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
-				           {{ app.request.attributes.get('_route') starts with 'admin_reminder' ? 'bg-white/20 text-white' : '' }}">
+								           {{ app.request.attributes.get('_route') starts with 'admin_reminder' ? 'bg-white/20 text-white' : '' }}">
 			{{ ux_icon('lucide:bell', {class: 'w-5 h-5'}) }}
 			<span class="font-medium">Relances</span>
 		</a>
@@ -76,14 +83,14 @@
 
 		{# Portfolio #}
 		<a href="{{ path('admin_project_index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
-				           {{ app.request.attributes.get('_route') starts with 'admin_project' ? 'bg-white/20 text-white' : '' }}">
+								           {{ app.request.attributes.get('_route') starts with 'admin_project' ? 'bg-white/20 text-white' : '' }}">
 			{{ ux_icon('lucide:briefcase', {class: 'w-5 h-5'}) }}
 			<span class="font-medium">Portfolio</span>
 		</a>
 
 		{# Technologies #}
 		<a href="{{ path('admin_technology_index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group
-				           {{ app.request.attributes.get('_route') starts with 'admin_technology' ? 'bg-white/20 text-white' : '' }}">
+								           {{ app.request.attributes.get('_route') starts with 'admin_technology' ? 'bg-white/20 text-white' : '' }}">
 			{{ ux_icon('lucide:code', {class: 'w-5 h-5'}) }}
 			<span class="font-medium">Technologies</span>
 		</a>

@@ -2,6 +2,9 @@
 
 {% block content %}
 	<!-- En-tête -->
+	{% if invoice.statutEnum.value == 'paid' %}
+		<div class="watermark watermark-paid">PAYÉE</div>
+	{% endif %}
 	<div class="header">
 		<div class="company-info">
 			<div class="company-logo">
@@ -112,8 +115,15 @@
 							<strong>{{ line.description }}</strong>
 						</td>
 						<td class="text-center">{{ line.quantity }}</td>
-						<td class="text-right">{{ line.unitPrice|number_format(2, ',', ' ') }}
-							€</td>
+						<td class="text-right">
+							{{ line.unitPrice|number_format(2, ',', ' ') }}
+							€
+							{% if line.subscriptionMode == 'monthly' %}
+								<span style="font-size: 0.8em; color: #666;">/ mois</span>
+							{% elseif line.subscriptionMode == 'yearly' %}
+								<span style="font-size: 0.8em; color: #666;">/ an</span>
+							{% endif %}
+						</td>
 						{% if company and company.isTvaEnabled() %}
 							<td class="text-right">{{ line.tvaRate }}
 								%</td>
@@ -142,7 +152,39 @@
 					<td class="label">Total TTC:</td>
 					<td class="amount">{{ invoice.montantTTCFormate }}</td>
 				</tr>
-				{% if invoice.montantAcompte > 0 %}
+
+				{# Affichage des acomptes déduits #}
+				{% if invoice.hasDepositsDeducted() %}
+					<tr>
+						<td colspan="2" style="padding-top: 10px; border-top: 1px solid #e5e7eb;">
+							<strong style="color: #4b5563;">Récapitulatif acomptes :</strong>
+						</td>
+					</tr>
+					{% for deposit in invoice.deposits %}
+						{% if deposit.status.value != 'cancelled' %}
+							<tr style="color: {{ deposit.status.value == 'paid' ? '#059669' : '#2563eb' }};">
+								<td class="label" style="font-size: 10px; padding-left: 10px;">
+									{% if deposit.depositInvoice %}
+										Facture {{ deposit.depositInvoice.numero }} du {{ deposit.requestedAt|date('d/m/Y') }}
+									{% else %}
+										Acompte du {{ deposit.requestedAt|date('d/m/Y') }}
+									{% endif %}
+									{% if deposit.status.value != 'paid' %}
+										(À payer)
+									{% endif %}
+								</td>
+								<td class="amount">- {{ deposit.formattedAmount }}</td>
+							</tr>
+						{% endif %}
+					{% endfor %}
+					<tr class="total-row" style="background-color: #1f2937;">
+						<td class="label" style="color: white; font-weight: bold;">RESTE À PAYER:</td>
+						<td class="amount" style="color: white; font-weight: bold;">{{ invoice.balanceDueFormatted }}</td>
+					</tr>
+				{% endif %}
+
+				{# Ancien système (fallback pour compatibilité) #}
+				{% if not invoice.hasDepositsDeducted() and invoice.montantAcompte > 0 %}
 					<tr>
 						<td class="label">Acompte versé:</td>
 						<td class="amount">{{ invoice.montantAcompte|number_format(2, ',', ' ') }}
@@ -150,8 +192,14 @@
 					</tr>
 					<tr>
 						<td class="label">Solde à payer:</td>
-						<td class="amount">{{ (invoice.montantTTC - invoice.montantAcompte)|number_format(2, ',', ' ') }}
-							€</td>
+						<td class="amount">
+							{% if invoice.statutEnum.value == 'paid' %}
+								0,00 €
+							{% else %}
+								{{ (invoice.montantTTC - invoice.montantAcompte)|number_format(2, ',', ' ') }}
+								€
+							{% endif %}
+						</td>
 					</tr>
 				{% endif %}
 			</table>
@@ -169,12 +217,20 @@
 					<strong>Échéance:</strong>
 					{{ invoice.dateEcheance|date('d/m/Y') }}<br>
 				{% endif %}
+
+				<strong>Pénalités de retard:</strong>
 				{% if invoice.penalitesRetard %}
-					<strong>Pénalités de retard:</strong>
-					{{ invoice.penalitesRetard }}% du montant TTC<br>
-				{% endif %}
+					{{ invoice.penalitesRetard }}% du montant TTC
+				{% else %}
+					À défaut de paiement, pénalité de 10,00% par an ou 3 fois le taux d'intérêt légal
+				{% endif %}<br>
+
+				<strong>Escompte:</strong>
+				Pas d'escompte pour paiement anticipé.<br>
+
 				<strong>Indemnité forfaitaire de recouvrement:</strong>
 				{{ company.indemniteForfaitaireRecouvrementFormatee ?? '40,00 €' }}<br>
+
 				<em style="font-size: 8px;">En cas de retard de paiement, pénalités et indemnité forfaitaire appliquées conformément à l'article L.441-6 du Code de commerce.</em>
 			</div>
 		</div>

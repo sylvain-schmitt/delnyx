@@ -71,6 +71,15 @@ class QuoteLine
     #[Groups(['quote_line:read', 'quote_line:write'])]
     private ?bool $isCustom = false;
 
+    #[ORM\Column(type: Types::STRING, length: 20, nullable: true)]
+    #[Assert\Choice(choices: ['monthly', 'yearly'], message: 'Le mode d\'abonnement doit être monthly ou yearly')]
+    #[Groups(['quote_line:read', 'quote_line:write'])]
+    private ?string $subscriptionMode = null;
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
+    #[Groups(['quote_line:read', 'quote_line:write'])]
+    private ?string $recurrenceAmount = null;
+
     #[ORM\ManyToOne(inversedBy: 'lines')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull(message: 'La ligne doit être liée à un devis')]
@@ -160,6 +169,28 @@ class QuoteLine
         return $this;
     }
 
+    public function getSubscriptionMode(): ?string
+    {
+        return $this->subscriptionMode;
+    }
+
+    public function setSubscriptionMode(?string $subscriptionMode): static
+    {
+        $this->subscriptionMode = $subscriptionMode;
+        return $this;
+    }
+
+    public function getRecurrenceAmount(): ?string
+    {
+        return $this->recurrenceAmount;
+    }
+
+    public function setRecurrenceAmount(?string $recurrenceAmount): static
+    {
+        $this->recurrenceAmount = $recurrenceAmount;
+        return $this;
+    }
+
     public function getQuote(): ?Quote
     {
         return $this->quote;
@@ -193,6 +224,16 @@ class QuoteLine
             $prixEnEuros = (float) $tariff->getPrix();
             $this->unitPrice = number_format($prixEnEuros, 2, '.', '');
             $this->isCustom = false;
+
+            // Détection automatique du mode d'abonnement
+            if ($tariff->getUnite() === 'mois') {
+                $this->subscriptionMode = 'monthly';
+            } elseif ($tariff->getUnite() === 'an') {
+                $this->subscriptionMode = 'yearly';
+            } else {
+                $this->subscriptionMode = null;
+            }
+
             $this->recalculateTotalHt();
         }
 

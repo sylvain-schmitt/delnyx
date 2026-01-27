@@ -1,49 +1,61 @@
 {% extends 'emails/layout/base.html.twig' %}
 
 {% block body %}
-    <h1>Avenant à votre devis</h1>
+	<h1>Avenant à votre devis</h1>
 
-    <p>Bonjour {{ client.nomComplet }},</p>
+	<p>Bonjour
+		{{ client.nomComplet }},</p>
 
-    {% if customMessage %}
-        <div class="custom-message">
-            {{ customMessage|nl2br }}
-        </div>
-    {% else %}
-        <p>Nous vous transmettons un avenant modifiant votre devis initial.</p>
-    {% endif %}
+	{% if customMessage %}
+		<div class="custom-message">
+			{{ customMessage|nl2br }}
+		</div>
+	{% else %}
+		<p>Nous vous transmettons un avenant modifiant votre devis initial.</p>
+	{% endif %}
 
-    <div class="info-box">
-        <p><strong>Numéro d'avenant :</strong> {{ amendment.numero }}</p>
-        <p><strong>Devis associé :</strong> {{ quote.numero }}</p>
-        <p><strong>Date :</strong> {{ amendment.dateCreation|date('d/m/Y') }}</p>
-        <p><strong>Montant de l'avenant :</strong> <span style="font-size: 18px; color: #1e293b;">{{ amendment.montantTTCFormate }}</span></p>
-    </div>
+	<div class="info-box">
+		<p>
+			<strong>Numéro d'avenant :</strong>
+			{{ amendment.numero }}</p>
+		<p>
+			<strong>Devis associé :</strong>
+			{{ quote.numero }}</p>
+		<p>
+			<strong>Date :</strong>
+			{{ amendment.dateCreation|date('d/m/Y') }}</p>
+		<p>
+			<strong>Montant de l'avenant (Différentiel) :</strong>
+			<span style="font-size: 18px; color: #1e293b;">{{ amendment.montantDeltaTtcFormate }}</span>
+		</p>
+		<p>
+			<strong>Nouveau total du devis :</strong>
+			{{ amendment.montantTTCFormate }}</p>
+	</div>
 
-    {# Boutons d'action avec magic links #}
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="{{ magic_link(amendment, 'view') }}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 5px;">
-            👁️ Voir l'avenant
-        </a>
-        {% if amendment.statut.value in ['issued', 'sent'] %}
-            <a href="{{ magic_link(amendment, 'sign') }}" style="display: inline-block; padding: 12px 24px; background-color: #22c55e; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 5px;">
-                ✅ Signer l'avenant
-            </a>
-        {% endif %}
-    </div>
+	{# Boutons d'action avec magic links #}
+	<div style="text-align: center; margin: 30px 0;">
+		<a href="{{ magic_link(amendment, 'view') }}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 5px;">
+			👁️ Voir l'avenant
+		</a>
+		{% if amendment.statut.value in ['issued', 'sent'] %}
+			<a href="{{ magic_link(amendment, 'sign') }}" style="display: inline-block; padding: 12px 24px; background-color: #22c55e; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 5px;">
+				✅ Signer l'avenant
+			</a>
+		{% endif %}
+	</div>
 
-    <div style="background-color: #f0f9ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 30px 0;">
-        <p style="margin: 0; color: #1e40af;">
-            📎 <strong>L'avenant complet est également disponible en pièce jointe (PDF).</strong>
-        </p>
-    </div>
+	<div style="background-color: #f0f9ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 30px 0;">
+		<p style="margin: 0; color: #1e40af;">
+			📎
+			<strong>L'avenant complet est également disponible en pièce jointe (PDF).</strong>
+		</p>
+	</div>
 
-    <p>Pour toute question concernant cet avenant, n'hésitez pas à nous contacter.</p>
+	<p>Pour toute question concernant cet avenant, n'hésitez pas à nous contacter.</p>
 
-    <p style="margin-top: 30px;">
-        Cordialement,<br>
-        <strong>L'équipe Delnyx</strong>
-    </p>
+	<p style="margin-top: 30px;">
+		Cordialement,<br>
+		<strong>L'équipe Delnyx</strong>
+	</p>
 {% endblock %}
-
-

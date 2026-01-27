@@ -1,0 +1,30 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block body %}
+    <h1 style="color: #dc2626;">Échec de votre paiement</h1>
+
+    <p>Bonjour {{ client.nomComplet }},</p>
+
+    <p>Nous vous informons que le paiement pour la facture <strong>{{ invoice.numero }}</strong> n'a pas pu être traité.</p>
+
+    <div class="info-box" style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 20px; margin: 25px 0;">
+        <p style="margin: 0 0 10px 0;"><strong>Détails :</strong></p>
+        <p style="margin: 5px 0;"><strong>Motif :</strong> {{ reason }}</p>
+        <p style="margin: 5px 0;"><strong>Montant :</strong> {{ invoice.balanceDueFormatted }}</p>
+    </div>
+
+    <p>Pour régulariser votre situation, nous vous invitons à mettre à jour votre moyen de paiement ou à procéder à une nouvelle tentative via le lien ci-dessous :</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{{ actionUrl }}" style="display: inline-block; padding: 12px 24px; background-color: #dc2626; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+            💳 Réessayer le paiement
+        </a>
+    </div>
+
+    <p>Si vous avez déjà régularisé votre situation, veuillez ignorer cet email.</p>
+
+    <p style="margin-top: 30px;">
+        Cordialement,<br>
+        <strong>L'équipe {{ companySettings ? companySettings.raisonSociale : 'Delnyx' }}</strong>
+    </p>
+{% endblock %}

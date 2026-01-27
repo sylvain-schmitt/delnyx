@@ -20,8 +20,8 @@ use App\Entity\QuoteStatus;
 
 /**
  * Entité Amendment pour gérer les modifications des quotes signés
- * 
- * CONTRAINTE LÉGALE : 
+ *
+ * CONTRAINTE LÉGALE :
  * - Un amendment ne peut être créé que pour un quote SIGNED
  * - Un avenant signé devient immuable
  * - Le montant du devis est recalculé automatiquement : quote.total += amendment.total
@@ -448,6 +448,39 @@ class Amendment
         return $this;
     }
 
+    public function getMontantDeltaTTC(): float
+    {
+        $totalDelta = 0.0;
+        foreach ($this->lines as $line) {
+            $totalDelta += (float) $line->getDeltaTtc();
+        }
+        return round($totalDelta, 2);
+    }
+
+    public function getMontantDeltaHT(): float
+    {
+        $totalDelta = 0.0;
+        foreach ($this->lines as $line) {
+            $totalDelta += (float) $line->getDelta();
+        }
+        return round($totalDelta, 2);
+    }
+
+    public function getMontantDeltaTVA(): float
+    {
+        return round($this->getMontantDeltaTTC() - $this->getMontantDeltaHT(), 2);
+    }
+
+    /**
+     * Retourne le montant de l'avenant formaté
+     */
+    public function getMontantDeltaTtcFormate(): string
+    {
+        $delta = $this->getMontantDeltaTTC();
+        $sign = $delta > 0 ? '+' : '';
+        return $sign . number_format($delta, 2, ',', ' ') . ' €';
+    }
+
     // ===== RELATION AVEC LES LIGNES =====
 
     /**
@@ -497,7 +530,7 @@ class Amendment
 
         // Récupérer le devis associé pour connaître le mode de TVA
         $quote = $this->quote;
-        
+
         // Déterminer si on utilise la TVA par ligne :
         // - Si un devis est associé, utiliser usePerLineTva du devis
         // - Sinon, détecter automatiquement si au moins une ligne a un taux de TVA défini
@@ -520,7 +553,7 @@ class Amendment
 
             // Déterminer le taux de TVA à utiliser pour cette ligne
             $tvaRate = null;
-            
+
             if ($usePerLineTva && $line->getSourceLine()) {
                 // TVA par ligne : pour une modification, utiliser le taux de la ligne source
                 $sourceTvaRate = $line->getSourceLine()->getTvaRate();
@@ -528,17 +561,17 @@ class Amendment
                     $tvaRate = (float) $sourceTvaRate;
                 }
             }
-            
+
             // Si pas de taux depuis la source, utiliser celui de la ligne d'avenant
             if ($tvaRate === null && $line->getTvaRate() && (float) $line->getTvaRate() > 0) {
                 $tvaRate = (float) $line->getTvaRate();
             }
-            
+
             // Si toujours pas de taux, utiliser le taux global de l'avenant
             if ($tvaRate === null && $this->tauxTVA && (float) $this->tauxTVA > 0) {
                 $tvaRate = (float) $this->tauxTVA;
             }
-            
+
             // Si toujours pas de taux, utiliser le taux global du devis
             if ($tvaRate === null && $quote && $quote->getTauxTVA() && (float) $quote->getTauxTVA() > 0) {
                 $tvaRate = (float) $quote->getTauxTVA();
@@ -558,7 +591,7 @@ class Amendment
 
     /**
      * Valide que l'avenant peut être signé
-     * 
+     *
      * @throws \RuntimeException si l'avenant ne peut pas être signé
      */
     public function validateCanBeSigned(): void
@@ -568,14 +601,9 @@ class Amendment
             throw new \RuntimeException('Un avenant ne peut pas être signé sans ligne.');
         }
 
-        // Vérifier que le montant HT est positif
-        if ((float) $this->montantHT <= 0) {
-            throw new \RuntimeException('Un avenant ne peut pas être signé avec un montant HT négatif ou nul.');
-        }
-
-        // Vérifier que le montant TTC est positif
-        if ((float) $this->montantTTC <= 0) {
-            throw new \RuntimeException('Un avenant ne peut pas être signé avec un montant TTC négatif ou nul.');
+        // Vérifier que le montant HT n'est pas nul
+        if (abs((float) $this->montantHT) < 0.01) {
+            throw new \RuntimeException('Un avenant ne peut pas être signé avec un montant nul.');
         }
 
         // Vérifier que l'avenant n'est pas annulé
@@ -653,6 +681,40 @@ class Amendment
     public function __toString(): string
     {
         return $this->numero ?? 'Avenant #' . $this->id;
+    }
+
+    #[ORM\OneToOne(targetEntity: Invoice::class, cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['amendment:read'])]
+    private ?Invoice $invoice = null;
+
+    public function getInvoice(): ?Invoice
+    {
+        return $this->invoice;
+    }
+
+    public function setInvoice(?Invoice $invoice): static
+    {
+        $this->invoice = $invoice;
+
+        return $this;
+    }
+
+    #[ORM\OneToOne(targetEntity: CreditNote::class, cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['amendment:read'])]
+    private ?CreditNote $creditNote = null;
+
+    public function getCreditNote(): ?CreditNote
+    {
+        return $this->creditNote;
+    }
+
+    public function setCreditNote(?CreditNote $creditNote): static
+    {
+        $this->creditNote = $creditNote;
+
+        return $this;
     }
 
     // ===== LIFECYCLE CALLBACKS =====

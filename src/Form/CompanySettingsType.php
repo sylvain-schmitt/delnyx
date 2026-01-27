@@ -13,6 +13,7 @@ use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -126,6 +127,20 @@ class CompanySettingsType extends AbstractType
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
 
+            // ===== CONFIGURATION BANCAIRE =====
+            ->add('iban', TextType::class, [
+                'label' => 'IBAN',
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'placeholder' => 'FR76...'],
+                'help' => 'Affiché sur les factures pour les paiements par virement',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('bic', TextType::class, [
+                'label' => 'BIC / SWIFT',
+                'required' => false,
+                'attr' => ['class' => 'form-input'],
+            ])
+
             // ===== CONFIGURATION TVA =====
             ->add('tvaEnabled', CheckboxType::class, [
                 'label' => 'TVA activée',
@@ -189,6 +204,36 @@ class CompanySettingsType extends AbstractType
                 'attr' => ['class' => 'form-input', 'type' => 'password']
             ])
 
+            // ===== CONFIGURATION STRIPE (Paiement en ligne) =====
+            ->add('stripeEnabled', CheckboxType::class, [
+                'label' => 'Activer les paiements Stripe',
+                'required' => false,
+                'attr' => ['class' => 'form-checkbox'],
+                'help' => 'Active le paiement par carte bancaire pour les factures et acomptes',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('stripePublishableKey', TextType::class, [
+                'label' => 'Clé publique Stripe',
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'placeholder' => 'pk_test_... ou pk_live_...'],
+                'help' => 'Utilisée pour le frontend (Stripe Elements)',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('stripeSecretKey', PasswordType::class, [
+                'label' => 'Clé secrète Stripe',
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'placeholder' => 'sk_test_... ou sk_live_...', 'autocomplete' => 'new-password'],
+                'help' => 'Ne jamais exposer côté client - utilisée uniquement côté serveur',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('stripeWebhookSecret', PasswordType::class, [
+                'label' => 'Secret webhook Stripe',
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'placeholder' => 'whsec_...', 'autocomplete' => 'new-password'],
+                'help' => 'Récupérez-le depuis le dashboard Stripe > Webhooks > Détails du endpoint',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+
             ->add('submit', SubmitType::class, [
                 'label' => 'Enregistrer les paramètres',
                 'attr' => ['class' => 'btn btn-primary']
@@ -205,6 +250,11 @@ class CompanySettingsType extends AbstractType
 
             $tvaEnabled = array_key_exists('tvaEnabled', $data) ? (bool) $data['tvaEnabled'] : false;
             $tvaEnabled = array_key_exists('tvaEnabled', $data) ? (bool) $data['tvaEnabled'] : false;
+
+            if (isset($data['iban'])) {
+                // Nettoyer l'IBAN (retirer les espaces et majuscules)
+                $data['iban'] = mb_strtoupper(str_replace(' ', '', $data['iban']));
+            }
 
             if (!$tvaEnabled) {
                 // Si TVA désactivée, on force à 0.00

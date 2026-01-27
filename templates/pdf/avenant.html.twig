@@ -2,6 +2,9 @@
 
 {% block content %}
 	<!-- En-tête -->
+	{% if amendment.statut.value == 'signed' %}
+		<div class="watermark watermark-signed">SIGNÉ</div>
+	{% endif %}
 	<div class="header">
 		<div class="company-info">
 			<div class="company-logo">
@@ -156,9 +159,61 @@
 					</tr>
 				{% endif %}
 				<tr class="total-row">
-					<td class="label">Total TTC:</td>
+					<td class="label">Total TTC (Nouveau):</td>
 					<td class="amount">{{ amendment.montantTTCFormate }}</td>
 				</tr>
+
+				<!-- Montant spécifique de l'avenant (Delta) -->
+				<tr style="background-color: #f0f9ff;">
+					<td class="label" style="color: #1e40af;">
+						<strong>Dont montant de l'avenant (Différentiel):</strong>
+					</td>
+					<td class="amount" style="color: #1e40af;">
+						<strong>{{ amendment.getMontantDeltaTtcFormate() }}</strong>
+					</td>
+				</tr>
+
+				<!-- Calcul du total payé (règlements effectifs) -->
+				{% set totalPaid = 0 %}
+				{% set quote = amendment.quote %}
+
+				{# 1. Facture Principale #}
+				{% if quote.invoice and quote.invoice.statut == 'paid' %}
+					{% set totalPaid = quote.getMontantTTCInitial() %}
+				{% else %}
+					{% set totalPaid = quote.totalPaidDeposits %}
+				{% endif %}
+
+				{# 2. Factures des avenants et remoursements d'avoirs #}
+				{% set avenantsSignes = quote.amendments|filter(a => a.statut.value == 'signed') %}
+				{% for otherAmendment in avenantsSignes %}
+					{# Complément d'avenant payé #}
+					{% if otherAmendment.invoice and otherAmendment.invoice.statut == 'paid' %}
+						{% set totalPaid = totalPaid + otherAmendment.invoice.montantTTC %}
+					{% endif %}
+
+					{# Avoir remboursé #}
+					{% if otherAmendment.creditNote and otherAmendment.creditNote.statut == 'refunded' %}
+						{% set totalPaid = totalPaid - otherAmendment.creditNote.montantTTC %}
+					{% endif %}
+				{% endfor %}
+
+				{% if totalPaid > 0 %}
+					<tr>
+						<td class="label">Déjà réglé:</td>
+						<td class="amount">{{ totalPaid|number_format(2, ',', ' ') }}
+							€</td>
+					</tr>
+					<tr class="total-row">
+						{% set solde = amendment.montantTTC - totalPaid %}
+						<td class="label">
+							{% if solde < 0 %}Reste à rembourser:{% else %}Reste à payer (Solde total):
+							{% endif %}
+						</td>
+						<td class="amount">{{ solde|abs|number_format(2, ',', ' ') }}
+							€</td>
+					</tr>
+				{% endif %}
 			</table>
 		</div>
 
@@ -193,6 +248,10 @@
 					{{ company.assuranceRCPro }}<br>
 				{% endif %}
 			{% endif %}
+			<strong>Pénalités de retard:</strong>
+			À défaut de paiement, pénalité de 10,00% par an ou 3 fois le taux d'intérêt légal.<br>
+			<strong>Escompte:</strong>
+			Pas d'escompte pour paiement anticipé.<br>
 			{% if company and not company.isTvaEnabled() %}
 				<strong>Micro-entrepreneur:</strong>
 				TVA non applicable selon l'article 293 B du Code Général des Impôts.

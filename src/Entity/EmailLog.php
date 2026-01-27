@@ -10,7 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Entité pour tracer tous les emails envoyés
- * 
+ *
  * Conformité : Conservation des preuves d'envoi (10 ans)
  */
 #[ORM\Entity(repositoryClass: EmailLogRepository::class)]
@@ -37,8 +37,8 @@ class EmailLog
     #[ORM\Column(length: 255)]
     private string $subject;
 
-    #[ORM\Column(length: 20)]
-    private string $type; // quote, invoice, amendment, credit_note
+    #[ORM\Column(length: 50)]
+    private string $type; // quote, invoice, amendment, credit_note, manual_payment_notification, etc.
 
     #[ORM\Column(length: 20)]
     private string $status = 'sent'; // sent, failed, bounced
@@ -189,4 +189,3 @@ class EmailLog
         return $this;
     }
 }
-

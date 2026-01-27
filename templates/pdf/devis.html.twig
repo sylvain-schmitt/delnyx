@@ -2,6 +2,9 @@
 
 {% block content %}
 	<!-- En-tête -->
+	{% if quote.statut.value == 'signed' %}
+		<div class="watermark watermark-signed">SIGNÉ</div>
+	{% endif %}
 	<div class="header">
 		<div class="company-info">
 			<div class="company-logo">
@@ -119,8 +122,15 @@
 							<strong>{{ line.description }}</strong>
 						</td>
 						<td class="text-center">{{ line.quantity }}</td>
-						<td class="text-right">{{ line.unitPrice|number_format(2, ',', ' ') }}
-							€</td>
+						<td class="text-right">
+							{{ line.unitPrice|number_format(2, ',', ' ') }}
+							€
+							{% if line.subscriptionMode == 'monthly' %}
+								<span style="font-size: 0.8em; color: #666;">/ mois</span>
+							{% elseif line.subscriptionMode == 'yearly' %}
+								<span style="font-size: 0.8em; color: #666;">/ an</span>
+							{% endif %}
+						</td>
 						{% if company and company.isTvaEnabled() %}
 							<td class="text-right">{{ line.tvaRate }}
 								%</td>
@@ -149,6 +159,17 @@
 					<td class="label">Total TTC:</td>
 					<td class="amount">{{ quote.montantTTCFormate }}</td>
 				</tr>
+				{% if quote.acomptePourcentage > 0 %}
+					<tr style="border-top: 1px dashed #ccc; margin-top: 5px;">
+						<td class="label" style="padding-top: 8px; color: #666;">Acompte à la signature ({{ quote.acomptePourcentage|number_format(0) }}%) :</td>
+						<td class="amount" style="padding-top: 8px; color: #2563eb; font-weight: bold;">{{ quote.montantAcompteFormate }}</td>
+					</tr>
+					<tr>
+						<td class="label" style="color: #666;">Solde à la livraison ({{ (100 - quote.acomptePourcentage)|number_format(0) }}%) :</td>
+						<td class="amount" style="color: #059669; font-weight: bold;">{{ ((quote.montantTTC * (100 - quote.acomptePourcentage) / 100))|number_format(2, ',', ' ') }}
+							€</td>
+					</tr>
+				{% endif %}
 			</table>
 		</div>
 
@@ -181,6 +202,11 @@
 			{% endif %}
 			Devis valable jusqu'au
 			{{ quote.dateValidite|date('d/m/Y') }}.<br>
+			<strong>Pénalités de retard:</strong>
+			À défaut de paiement, pénalité de 10,00% par an ou 3 fois le taux d'intérêt légal.<br>
+			<strong>Escompte:</strong>
+			Pas d'escompte pour paiement anticipé.<br>
+			<em>Devis reçu avant l'exécution des travaux.</em><br>
 			{% if company and not company.isTvaEnabled() %}
 				<strong>Micro-entrepreneur:</strong>
 				TVA non applicable selon l'article 293 B du Code Général des Impôts.

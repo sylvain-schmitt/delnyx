@@ -21,6 +21,9 @@ export default class extends Controller {
         // Écouter les changements sur les selects tariff pour auto-remplir
         this.setupTariffListeners()
 
+        // Écouter les changements sur les selects de récurrence (subscriptionMode)
+        this.setupSubscriptionModeListeners()
+
         // Note: La gestion de l'affichage/masquage des champs tvaRate est maintenant gérée par le contrôleur tva-per-line
         // On garde cette méthode pour compatibilité mais elle ne sera plus utilisée si tva-per-line est présent
     }
@@ -34,6 +37,19 @@ export default class extends Controller {
             if (!select.hasAttribute('data-tariff-listener')) {
                 select.addEventListener('change', (e) => this.handleTariffChange(e))
                 select.setAttribute('data-tariff-listener', 'true')
+            }
+        })
+    }
+
+    /**
+     * Configure les écouteurs pour les selects de récurrence (subscriptionMode)
+     */
+    setupSubscriptionModeListeners() {
+        const subscriptionSelects = this.element.querySelectorAll('select[name*="[subscriptionMode]"]')
+        subscriptionSelects.forEach(select => {
+            if (!select.hasAttribute('data-subscription-listener')) {
+                select.addEventListener('change', (e) => this.handleSubscriptionModeChange(e))
+                select.setAttribute('data-subscription-listener', 'true')
             }
         })
     }
@@ -65,6 +81,9 @@ export default class extends Controller {
 
             const data = await response.json()
 
+            // Stocker les données du tarif sur l'élément de ligne pour usage ultérieur
+            lineElement.setAttribute('data-tariff-data', JSON.stringify(data))
+
             // Pré-remplir la description
             if (descriptionInput && data.nom) {
                 descriptionInput.value = data.nom
@@ -83,8 +102,82 @@ export default class extends Controller {
                 quantityInput.dispatchEvent(new Event('input', { bubbles: true }))
             }
 
+            // Gestion de l'abonnement
+            const subscriptionSelect = lineElement.querySelector('select[name*="[subscriptionMode]"]')
+            if (subscriptionSelect) {
+                // Détection basée sur l'unité (prioritaire) ou la récurrence explicite
+                let mode = ''
+
+                if (data.unite === 'mois') {
+                    mode = 'monthly'
+                } else if (data.unite === 'an') {
+                    mode = 'yearly'
+                } else if (data.hasRecurrence) {
+                    // Fallback si unité pas claire mais récurrence cochée
+                    if (data.prixMensuel && parseFloat(data.prixMensuel) > 0) {
+                        mode = 'monthly'
+                    } else if (data.prixAnnuel && parseFloat(data.prixAnnuel) > 0) {
+                        mode = 'yearly'
+                    }
+                }
+
+                if (mode) {
+                    subscriptionSelect.value = mode
+
+                    // Si un prix spécifique à l'abonnement est défini, on l'utilise
+                    if (mode === 'monthly' && data.prixMensuel && parseFloat(data.prixMensuel) > 0) {
+                        if (unitPriceInput) {
+                            unitPriceInput.value = parseFloat(data.prixMensuel).toFixed(2)
+                            unitPriceInput.dispatchEvent(new Event('input', { bubbles: true }))
+                        }
+                    } else if (mode === 'yearly' && data.prixAnnuel && parseFloat(data.prixAnnuel) > 0) {
+                        if (unitPriceInput) {
+                            unitPriceInput.value = parseFloat(data.prixAnnuel).toFixed(2)
+                            unitPriceInput.dispatchEvent(new Event('input', { bubbles: true }))
+                        }
+                    }
+                } else {
+                    subscriptionSelect.value = ''
+                }
+
+                // Déclencher l'événement change pour que d'autres scripts réagissent
+                subscriptionSelect.dispatchEvent(new Event('change', { bubbles: true }))
+            }
         } catch (error) {
             console.error('Erreur lors du chargement du tarif:', error)
+        }
+    }
+
+    /**
+     * Gère le changement de récurrence pour mettre à jour le prix si un tarif est lié
+     */
+    handleSubscriptionModeChange(event) {
+        const lineElement = event.target.closest('[data-line-index]')
+        if (!lineElement) return
+
+        const tariffDataStr = lineElement.getAttribute('data-tariff-data')
+        if (!tariffDataStr) return
+
+        try {
+            const data = JSON.parse(tariffDataStr)
+            const mode = event.target.value
+            const unitPriceInput = lineElement.querySelector('input[name*="[unitPrice]"]')
+
+            if (!unitPriceInput) return
+
+            if (mode === 'monthly' && data.prixMensuel && parseFloat(data.prixMensuel) > 0) {
+                unitPriceInput.value = parseFloat(data.prixMensuel).toFixed(2)
+                unitPriceInput.dispatchEvent(new Event('input', { bubbles: true }))
+            } else if (mode === 'yearly' && data.prixAnnuel && parseFloat(data.prixAnnuel) > 0) {
+                unitPriceInput.value = parseFloat(data.prixAnnuel).toFixed(2)
+                unitPriceInput.dispatchEvent(new Event('input', { bubbles: true }))
+            } else if (data.prix) {
+                // Fallback au prix de base si pas de prix spécifique au mode
+                unitPriceInput.value = parseFloat(data.prix).toFixed(2)
+                unitPriceInput.dispatchEvent(new Event('input', { bubbles: true }))
+            }
+        } catch (error) {
+            console.error('Erreur lors du traitement du changement de récurrence:', error)
         }
     }
 
@@ -192,6 +285,9 @@ export default class extends Controller {
 
         // Connecter les selects tariff de la nouvelle ligne
         this.setupTariffListeners()
+
+        // Connecter les selects de récurrence de la nouvelle ligne
+        this.setupSubscriptionModeListeners()
 
         // Note: L'état de usePerLineTva est maintenant géré par le contrôleur tva-per-line
         // qui observe les changements dans le DOM et met à jour automatiquement les nouvelles lignes

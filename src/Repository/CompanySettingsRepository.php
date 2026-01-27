@@ -23,5 +23,12 @@ class CompanySettingsRepository extends ServiceEntityRepository
     {
         return $this->findOneBy(['companyId' => $companyId]);
     }
-}
 
+    /**
+     * Récupère le premier enregistrement CompanySettings (pour mode mono-tenant)
+     */
+    public function findFirst(): ?CompanySettings
+    {
+        return $this->findOneBy([]);
+    }
+}

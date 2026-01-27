@@ -1,0 +1,42 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block title %}Paiement manuel en attente
+{% endblock %}
+
+{% block body %}
+	<h1>Paiement manuel en attente</h1>
+
+	<p>Bonjour,</p>
+
+	<p>Le client
+		<strong>{{ client ? client.nomComplet : 'Client inconnu' }}</strong>
+		a choisi de régler la facture suivante par virement bancaire ou chèque :</p>
+
+	<div class="info-box">
+		<p>
+			<strong>Facture :</strong>
+			{{ invoice.numero }}</p>
+		<p>
+			<strong>Montant :</strong>
+			{{ invoice.montantTTC|number_format(2, ',', ' ') }}
+			€</p>
+		<p>
+			<strong>Date :</strong>
+			{{ 'now'|date('d/m/Y H:i') }}</p>
+	</div>
+
+	<p>Le client a été informé de vos coordonnées bancaires.</p>
+
+	<p>Vous devez surveiller votre compte bancaire. Dès réception des fonds, n'oubliez pas de :</p>
+	<ol>
+		<li>Vous connecter à l'administration Delnyx.</li>
+		<li>Marquer la facture comme "Payée".</li>
+		<li>Cela déclenchera automatiquement la création/renouvellement de l'abonnement si nécessaire.</li>
+	</ol>
+
+	<div style="text-align: center; margin-top: 30px;">
+		<a href="{{ url('admin_invoice_show', {id: invoice.id}) }}" class="button">
+			Voir la facture
+		</a>
+	</div>
+{% endblock %}

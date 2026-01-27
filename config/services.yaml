@@ -30,31 +30,46 @@ services:
             - { name: 'doctrine.event_listener', event: 'postPersist' }
             - { name: 'doctrine.event_listener', event: 'postUpdate' }
 
-    # Configuration du QuoteService avec injection d'AuditService
-    App\Service\QuoteService:
-        calls:
-            - [setAuditService, ['@App\Service\AuditService']]
-
-    # Configuration du InvoiceService avec injection d'AuditService
+    # Configuration du InvoiceService avec injection d'AuditService et DepositService
     App\Service\InvoiceService:
         calls:
             - [setAuditService, ['@App\Service\AuditService']]
+            - [setDepositService, ['@App\Service\DepositService']]
 
     # Configuration du MagicLinkService pour les liens signés
     App\Service\MagicLinkService:
         arguments:
             $appSecret: '%env(APP_SECRET)%'
 
-    App\Service\PaymentService:
+    App\Service\PaymentService: ~
+
+    App\Controller\WebhookController: ~
+
+    App\Service\StripeService:
         arguments:
             $stripeSecretKey: '%env(default::STRIPE_SECRET_KEY)%'
-
-    App\Controller\StripeWebhookController:
-        arguments:
-            $stripeWebhookSecret: '%env(default::STRIPE_WEBHOOK_SECRET)%'
 
     App\Controller\Public\DebugMagicLinkController:
         arguments:
             $appSecret: '%env(APP_SECRET)%'
 
+    App\Service\DepositService: ~
 
+    App\Service\QuoteService:
+        arguments:
+            $depositService: '@App\Service\DepositService'
+            $magicLinkService: '@App\Service\MagicLinkService'
+            $emailService: '@App\Service\EmailService'
+        calls:
+            - [setAuditService, ['@App\Service\AuditService']]
+
+    # Configuration du EmailService avec injection de MagicLinkService
+    App\Service\EmailService:
+        calls:
+            - [setMagicLinkService, ['@App\Service\MagicLinkService']]
+
+    # Configuration du AmendmentBillingService avec injection de AuditService
+    App\Service\AmendmentBillingService:
+        calls:
+            - [setAuditService, ['@App\Service\AuditService']]
+            - [setEmailService, ['@App\Service\EmailService']]

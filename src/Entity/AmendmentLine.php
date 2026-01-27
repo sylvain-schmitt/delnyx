@@ -17,6 +17,7 @@ use ApiPlatform\Metadata\Delete;
 
 #[ORM\Entity(repositoryClass: \App\Repository\AmendmentLineRepository::class)]
 #[ORM\Table(name: 'amendment_lines')]
+#[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
         new GetCollection(),
@@ -216,7 +217,7 @@ class AmendmentLine
      * Recalcule automatiquement le total HT à partir de la quantité et du prix unitaire
      * Les montants sont stockés en DECIMAL (euros)
      * Met aussi à jour newValue et recalcule le delta
-     * 
+     *
      * LOGIQUE :
      * - Si sourceLine est défini : unitPrice représente le DELTA (ajustement)
      *   → oldValue = sourceLine.totalHt
@@ -230,12 +231,9 @@ class AmendmentLine
         if ($this->quantity !== null && $this->unitPrice !== null) {
             if ($this->sourceLine) {
                 // MODIFICATION : unitPrice représente le DELTA (ajustement)
-                // Définir oldValue en premier si pas déjà défini
-                if (!$this->oldValue || $this->oldValue === '0.00') {
-                    $oldValue = (float) $this->sourceLine->getTotalHt();
-                    $this->oldValue = number_format($oldValue, 2, '.', '');
-                }
-                
+                // oldValue doit avoir été défini au préalable par le createur (Controller/Service)
+                // pour tenir compte des avenants précédents.
+
                 // newValue = oldValue + delta
                 $oldValue = (float) $this->oldValue;
                 $delta = (float) $this->unitPrice * $this->quantity;
@@ -247,7 +245,7 @@ class AmendmentLine
                 if (!$this->oldValue || $this->oldValue === '0.00') {
                     $this->oldValue = '0.00';
                 }
-                
+
                 $total = (float) $this->unitPrice * $this->quantity;
                 $this->totalHt = number_format($total, 2, '.', '');
                 $this->newValue = $this->totalHt;
@@ -268,7 +266,7 @@ class AmendmentLine
 
         // Déterminer le taux de TVA à utiliser (même logique que getDeltaTtc())
         $tvaRate = null;
-        
+
         if ($this->sourceLine) {
             // Pour une modification, utiliser le taux de TVA de la ligne source
             $quote = $this->sourceLine->getQuote();
@@ -284,7 +282,7 @@ class AmendmentLine
                 }
             }
         }
-        
+
         // Si pas de taux depuis la source (ligne ajoutée), utiliser celui de la ligne d'avenant ou de l'avenant
         if ($tvaRate === null) {
             if ($this->tvaRate && (float) $this->tvaRate > 0) {
@@ -293,7 +291,7 @@ class AmendmentLine
                 $tvaRate = (float) $this->amendment->getTauxTVA();
             }
         }
-        
+
         // Si toujours pas de taux, utiliser le taux global du devis
         if ($tvaRate === null && $this->amendment && $this->amendment->getQuote()) {
             $quote = $this->amendment->getQuote();
@@ -404,7 +402,7 @@ class AmendmentLine
      * Calcule le delta TTC à partir du delta HT
      * IMPORTANT : Le delta TTC doit être calculé en appliquant la TVA directement au delta HT
      * et non pas comme la différence entre newValueTTC et oldValueTTC, car cela créerait une double déduction
-     * 
+     *
      * Le delta HT est déjà la différence entre newValue et oldValue,
      * donc on applique simplement la TVA au delta HT pour obtenir le delta TTC
      */
@@ -412,7 +410,7 @@ class AmendmentLine
     {
         // Le delta HT est déjà calculé (newValue - oldValue)
         $deltaHt = (float) $this->delta;
-        
+
         // Récupérer le taux de TVA utilisé pour calculer le montant TTC du devis original
         // C'est le taux de la ligne source si usePerLineTva, sinon le taux global du devis
         $tvaRate = null;
@@ -431,7 +429,7 @@ class AmendmentLine
                 }
             }
         }
-        
+
         // Si pas de taux depuis la source (ligne ajoutée), utiliser celui de la ligne d'avenant ou de l'avenant
         if ($tvaRate === null) {
             if ($this->tvaRate && (float) $this->tvaRate > 0) {
@@ -440,7 +438,7 @@ class AmendmentLine
                 $tvaRate = (float) $this->amendment->getTauxTVA();
             }
         }
-        
+
         // Appliquer la TVA au delta HT pour obtenir le delta TTC
         // Si pas de TVA, le delta TTC = delta HT
         if ($tvaRate !== null && $tvaRate > 0) {
@@ -450,7 +448,7 @@ class AmendmentLine
             // Pas de TVA : delta TTC = delta HT
             $deltaTtc = $deltaHt;
         }
-        
+
         // S'assurer que le résultat est arrondi correctement
         $deltaTtc = round($deltaTtc, 2);
         return number_format($deltaTtc, 2, '.', '');
@@ -470,5 +468,44 @@ class AmendmentLine
     public function isAddition(): bool
     {
         return $this->sourceLine === null;
+    }
+    /**
+     * Alias pour getSourceLine() (Compatibilité)
+     */
+    public function getQuoteLine(): ?QuoteLine
+    {
+        return $this->sourceLine;
+    }
+
+    public function getSubscriptionMode(): ?string
+    {
+        // Si lié à une ligne de devis existante, reprendre son mode
+        if ($this->sourceLine && $this->sourceLine->getSubscriptionMode()) {
+            return $this->sourceLine->getSubscriptionMode();
+        }
+
+        // Sinon, deviner via le tarif (si dispo)
+        // Note: Idéalement, QuoteLine stocke cette info.
+        // Si c'est une nouvelle ligne, on devrait pouvoir définir le mode.
+        // Pour l'instant, on suppose que si Tariff a une récurrence, c'est celle-là.
+        if ($this->tariff) {
+            // Supposons que Tariff a un champ 'recurrence' ou similaire ?
+            // A vérifier dans l'entité Tariff.
+            // Faute de mieux, on retourne null ou on vérifie le titre ?
+            // Hack temporaire :
+            $title = strtolower($this->tariff->getTitre() ?? '');
+            if (str_contains($title, 'mensuel')) return 'monthly';
+            if (str_contains($title, 'annuel')) return 'yearly';
+        }
+
+        return null;
+    }
+
+    // ===== LIFECYCLE CALLBACKS =====
+    #[ORM\PrePersist]
+    #[ORM\PreUpdate]
+    public function onPreSave(): void
+    {
+        $this->recalculateTotalHt();
     }
 }

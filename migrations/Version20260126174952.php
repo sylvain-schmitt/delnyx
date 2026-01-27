@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20251129213854 extends AbstractMigration
+final class Version20260126174952 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -20,12 +20,17 @@ final class Version20251129213854 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-
+        $this->addSql('ALTER TABLE invoices ADD amendment_id INT DEFAULT NULL');
+        $this->addSql('ALTER TABLE invoices ADD CONSTRAINT FK_6A2F2F954DAB577D FOREIGN KEY (amendment_id) REFERENCES amendments (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
+        $this->addSql('CREATE UNIQUE INDEX UNIQ_6A2F2F954DAB577D ON invoices (amendment_id)');
     }
 
     public function down(Schema $schema): void
     {
         // this down() migration is auto-generated, please modify it to your needs
         $this->addSql('CREATE SCHEMA public');
+        $this->addSql('ALTER TABLE invoices DROP CONSTRAINT FK_6A2F2F954DAB577D');
+        $this->addSql('DROP INDEX UNIQ_6A2F2F954DAB577D');
+        $this->addSql('ALTER TABLE invoices DROP amendment_id');
     }
 }

@@ -1,12 +1,18 @@
 {% extends 'admin/layout/base.html.twig' %}
 {% import 'admin/macros/form_fields.html.twig' as form_macros %}
 
-{% block title %}{{ title }} - Administration Delnyx{% endblock %}
+{% block title %}
+	{{ title }}
+	- Administration Delnyx
+{% endblock %}
 
-{% block page_title %}{{ title }}{% endblock %}
+{% block page_title %}
+	{{ title }}
+{% endblock %}
 
 {% block body %}
-	<div class="max-w-3xl mx-auto space-y-6">
+	<div
+		class="max-w-3xl mx-auto space-y-6">
 
 		{# Header #}
 		<div class="flex items-center justify-between scroll-animate">
@@ -21,7 +27,7 @@
 
 		{# Formulaire #}
 		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-8 scroll-animate">
-		{{ form_start(form, {'attr': {'class': 'space-y-6', 'data-controller': 'admin-form', 'data-admin-form-target': 'form', 'novalidate': 'novalidate', 'data-action': 'submit->admin-form#handleSubmit'}}) }}
+			{{ form_start(form, {'attr': {'class': 'space-y-6', 'data-controller': 'admin-form', 'data-admin-form-target': 'form', 'novalidate': 'novalidate', 'data-action': 'submit->admin-form#handleSubmit'}}) }}
 
 			{# Informations principales #}
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -41,6 +47,33 @@
 
 			{# Caractéristiques #}
 			{{ form_macros.form_field(form, 'caracteristiques', 'textarea') }}
+
+			{# Abonnements #}
+			<div class="space-y-4 pt-6 border-t border-white/10">
+				<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+					{{ ux_icon('lucide:calendar-clock', {class: 'w-5 h-5'}) }}
+					Options d'abonnement
+				</h3>
+
+				<div class="flex items-center gap-3 p-4 bg-white/5 rounded-lg mb-4">
+					{{ form_widget(form.hasRecurrence, {'attr': {'class': 'form-checkbox', 'data-action': 'change->admin-form#toggleSubscriptionFields'}}) }}
+					{{ form_label(form.hasRecurrence, null, {'label_attr': {'class': 'text-white ml-2'}}) }}
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-6" data-admin-form-target="subscriptionFields">
+					{{ form_macros.form_field(form, 'prixMensuel', 'input') }}
+					{{ form_macros.form_field(form, 'prixAnnuel', 'input') }}
+				</div>
+
+				<div class="space-y-4 pt-4" data-admin-form-target="subscriptionFields">
+					<h4 class="text-sm font-medium text-white/80 uppercase tracking-wider">Configuration Stripe (Avancé)</h4>
+					{{ form_macros.form_field(form, 'stripeProductId', 'input') }}
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+						{{ form_macros.form_field(form, 'stripePriceIdMonthly', 'input') }}
+						{{ form_macros.form_field(form, 'stripePriceIdYearly', 'input') }}
+					</div>
+				</div>
+			</div>
 
 			{# Statut #}
 			<div class="flex items-center gap-3 p-4 bg-white/5 rounded-lg">

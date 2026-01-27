@@ -51,13 +51,11 @@ class InvoiceLine
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Assert\NotNull(message: 'Le prix unitaire est obligatoire')]
-    #[Assert\GreaterThanOrEqual(value: 0, message: 'Le prix unitaire ne peut pas être négatif')]
     #[Groups(['invoice_line:read', 'invoice_line:write'])]
     private string $unitPrice = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => 0.00])]
     #[Assert\NotNull(message: 'Le total HT est obligatoire')]
-    #[Assert\GreaterThanOrEqual(value: 0, message: 'Le total HT ne peut pas être négatif')]
     #[Groups(['invoice_line:read', 'invoice_line:write'])]
     private string $totalHt = '0.00';
 
@@ -76,6 +74,15 @@ class InvoiceLine
     #[ORM\ManyToOne]
     #[Groups(['invoice_line:read', 'invoice_line:write'])]
     private ?Tariff $tariff = null;
+
+    #[ORM\Column(type: Types::STRING, length: 20, nullable: true)]
+    #[Assert\Choice(choices: ['monthly', 'yearly'], message: 'Le mode d\'abonnement doit être monthly ou yearly')]
+    #[Groups(['invoice_line:read', 'invoice_line:write'])]
+    private ?string $subscriptionMode = null;
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
+    #[Groups(['invoice_line:read', 'invoice_line:write'])]
+    private ?string $recurrenceAmount = null;
 
     public function getId(): ?int
     {
@@ -144,6 +151,28 @@ class InvoiceLine
         return $this;
     }
 
+    public function getSubscriptionMode(): ?string
+    {
+        return $this->subscriptionMode;
+    }
+
+    public function setSubscriptionMode(?string $subscriptionMode): static
+    {
+        $this->subscriptionMode = $subscriptionMode;
+        return $this;
+    }
+
+    public function getRecurrenceAmount(): ?string
+    {
+        return $this->recurrenceAmount;
+    }
+
+    public function setRecurrenceAmount(?string $recurrenceAmount): static
+    {
+        $this->recurrenceAmount = $recurrenceAmount;
+        return $this;
+    }
+
     public function getInvoice(): ?Invoice
     {
         return $this->invoice;
@@ -201,7 +230,7 @@ class InvoiceLine
     public function getTotalTtc(): string
     {
         $totalHt = (float) ($this->totalHt ?? 0);
-        
+
         if ($this->tvaRate && (float) $this->tvaRate > 0) {
             $tvaAmount = $totalHt * ((float) $this->tvaRate / 100);
             return number_format($totalHt + $tvaAmount, 2, '.', '');
@@ -230,4 +259,3 @@ class InvoiceLine
         return number_format($montant, 2, ',', ' ') . ' €';
     }
 }
-

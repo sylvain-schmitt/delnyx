@@ -13,7 +13,7 @@ use Doctrine\Persistence\Event\LifecycleEventArgs;
 
 /**
  * EventSubscriber pour recalculer le montant du devis quand un avenant est signé
- * 
+ *
  * Règle métier : quote.total += amendment.total quand l'avenant est signé
  */
 #[AsEntityListener(event: Events::postUpdate, method: 'postUpdate')]
@@ -45,7 +45,7 @@ class RecalculateQuoteFromAmendmentSubscriber
     private function recalculateQuoteTotal(Quote $quote, LifecycleEventArgs $args): void
     {
         $em = $args->getObjectManager();
-        
+
         // Récupérer tous les avenants signés pour ce devis
         $amendments = $em->getRepository(Amendment::class)->createQueryBuilder('a')
             ->where('a.quote = :quote')
@@ -61,25 +61,23 @@ class RecalculateQuoteFromAmendmentSubscriber
         $totalAvenantsTTC = 0.0;
 
         foreach ($amendments as $amendment) {
-            $totalAvenantsHT += (float) $amendment->getMontantHT();
-            $totalAvenantsTVA += (float) $amendment->getMontantTVA();
-            $totalAvenantsTTC += (float) $amendment->getMontantTTC();
+            $totalAvenantsHT += (float) $amendment->getMontantDeltaHT();
+            $totalAvenantsTVA += (float) $amendment->getMontantDeltaTVA();
+            $totalAvenantsTTC += (float) $amendment->getMontantDeltaTTC();
         }
 
         // Recalculer le total du devis : montant initial + avenants
         // Le montant initial est calculé depuis les lignes du devis
         $quote->recalculateTotalsFromLines();
-        
+
         $montantHTInitial = (float) $quote->getMontantHT();
         $montantTVAInitial = (float) $quote->getMontantTVA();
         $montantTTCInitial = (float) $quote->getMontantTTC();
 
         // Ajouter les montants des avenants
         $quote->setMontantHT(number_format($montantHTInitial + $totalAvenantsHT, 2, '.', ''));
-        $quote->setMontantTVA(number_format($montantTVAInitial + $totalAvenantsTVA, 2, '.', ''));
         $quote->setMontantTTC(number_format($montantTTCInitial + $totalAvenantsTTC, 2, '.', ''));
 
         $em->flush();
     }
 }
-

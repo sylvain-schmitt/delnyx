@@ -20,7 +20,7 @@ use ApiPlatform\Metadata\Delete;
 
 /**
  * Entité CreditNote pour gérer les avoirs sur factures émises
- * 
+ *
  * CONTRAINTE LÉGALE :
  * - Un avoir doit obligatoirement référencer une facture émise (ISSUED/SENT)
  * - Un avoir émis devient immuable
@@ -140,12 +140,22 @@ class CreditNote
     #[Groups(['credit_note:read', 'credit_note:write'])]
     private ?Invoice $invoice = null;
 
-    /**
-     * @var Collection<int, CreditNoteLine>
-     */
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['credit_note:read'])]
+    private ?string $stripeRefundId = null;
+
+    #[ORM\Column(type: Types::STRING, length: 20, nullable: true)]
+    #[Groups(['credit_note:read'])]
+    private ?string $refundStatus = null; // pending, succeeded, failed
+
     #[ORM\OneToMany(targetEntity: CreditNoteLine::class, mappedBy: 'creditNote', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[Groups(['credit_note:read', 'credit_note:write'])]
     private Collection $lines;
+
+    #[ORM\OneToOne(targetEntity: Amendment::class, cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['credit_note:read', 'credit_note:write'])]
+    private ?Amendment $amendment = null;
 
     public function __construct()
     {
@@ -407,6 +417,17 @@ class CreditNote
         return $this;
     }
 
+    public function getAmendment(): ?Amendment
+    {
+        return $this->amendment;
+    }
+
+    public function setAmendment(?Amendment $amendment): self
+    {
+        $this->amendment = $amendment;
+        return $this;
+    }
+
     /**
      * @return Collection<int, CreditNoteLine>
      */
@@ -472,7 +493,7 @@ class CreditNote
 
     /**
      * Valide que l'avoir peut être émis
-     * 
+     *
      * @throws \RuntimeException si l'avoir ne peut pas être émis
      */
     public function validateCanBeIssued(): void
@@ -501,7 +522,7 @@ class CreditNote
         if (!$invoiceStatut || !$invoiceStatut->isEmitted()) {
             throw new \RuntimeException('Un avoir ne peut être créé que pour une facture émise.');
         }
-        
+
         // Vérifier que la facture n'est pas annulée
         if ($invoiceStatut === \App\Entity\InvoiceStatus::CANCELLED) {
             throw new \RuntimeException('Un avoir ne peut pas être créé pour une facture annulée.');
@@ -598,6 +619,28 @@ class CreditNote
     public function __toString(): string
     {
         return sprintf('%s - %s', $this->number ?? 'Avoir #' . $this->id, $this->getMontantTTCFormatted());
+    }
+
+    public function getStripeRefundId(): ?string
+    {
+        return $this->stripeRefundId;
+    }
+
+    public function setStripeRefundId(?string $stripeRefundId): self
+    {
+        $this->stripeRefundId = $stripeRefundId;
+        return $this;
+    }
+
+    public function getRefundStatus(): ?string
+    {
+        return $this->refundStatus;
+    }
+
+    public function setRefundStatus(?string $refundStatus): self
+    {
+        $this->refundStatus = $refundStatus;
+        return $this;
     }
 
     // ===== LIFECYCLE CALLBACKS =====

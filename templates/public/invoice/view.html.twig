@@ -1,105 +1,177 @@
 {% extends 'public/layout/base.html.twig' %}
 
-{% block title %}Facture {{ invoice.numero }} - Delnyx{% endblock %}
-
-{% block body %}
-<div class="max-w-4xl mx-auto">
-    <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-8 mb-6">
-        <div class="flex items-start justify-between mb-6">
-            <div>
-                <h1 class="text-3xl font-bold text-white mb-2">Facture</h1>
-                <p class="text-xl text-white/80">{{ invoice.numero }}</p>
-            </div>
-            <div class="text-right">
-                {% set status = invoice.statutEnum %}
-                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium
-                    {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-                    {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
-                    {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
-                    {% elseif status.value == 'paid' %}bg-green-500/20 text-green-300
-                    {% elseif status.value == 'cancelled' %}bg-red-500/20 text-red-300
-                    {% else %}bg-gray-500/20 text-gray-300{% endif %}">
-                    {{ status.label }}
-                </span>
-            </div>
-        </div>
-
-        {# Informations #}
-        <div class="grid md:grid-cols-2 gap-6 mb-6">
-            <div>
-                <h2 class="text-sm font-semibold text-white/60 uppercase mb-2">Client</h2>
-                <p class="text-white font-medium">{{ invoice.client.nomComplet }}</p>
-                {% if invoice.client.email %}
-                    <p class="text-white/80 text-sm">{{ invoice.client.email }}</p>
-                {% endif %}
-            </div>
-            <div>
-                <h2 class="text-sm font-semibold text-white/60 uppercase mb-2">Informations</h2>
-                <p class="text-white/80 text-sm">Date d'émission : {{ invoice.dateCreation|date('d/m/Y') }}</p>
-                {% if invoice.dateEcheance %}
-                    <p class="text-white/80 text-sm">Date d'échéance : {{ invoice.dateEcheance|date('d/m/Y') }}</p>
-                {% endif %}
-            </div>
-        </div>
-
-        {# Lignes de la facture #}
-        <div class="overflow-x-auto mb-6">
-            <table class="w-full">
-                <thead>
-                    <tr class="border-b border-white/20">
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-white/80 uppercase">Description</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Qté</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">P.U. HT</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total HT</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-white/10">
-                    {% for line in invoice.lines %}
-                        <tr>
-                            <td class="px-4 py-3 text-white">{{ line.description }}</td>
-                            <td class="px-4 py-3 text-right text-white/80">{{ line.quantity }}</td>
-                            <td class="px-4 py-3 text-right text-white/80">{{ (line.unitPrice|number_format(2, ',', ' ')) ~ ' €' }}</td>
-                            <td class="px-4 py-3 text-right text-white font-medium">{{ line.totalHtFormatted }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        {# Totaux #}
-        <div class="flex justify-end">
-            <div class="w-full md:w-1/2 space-y-2">
-                <div class="flex justify-between text-white/80">
-                    <span>Total HT</span>
-                    <span class="font-medium">{{ invoice.montantHTFormate }}</span>
-                </div>
-                <div class="flex justify-between text-white/80">
-                    <span>TVA</span>
-                    <span class="font-medium">{{ invoice.montantTVAFormate }}</span>
-                </div>
-                <div class="flex justify-between text-xl font-bold text-white pt-2 border-t border-white/20">
-                    <span>Total TTC</span>
-                    <span>{{ invoice.montantTTCFormate }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {# Actions #}
-    {% if invoice.statutEnum.value in ['issued', 'sent'] %}
-        <a href="{{ magic_link(invoice, 'pay') }}" class="btn-primary block text-center py-4">
-            {{ ux_icon('lucide:credit-card', {class: 'w-5 h-5 inline mr-2'}) }}
-            Payer cette facture
-        </a>
-    {% elseif invoice.statutEnum.value == 'paid' %}
-        <div class="bg-green-500/20 border border-green-500/30 rounded-lg p-4 text-center">
-            <p class="text-green-300 font-medium">
-                {{ ux_icon('lucide:check-circle-2', {class: 'w-5 h-5 inline mr-2'}) }}
-                Cette facture a été payée !
-            </p>
-        </div>
-    {% endif %}
-</div>
+{% block title %}Facture
+	{{ invoice.numero }}
+	- Delnyx
 {% endblock %}
 
+{% block body %}
+	<div class="max-w-4xl mx-auto">
+		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-8 mb-6">
+			<div class="flex items-start justify-between mb-6">
+				<div>
+					<h1 class="text-3xl font-bold text-white mb-2">Facture</h1>
+					<p class="text-xl text-white/80">{{ invoice.numero }}</p>
+				</div>
+				<div class="text-right">
+					{% set status = invoice.statutEnum %}
+					<span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium
+																												                    {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+																												                    {% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
+																												                    {% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
+																												                    {% elseif status.value == 'paid' %}bg-green-500/20 text-green-300
+																												                    {% elseif status.value == 'cancelled' %}bg-red-500/20 text-red-300
+																												                    {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+						{{ status.label }}
+					</span>
+				</div>
+			</div>
 
+			{# Informations #}
+			<div class="grid md:grid-cols-2 gap-6 mb-6">
+				<div>
+					<h2 class="text-sm font-semibold text-white/60 uppercase mb-2">Client</h2>
+					<p class="text-white font-medium">{{ invoice.client.nomComplet }}</p>
+					{% if invoice.client.email %}
+						<p class="text-white/80 text-sm">{{ invoice.client.email }}</p>
+					{% endif %}
+				</div>
+				<div>
+					<h2 class="text-sm font-semibold text-white/60 uppercase mb-2">Informations</h2>
+					<p class="text-white/80 text-sm">Date d'émission :
+						{{ invoice.dateCreation|date('d/m/Y') }}</p>
+					{% if invoice.dateEcheance %}
+						<p class="text-white/80 text-sm">Date d'échéance :
+							{{ invoice.dateEcheance|date('d/m/Y') }}</p>
+					{% endif %}
+				</div>
+			</div>
+
+			{# Lignes de la facture #}
+			<div class="overflow-x-auto mb-6">
+				<table class="w-full">
+					<thead>
+						<tr class="border-b border-white/20">
+							<th class="px-4 py-3 text-left text-xs font-semibold text-white/80 uppercase">Description</th>
+							<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Qté</th>
+							<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">P.U. HT</th>
+							<th class="px-4 py-3 text-right text-xs font-semibold text-white/80 uppercase">Total HT</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-white/10">
+						{% for line in invoice.lines %}
+							<tr>
+								<td class="px-4 py-3 text-white">
+									<span class="block">{{ line.description }}</span>
+									{% if line.subscriptionMode %}
+										<span class="inline-flex items-center rounded-md bg-blue-500/20 px-2 py-1 text-xs font-medium text-blue-300 ring-1 ring-inset ring-blue-500/30 mt-1">
+											{{ line.subscriptionMode == 'monthly' ? 'Abonnement Mensuel' : 'Abonnement Annuel' }}
+										</span>
+									{% endif %}
+								</td>
+								<td class="px-4 py-3 text-right text-white/80">{{ line.quantity }}</td>
+								<td class="px-4 py-3 text-right text-white/80">
+									{{ (line.unitPrice|number_format(2, ',', ' ')) ~ ' €' }}
+									{% if line.subscriptionMode == 'monthly' %}
+										<span class="text-xs text-white/60">/ mois</span>
+									{% elseif line.subscriptionMode == 'yearly' %}
+										<span class="text-xs text-white/60">/ an</span>
+									{% endif %}
+								</td>
+								<td class="px-4 py-3 text-right text-white font-medium">{{ line.totalHtFormatted }}</td>
+							</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+
+			{# Totaux #}
+			<div class="flex justify-end">
+				<div class="w-full md:w-1/2 space-y-2">
+					<div class="flex justify-between text-white/80">
+						<span>Total HT</span>
+						<span class="font-medium">{{ invoice.montantHTFormate }}</span>
+					</div>
+					<div class="flex justify-between text-white/80">
+						<span>TVA</span>
+						<span class="font-medium">{{ invoice.montantTVAFormate }}</span>
+					</div>
+					<div class="flex justify-between text-xl font-bold text-white pt-2 border-t border-white/20">
+						<span>Total TTC</span>
+						<span>{{ invoice.montantTTCFormate }}</span>
+					</div>
+
+					{% if invoice.hasDepositsDeducted() %}
+						<div class="pt-3 mt-2 border-t border-white/20">
+							<p class="text-sm text-white/60 font-semibold mb-2">Acomptes liés :</p>
+							{% for deposit in invoice.deposits %}
+								{% if deposit.status.value != 'cancelled' %}
+									<div class="flex justify-between {{ deposit.status.value == 'paid' ? 'text-green-400' : 'text-blue-300' }} text-sm mb-1">
+										<span>
+											{% if deposit.depositInvoice %}
+												Facture {{ deposit.depositInvoice.numero }}
+											{% else %}
+												Acompte du {{ deposit.requestedAt|date('d/m/Y') }}
+											{% endif %}
+											{% if deposit.status.value != 'paid' %}
+												<span class="text-[10px] bg-blue-500/20 px-1 rounded ml-1 italic">(À régler)</span>
+											{% endif %}
+										</span>
+										<span>- {{ deposit.formattedAmount }}</span>
+									</div>
+								{% endif %}
+							{% endfor %}
+						</div>
+						<div class="flex justify-between text-2xl font-bold text-white pt-3 border-t border-white/30 mt-2">
+							<span>Reste à payer</span>
+							<span>{{ invoice.balanceDueFormatted }}</span>
+						</div>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+
+		{# Actions #}
+		{% if invoice.statutEnum.value in ['issued', 'sent'] %}
+			{% if invoice.subscription and invoice.subscription.stripeSubscriptionId %}
+				<div class="bg-blue-500/20 border border-blue-500/30 rounded-lg p-6 text-center">
+					<p class="text-blue-300 font-medium mb-2">
+						{{ ux_icon('lucide:info', {class: 'w-5 h-5 inline mr-2'}) }}
+						Cette facture fait partie d'un abonnement avec prélèvement automatique.
+					</p>
+					<p class="text-blue-200/70 text-sm">
+						Le règlement sera effectué automatiquement via Stripe. Vous n'avez aucune action à effectuer.
+					</p>
+				</div>
+			{% else %}
+				<a href="{{ magic_link(invoice, 'pay') }}" class="btn-primary block text-center py-4">
+					{{ ux_icon('lucide:credit-card', {class: 'w-5 h-5 inline mr-2'}) }}
+					Payer cette facture
+				</a>
+			{% endif %}
+		{% elseif invoice.statutEnum.value == 'paid' %}
+			<div class="bg-green-500/20 border border-green-500/30 rounded-lg p-4 text-center">
+				<p class="text-green-300 font-medium">
+					{{ ux_icon('lucide:check-circle-2', {class: 'w-5 h-5 inline mr-2'}) }}
+					Cette facture a été payée !
+				</p>
+			</div>
+		{% endif %}
+
+		{# Gestion de l'abonnement #}
+		{% if invoice.subscription and invoice.subscription.id and invoice.subscription.status == 'active' %}
+			<div class="mt-8 border-t border-white/10 pt-6">
+				<div class="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+					<div>
+						<h3 class="text-white font-medium">Gestion de l'abonnement</h3>
+						<p class="text-white/60 text-sm">Vous pouvez annuler votre abonnement à tout moment.</p>
+					</div>
+					<a href="{{ magic_link(invoice.subscription, 'cancel') }}" class="text-red-400 hover:text-red-300 text-sm font-medium flex items-center">
+						{{ ux_icon('lucide:ban', {class: 'w-4 h-4 mr-2'}) }}
+						Annuler l'abonnement
+					</a>
+				</div>
+			</div>
+		{% endif %}
+	</div>
+{% endblock %}

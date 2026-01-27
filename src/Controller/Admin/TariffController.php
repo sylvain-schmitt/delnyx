@@ -165,12 +165,12 @@ class TariffController extends AbstractController
 
         if ($query) {
             $qb->andWhere('t.nom LIKE :query OR t.description LIKE :query')
-               ->setParameter('query', '%' . $query . '%');
+                ->setParameter('query', '%' . $query . '%');
         }
 
         if ($categorie) {
             $qb->andWhere('t.categorie = :categorie')
-               ->setParameter('categorie', $categorie);
+                ->setParameter('categorie', $categorie);
         }
 
         $tariffs = $qb->getQuery()->getResult();
@@ -207,6 +207,9 @@ class TariffController extends AbstractController
             'categorie' => $tariff->getCategorie(),
             'categorieLabel' => $tariff->getCategorieLabel(),
             'caracteristiques' => $tariff->getCaracteristiques(),
+            'hasRecurrence' => $tariff->isHasRecurrence(),
+            'prixMensuel' => $tariff->getPrixMensuel(),
+            'prixAnnuel' => $tariff->getPrixAnnuel(),
         ]);
     }
 }

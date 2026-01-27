@@ -7,7 +7,7 @@
 
 {% block body %}
 <div class="space-y-6">
-    
+
     {# Message de filtrage par facture #}
     {% if filtered_invoice %}
         <div class="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 flex items-center justify-between scroll-animate">
@@ -37,7 +37,7 @@
                 {{ ux_icon('lucide:file-plus', {class: 'w-4 h-4'}) }}
                 <span class="sm:inline">Nouvel Avoir</span>
             </a>
-            
+
             {# Bouton secondaire #}
             {% if include_cancelled %}
                 <a href="{{ path('admin_credit_note_index') }}" class="btn-secondary flex items-center justify-center gap-2" title="Masquer les annulés">
@@ -64,7 +64,7 @@
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Numéro</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Facture</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Date</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Total Facture Corrigé</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Total Global Corrigé</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">Statut</th>
                             <th class="px-6 py-4 text-right text-xs font-semibold text-white/80 uppercase tracking-wider">Actions</th>
                         </tr>
@@ -96,7 +96,19 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-white">{{ creditNote.invoice ? creditNote.invoice.totalCorrectedFormatted : '-' }}</div>
+                                    {% if creditNote.invoice and creditNote.invoice.quote %}
+                                        {% set quote = creditNote.invoice.quote %}
+                                        {% set totalGlobalTTC = quote.getMontantTTCInitial() %}
+                                        {% set avenantsSignes = quote.amendments|filter(a => a.statut.value == 'signed') %}
+                                        {% for amendment in avenantsSignes %}
+                                            {% set totalGlobalTTC = totalGlobalTTC + amendment.montantDeltaTTC %}
+                                        {% endfor %}
+                                        <div class="text-sm font-medium text-white">{{ totalGlobalTTC|number_format(2, ',', ' ') }} €</div>
+                                    {% elseif creditNote.invoice %}
+                                        <div class="text-sm font-medium text-white">{{ creditNote.invoice.totalCorrectedFormatted }}</div>
+                                    {% else %}
+                                        <div class="text-sm font-medium text-white/60">-</div>
+                                    {% endif %}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     {% set status = creditNote.statutEnum %}
@@ -111,8 +123,8 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
-                                        {{ component('EntityActions', { 
-                                            entity: creditNote, 
+                                        {{ component('EntityActions', {
+                                            entity: creditNote,
                                             type: 'credit_note',
                                             layout: 'inline'
                                         }) }}
@@ -144,7 +156,7 @@
                             {% endif %}
                         </div>
                     </div>
-                    
+
                     <div class="space-y-2 text-sm mb-3">
                         <div class="flex justify-between">
                             <span class="text-white/60">Date</span>
@@ -167,10 +179,10 @@
                             </span>
                         </div>
                     </div>
-                    
+
                     <div class="pt-3 border-t border-white/10">
-                        {{ component('EntityActions', { 
-                            entity: creditNote, 
+                        {{ component('EntityActions', {
+                            entity: creditNote,
                             type: 'credit_note',
                             layout: 'mobile'
                         }) }}

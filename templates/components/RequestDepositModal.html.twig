@@ -1,0 +1,59 @@
+{# Modal de demande d'acompte avec choix % ou Montant #}
+<div data-controller="request-deposit-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" data-action="click->request-deposit-modal#close">
+
+	<div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl w-full max-w-md mx-auto border border-white/10 transform transition-all" data-action="click->request-deposit-modal#stopPropagate">
+
+		<div class="px-6 py-4 border-b border-white/10 flex justify-between items-center">
+			<h3 class="text-lg font-semibold text-white flex items-center gap-2">
+				{{ ux_icon('lucide:credit-card', {class: 'w-5 h-5 text-blue-400'}) }}
+				Demander un acompte
+			</h3>
+			<button type="button" class="text-white/60 hover:text-white transition-colors" data-action="click->request-deposit-modal#close">
+				{{ ux_icon('lucide:x', {class: 'w-5 h-5'}) }}
+			</button>
+		</div>
+
+		<form method="post" action="" data-request-deposit-modal-target="form" class="p-6 space-y-4">
+			<input type="hidden" name="_token" data-request-deposit-modal-target="csrfToken">
+
+			<div class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-4">
+				<div class="flex justify-between items-center text-sm">
+					<span class="text-blue-200">Total devis TTC</span>
+					<span class="text-white font-bold" data-request-deposit-modal-target="totalTTC">0,00 €</span>
+				</div>
+			</div>
+
+			<div class="grid grid-cols-2 gap-4">
+				<div>
+					<label class="block text-sm font-medium text-white/70 mb-1">Pourcentage</label>
+					<div class="relative">
+						<input type="number" name="percentage" step="0.1" min="0" max="100" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-8" data-request-deposit-modal-target="percentageInput" data-action="input->request-deposit-modal#updateFromPercentage">
+						<span class="absolute right-3 top-2 text-white/40">%</span>
+					</div>
+				</div>
+				<div>
+					<label class="block text-sm font-medium text-white/70 mb-1">Montant</label>
+					<div class="relative">
+						<input type="number" name="amount" step="0.01" min="0" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-8" data-request-deposit-modal-target="amountInput" data-action="input->request-deposit-modal#updateFromAmount">
+						<span class="absolute right-3 top-2 text-white/40">€</span>
+					</div>
+				</div>
+			</div>
+
+			<div class="flex justify-between items-center pt-2 text-sm">
+				<span class="text-white/60">Reste à payer après acompte</span>
+				<span class="text-white font-medium" data-request-deposit-modal-target="remaining">0,00 €</span>
+			</div>
+
+			<div class="pt-4 flex justify-end gap-3">
+				<button type="button" class="px-4 py-2 text-white/70 hover:text-white transition-colors" data-action="click->request-deposit-modal#close">
+					Annuler
+				</button>
+				<button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2">
+					{{ ux_icon('lucide:send', {class: 'w-4 h-4'}) }}
+					Envoyer la demande
+				</button>
+			</div>
+		</form>
+	</div>
+</div>

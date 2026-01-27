@@ -15,13 +15,13 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Service pour gérer les transitions d'état et les opérations métier sur les devis
- * 
+ *
  * Ce service centralise toute la logique métier liée aux devis :
  * - Transitions d'état (send, accept, sign, cancel, refuse)
  * - Validation des règles métier
  * - Audit et traçabilité
  * - Génération de factures (via InvoiceService)
- * 
+ *
  * @package App\Service
  */
 class QuoteService
@@ -32,8 +32,10 @@ class QuoteService
         private readonly Security $security,
         private readonly LoggerInterface $logger,
         private readonly PdfGeneratorService $pdfGeneratorService,
-    ) {
-    }
+        private readonly ?DepositService $depositService = null,
+        private readonly ?MagicLinkService $magicLinkService = null,
+        private readonly ?EmailService $emailService = null,
+    ) {}
 
     /**
      * Injection optionnelle d'AuditService (pour éviter la dépendance circulaire)
@@ -46,67 +48,10 @@ class QuoteService
     }
 
     /**
-     * Émet un devis (DRAFT → ISSUED)
-     * 
-     * @throws AccessDeniedException si l'utilisateur n'a pas la permission
-     * @throws \RuntimeException si la transition n'est pas possible
-     */
-    public function issue(Quote $quote): void
-    {
-        // Vérifier les permissions
-        if (!$this->authorizationChecker->isGranted('QUOTE_ISSUE', $quote)) {
-            throw new AccessDeniedException('Vous n\'avez pas la permission d\'émettre ce devis.');
-        }
-
-        // Vérifier que la transition est possible
-        if (!$quote->getStatut()?->canBeIssued()) {
-            throw new \RuntimeException(
-                sprintf(
-                    'Le devis ne peut pas être émis depuis l\'état "%s".',
-                    $quote->getStatut()?->getLabel() ?? 'inconnu'
-                )
-            );
-        }
-
-        // Valider que le devis est prêt à être émis
-        $this->validateBeforeSend($quote);
-
-        // Générer et sauvegarder le PDF AVANT de changer le statut
-        try {
-            $pdfResult = $this->pdfGeneratorService->generateDevisPdf($quote, true);
-            $quote->setPdfFilename($pdfResult['filename']);
-            $quote->setPdfHash($pdfResult['hash']);
-        } catch (\Exception $e) {
-            $this->logger->error('Erreur lors de la génération du PDF pour le devis', [
-                'quote_id' => $quote->getId(),
-                'error' => $e->getMessage()
-            ]);
-        }
-
-        // Effectuer la transition
-        $oldStatus = $quote->getStatut();
-        $quote->setStatut(QuoteStatus::ISSUED);
-
-        // Enregistrer l'audit
-        $this->logStatusChange($quote, $oldStatus, QuoteStatus::ISSUED, 'issue');
-
-        // Persister tout en une seule fois
-        $this->entityManager->flush();
-
-        $this->logger->info('Devis émis', [
-            'quote_id' => $quote->getId(),
-            'quote_number' => $quote->getNumero(),
-            'old_status' => $oldStatus?->value,
-            'new_status' => QuoteStatus::ISSUED->value,
-            'pdf_generated' => $quote->getPdfFilename() !== null,
-        ]);
-    }
-
-    /**
-     * Envoie un devis (DRAFT/ISSUED → SENT, ou renvoie si déjà SENT)
-     * 
-     * Workflow simplifié : DRAFT peut être envoyé directement (skip ISSUED)
-     * 
+     * Envoie un devis (DRAFT → SENT, ou renvoie si déjà SENT)
+     *
+     * Workflow simplifié : DRAFT peut être envoyé directement
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -132,11 +77,11 @@ class QuoteService
 
         // Gérer la transition selon l'état actuel
         $oldStatus = $quote->getStatut();
-        
+
         if ($oldStatus === QuoteStatus::DRAFT) {
             // Workflow simplifié : DRAFT → SENT directement
             $quote->setStatut(QuoteStatus::SENT);
-            
+
             // Générer le PDF si pas encore fait
             if (!$quote->getPdfFilename()) {
                 try {
@@ -150,17 +95,17 @@ class QuoteService
                     ]);
                 }
             }
-            
+
             $this->logStatusChange($quote, $oldStatus, QuoteStatus::SENT, 'send');
         } elseif ($oldStatus === QuoteStatus::SENT) {
             // Déjà envoyé : simple renvoi, pas de changement de statut
             $this->logStatusChange($quote, $oldStatus, $oldStatus, 'resend');
         }
-        
+
         // Toujours enregistrer la date d'envoi et incrémenter le compteur
         $quote->setDateEnvoi(new \DateTime());
         $quote->incrementSentCount();
-        
+
         // Par défaut, le canal est 'email'
         if (!$quote->getDeliveryChannel()) {
             $quote->setDeliveryChannel('email');
@@ -176,55 +121,14 @@ class QuoteService
             'new_status' => $quote->getStatut()->value,
         ]);
     }
-
     /**
-     * Accepte un devis (SENT → ACCEPTED)
-     * 
-     * @throws AccessDeniedException si l'utilisateur n'a pas la permission
-     * @throws \RuntimeException si la transition n'est pas possible
-     */
-    public function accept(Quote $quote): void
-    {
-        // Vérifier les permissions
-        if (!$this->authorizationChecker->isGranted('QUOTE_ACCEPT', $quote)) {
-            throw new AccessDeniedException('Vous n\'avez pas la permission d\'accepter ce devis.');
-        }
-
-        // Vérifier que la transition est possible
-        if (!$quote->getStatut()?->canBeAccepted()) {
-            throw new \RuntimeException(
-                sprintf(
-                    'Le devis ne peut pas être accepté depuis l\'état "%s".',
-                    $quote->getStatut()?->getLabel() ?? 'inconnu'
-                )
-            );
-        }
-
-        // Effectuer la transition
-        $oldStatus = $quote->getStatut();
-        $quote->setStatut(QuoteStatus::ACCEPTED);
-        $quote->setDateAcceptation(new \DateTime());
-
-        // Enregistrer l'audit
-        $this->logStatusChange($quote, $oldStatus, QuoteStatus::ACCEPTED, 'accept');
-
-        // Persister
-        $this->entityManager->flush();
-
-        $this->logger->info('Devis accepté', [
-            'quote_id' => $quote->getId(),
-            'quote_number' => $quote->getNumero(),
-            'old_status' => $oldStatus?->value,
-            'new_status' => QuoteStatus::ACCEPTED->value,
-        ]);
-    }
-
-    /**
-     * Signe un devis (SENT/ACCEPTED → SIGNED)
-     * 
+     * Signe un devis (SENT → SIGNED)
+     *
      * C'est l'action la plus importante : le devis devient un CONTRAT
      * Après signature, le devis devient immuable.
-     * 
+     *
+     * Note: Dans le workflow simplifié, "accepter" = "signer" (pas de statut ACCEPTED séparé)
+     *
      * @param string|null $signatureClient Signature électronique du client (optionnel)
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
@@ -253,7 +157,7 @@ class QuoteService
         $oldStatus = $quote->getStatut();
         $quote->setStatut(QuoteStatus::SIGNED);
         $quote->setDateSignature(new \DateTime());
-        
+
         if ($signatureClient !== null) {
             $quote->setSignatureClient($signatureClient);
         }
@@ -281,11 +185,39 @@ class QuoteService
             'new_status' => QuoteStatus::SIGNED->value,
             'signed_by' => $user?->getEmail(),
         ]);
+
+        // === AUTOMATISATION ACCOMPTE ===
+        // Si le devis a un pourcentage d'acompte > 0, créer automatiquement l'accompte et envoyer l'email
+        $acomptePourcentage = (float) $quote->getAcomptePourcentage();
+
+        error_log("=== DEBUG DEPOSIT AUTO ===");
+        error_log("Quote ID: " . $quote->getId());
+        error_log("Acompte Pourcentage: " . $acomptePourcentage);
+        error_log("DepositService available: " . ($this->depositService ? 'YES' : 'NO'));
+        error_log("MagicLinkService available: " . ($this->magicLinkService ? 'YES' : 'NO'));
+        error_log("EmailService available: " . ($this->emailService ? 'YES' : 'NO'));
+
+        if ($acomptePourcentage > 0) {
+            error_log("Condition OK - calling createAndSendDeposit");
+            try {
+                $this->createAndSendDeposit($quote, $acomptePourcentage);
+                error_log("createAndSendDeposit completed successfully");
+            } catch (\Exception $e) {
+                // Log l'erreur mais ne bloque pas la signature
+                error_log("ERROR in createAndSendDeposit: " . $e->getMessage());
+                $this->logger->error('Erreur lors de la création automatique de l\'accompte', [
+                    'quote_id' => $quote->getId(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        } else {
+            error_log("Condition FAILED - acomptePourcentage <= 0");
+        }
     }
 
     /**
      * Annule un devis (DRAFT/SENT/ACCEPTED → CANCELLED)
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -321,7 +253,7 @@ class QuoteService
             $currentNotes = $quote->getNotes() ?? '';
             $quote->setNotes(
                 ($currentNotes ? $currentNotes . "\n\n" : '') .
-                "Annulation le " . date('d/m/Y H:i') . " : " . $reason
+                    "Annulation le " . date('d/m/Y H:i') . " : " . $reason
             );
         }
 
@@ -342,7 +274,7 @@ class QuoteService
 
     /**
      * Refuse un devis (SENT/ACCEPTED → REFUSED)
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -372,7 +304,7 @@ class QuoteService
             $currentNotes = $quote->getNotes() ?? '';
             $quote->setNotes(
                 ($currentNotes ? $currentNotes . "\n\n" : '') .
-                "Refus le " . date('d/m/Y H:i') . " : " . $reason
+                    "Refus le " . date('d/m/Y H:i') . " : " . $reason
             );
         }
 
@@ -393,7 +325,7 @@ class QuoteService
 
     /**
      * Marque un devis comme expiré si la date de validité est dépassée
-     * 
+     *
      * Cette méthode peut être appelée automatiquement par un cron job
      * ou lors de la lecture d'un devis.
      */
@@ -434,7 +366,7 @@ class QuoteService
 
     /**
      * Valide qu'un devis peut être envoyé
-     * 
+     *
      * @throws \RuntimeException si le devis n'est pas prêt à être envoyé
      */
     private function validateBeforeSend(Quote $quote): void
@@ -458,7 +390,7 @@ class QuoteService
     /**
      * Permet de modifier un devis envoyé en le repassant en DRAFT
      * Utile si le client demande des modifications après envoi
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -470,7 +402,7 @@ class QuoteService
         }
 
         $currentStatus = $quote->getStatut();
-        
+
         // Workflow simplifié : retour en DRAFT uniquement depuis SENT
         if ($currentStatus !== QuoteStatus::SENT) {
             throw new \RuntimeException(
@@ -504,7 +436,7 @@ class QuoteService
     /**
      * Envoie un email de relance pour un devis envoyé
      * Ne change pas le statut, envoie juste un rappel au client
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la relance n'est pas possible
      */
@@ -576,5 +508,34 @@ class QuoteService
             );
         }
     }
-}
 
+    /**
+     * Crée automatiquement un accompte et envoie l'email au client
+     */
+    private function createAndSendDeposit(Quote $quote, float $percentage): void
+    {
+        if (!$this->depositService || !$this->magicLinkService || !$this->emailService) {
+            $this->logger->warning('Services de deposit non disponibles pour l\'automatisation');
+            return;
+        }
+
+        // Créer l'accompte
+        $deposit = $this->depositService->createDeposit($quote, $percentage);
+
+        // Générer le lien de paiement
+        $paymentUrl = $this->magicLinkService->generateDepositPayLink($deposit);
+
+        // Envoyer l'email au client
+        $client = $quote->getClient();
+        if ($client && $client->getEmail()) {
+            $this->emailService->sendDepositRequest($deposit, $quote, $paymentUrl);
+
+            $this->logger->info('Demande d\'accompte envoyée automatiquement', [
+                'quote_id' => $quote->getId(),
+                'deposit_id' => $deposit->getId(),
+                'amount' => $deposit->getAmountInEuros(),
+                'client_email' => $client->getEmail(),
+            ]);
+        }
+    }
+}

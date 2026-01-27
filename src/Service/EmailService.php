@@ -11,6 +11,7 @@ use App\Entity\CreditNote;
 use App\Entity\EmailLog;
 use App\Entity\User;
 use App\Entity\CompanySettings;
+use App\Entity\Deposit;
 use App\Repository\CompanySettingsRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
@@ -412,7 +413,7 @@ class EmailService
     /**
      * Envoie un email de confirmation de paiement
      */
-    public function sendPaymentConfirmation(Invoice $invoice): EmailLog
+    public function sendPaymentConfirmation(Invoice $invoice, ?float $amount = null): EmailLog
     {
         $client = $invoice->getClient();
 
@@ -427,6 +428,7 @@ class EmailService
             'invoice' => $invoice,
             'client' => $client,
             'subject' => $subject,
+            'amountPaid' => $amount,
             'companySettings' => $senderInfo['settings'],
         ]);
 
@@ -452,6 +454,321 @@ class EmailService
             senderName: $senderInfo['name'],
             pdfContent: $pdfContent,
             pdfFilename: $pdfFilename
+        );
+    }
+
+    private ?MagicLinkService $magicLinkService = null;
+
+    public function setMagicLinkService(MagicLinkService $magicLinkService): void
+    {
+        $this->magicLinkService = $magicLinkService;
+    }
+
+    /**
+     * Envoie un email de demande d'accompte au client
+     *
+     * @param Deposit $deposit L'accompte pour lequel envoyer la demande
+     * @param Quote|null $quote Le devis (optionnel, récupéré depuis le deposit si non fourni)
+     * @param string|null $paymentUrl L'URL de paiement (optionnel, générée via MagicLink si non fournie)
+     */
+    public function sendDepositRequest(Deposit $deposit, ?Quote $quote = null, ?string $paymentUrl = null): EmailLog
+    {
+        $quote = $quote ?? $deposit->getQuote();
+        $client = $quote->getClient();
+
+        if (!$client || !$client->getEmail()) {
+            throw new \RuntimeException('Impossible d\'envoyer la demande d\'accompte : aucun email client');
+        }
+
+        // Générer l'URL de paiement si non fournie
+        if ($paymentUrl === null) {
+            if ($this->magicLinkService === null) {
+                throw new \RuntimeException('MagicLinkService non configuré - impossible de générer l\'URL de paiement');
+            }
+            $paymentUrl = $this->magicLinkService->generateDepositPayLink($deposit);
+        }
+
+        $senderInfo = $this->getSenderInfo();
+        $subject = sprintf('Demande d\'accompte - Devis %s', $quote->getNumero());
+
+        $html = $this->twig->render('emails/deposit_request.html.twig', [
+            'quote' => $quote,
+            'deposit' => $deposit,
+            'client' => $client,
+            'subject' => $subject,
+            'paymentUrl' => $paymentUrl,
+            'companySettings' => $senderInfo['settings'],
+        ]);
+
+        // Attacher le PDF si disponible
+        $pdfContent = null;
+        $pdfFilename = null;
+        $depositInvoice = $deposit->getDepositInvoice();
+        if ($depositInvoice) {
+            $pdfResponse = $this->pdfGeneratorService->generateFacturePdf($depositInvoice);
+            $pdfContent = $pdfResponse->getContent();
+            $pdfFilename = 'facture-acompte-' . $depositInvoice->getNumero() . '.pdf';
+        }
+
+        return $this->send(
+            recipient: $client->getEmail(),
+            subject: $subject,
+            html: $html,
+            entityType: 'Deposit',
+            entityId: $deposit->getId(),
+            type: 'deposit_request',
+            senderEmail: $senderInfo['email'],
+            senderName: $senderInfo['name'],
+            pdfContent: $pdfContent,
+            pdfFilename: $pdfFilename
+        );
+    }
+
+    /**
+     * Envoie un email de confirmation de paiement d'accompte
+     * Inclut la facture d'acompte en pièce jointe si elle existe
+     */
+    public function sendDepositPaymentConfirmation(\App\Entity\Deposit $deposit): EmailLog
+    {
+        $quote = $deposit->getQuote();
+        $client = $quote?->getClient();
+
+        if (!$client || !$client->getEmail()) {
+            throw new \RuntimeException('Impossible d\'envoyer la confirmation : aucun email client');
+        }
+
+        $senderInfo = $this->getSenderInfo();
+        $subject = sprintf('Confirmation de paiement - Accompte Devis %s', $quote->getNumero());
+
+        $html = $this->twig->render('emails/deposit_payment_confirmation.html.twig', [
+            'quote' => $quote,
+            'deposit' => $deposit,
+            'client' => $client,
+            'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
+        ]);
+
+        // Générer le PDF de la facture d'acompte si elle existe
+        $pdfContent = null;
+        $pdfFilename = null;
+        $depositInvoice = $deposit->getDepositInvoice();
+
+        if ($depositInvoice) {
+            $pdfResponse = $this->pdfGeneratorService->generateFacturePdf($depositInvoice);
+            $pdfContent = $pdfResponse->getContent();
+            $pdfFilename = 'facture-acompte-' . $depositInvoice->getNumero() . '.pdf';
+        }
+
+        return $this->send(
+            recipient: $client->getEmail(),
+            subject: $subject,
+            html: $html,
+            entityType: 'Deposit',
+            entityId: $deposit->getId(),
+            type: 'deposit_payment_confirmation',
+            senderEmail: $senderInfo['email'],
+            senderName: $senderInfo['name'],
+            pdfContent: $pdfContent,
+            pdfFilename: $pdfFilename
+        );
+    }
+    /**
+     * Envoie une notification à l'admin pour un paiement manuel (Virement/Chèque)
+     */
+    public function sendManualPaymentNotification(Invoice $invoice): EmailLog
+    {
+        $senderInfo = $this->getSenderInfo();
+        $adminEmail = $senderInfo['email']; // On envoie à l'email configuré dans les settings (email de l'entreprise)
+
+        $subject = sprintf('Paiement manuel en attente - Facture %s', $invoice->getNumero());
+
+        $html = $this->twig->render('emails/notification/manual_payment_admin.html.twig', [
+            'invoice' => $invoice,
+            'client' => $invoice->getClient(),
+            'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
+        ]);
+
+        return $this->send(
+            recipient: $adminEmail,
+            subject: $subject,
+            html: $html,
+            entityType: 'Invoice',
+            entityId: $invoice->getId(),
+            type: 'manual_payment_notification',
+            senderEmail: $senderInfo['email'], // Auto-envoi
+            senderName: 'Delnyx System'
+        );
+    }
+
+    /**
+     * Envoie les instructions de paiement manuel (Virement/Chèque) au client
+     */
+    public function sendManualPaymentInstructions(Invoice $invoice): EmailLog
+    {
+        $client = $invoice->getClient();
+
+        if (!$client || !$client->getEmail()) {
+            throw new \RuntimeException('Impossible d\'envoyer les instructions : aucun email client');
+        }
+
+        $senderInfo = $this->getSenderInfo();
+        $subject = sprintf('Instructions de règlement - Facture %s', $invoice->getNumero());
+
+        // Récupérer le nom du propriétaire
+        $owner = $this->entityManager->getRepository(User::class)->findOneBy([]);
+        $ownerName = $owner ? $owner->getNomComplet() : 'Sylvain Schmitt';
+
+        $html = $this->twig->render('emails/manual_payment_instructions.html.twig', [
+            'invoice' => $invoice,
+            'client' => $client,
+            'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
+            'ownerName' => $ownerName,
+        ]);
+
+        return $this->send(
+            recipient: $client->getEmail(),
+            subject: $subject,
+            html: $html,
+            entityType: 'Invoice',
+            entityId: $invoice->getId(),
+            type: 'manual_payment_instructions',
+            senderEmail: $senderInfo['email'],
+            senderName: $senderInfo['name']
+        );
+    }
+    /**
+     * Envoie une notification générique à l'administrateur
+     */
+    public function sendAdminNotification(string $subject, string $message): void
+    {
+        $senderInfo = $this->getSenderInfo();
+        $adminEmail = $senderInfo['email'];
+
+        $email = (new Email())
+            ->from(sprintf('%s <%s>', 'Delnyx System', $senderInfo['email']))
+            ->to($adminEmail)
+            ->subject('[NOTIF] ' . $subject)
+            ->text($message)
+            ->html(sprintf('<p>%s</p>', nl2br(htmlspecialchars($message))));
+
+        $this->mailer->send($email);
+    }
+
+    /**
+     * Envoie une notification à l'admin pour un paiement d'acompte manuel
+     */
+    public function sendManualDepositPaymentNotification(\App\Entity\Deposit $deposit): EmailLog
+    {
+        $senderInfo = $this->getSenderInfo();
+        $adminEmail = $senderInfo['email'];
+
+        $subject = sprintf('Paiement manuel acompte en attente - Devis %s', $deposit->getQuote()->getNumero());
+
+        $html = $this->twig->render('emails/notification/manual_deposit_payment_admin.html.twig', [
+            'deposit' => $deposit,
+            'quote' => $deposit->getQuote(),
+            'client' => $deposit->getQuote()->getClient(),
+            'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
+        ]);
+
+        return $this->send(
+            recipient: $adminEmail,
+            subject: $subject,
+            html: $html,
+            entityType: 'Quote',
+            entityId: $deposit->getQuote()->getId(),
+            type: 'manual_deposit_payment_notification',
+            senderEmail: $senderInfo['email'],
+            senderName: 'Delnyx System'
+        );
+    }
+
+    /**
+     * Envoie les instructions de paiement manuel pour un acompte
+     */
+    public function sendManualDepositPaymentInstructions(\App\Entity\Deposit $deposit): EmailLog
+    {
+        $quote = $deposit->getQuote();
+        $client = $quote->getClient();
+
+        if (!$client || !$client->getEmail()) {
+            throw new \RuntimeException('Impossible d\'envoyer les instructions : aucun email client');
+        }
+
+        $senderInfo = $this->getSenderInfo();
+        $subject = sprintf('Instructions de règlement acompte - Devis %s', $quote->getNumero());
+
+        $owner = $this->entityManager->getRepository(User::class)->findOneBy([]);
+        $ownerName = $owner ? $owner->getNomComplet() : 'Sylvain Schmitt';
+
+        $html = $this->twig->render('emails/manual_deposit_payment_instructions.html.twig', [
+            'deposit' => $deposit,
+            'quote' => $quote,
+            'client' => $client,
+            'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
+            'ownerName' => $ownerName,
+        ]);
+
+        // Attacher le PDF si disponible (normalement déjà généré)
+        $pdfContent = null;
+        $pdfFilename = null;
+        $depositInvoice = $deposit->getDepositInvoice();
+        if ($depositInvoice) {
+            $pdfResponse = $this->pdfGeneratorService->generateFacturePdf($depositInvoice);
+            $pdfContent = $pdfResponse->getContent();
+            $pdfFilename = 'facture-acompte-' . $depositInvoice->getNumero() . '.pdf';
+        }
+
+        return $this->send(
+            recipient: $client->getEmail(),
+            subject: $subject,
+            html: $html,
+            entityType: 'Quote',
+            entityId: $quote->getId(),
+            type: 'manual_deposit_payment_instructions',
+            senderEmail: $senderInfo['email'],
+            senderName: $senderInfo['name'],
+            pdfContent: $pdfContent,
+            pdfFilename: $pdfFilename
+        );
+    }
+
+    /**
+     * Envoie une notification d'échec de paiement au client
+     */
+    public function sendPaymentFailed(Invoice $invoice, string $reason, string $actionUrl): EmailLog
+    {
+        $client = $invoice->getClient();
+
+        if (!$client || !$client->getEmail()) {
+            throw new \RuntimeException('Impossible d\'envoyer la notification d\'échec : aucun email client');
+        }
+
+        $senderInfo = $this->getSenderInfo();
+        $subject = sprintf('Échec du paiement - Facture %s', $invoice->getNumero());
+
+        $html = $this->twig->render('emails/payment_failed.html.twig', [
+            'invoice' => $invoice,
+            'client' => $client,
+            'reason' => $reason,
+            'actionUrl' => $actionUrl,
+            'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
+        ]);
+
+        return $this->send(
+            recipient: $client->getEmail(),
+            subject: $subject,
+            html: $html,
+            entityType: 'Invoice',
+            entityId: $invoice->getId(),
+            type: 'payment_failed',
+            senderEmail: $senderInfo['email'],
+            senderName: $senderInfo['name']
         );
     }
 }

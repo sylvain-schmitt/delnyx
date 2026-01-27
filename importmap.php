@@ -46,4 +46,16 @@ return [
     'chart.js' => [
         'version' => '3.9.1',
     ],
+    'confirm-modal' => [
+        'path' => './assets/controllers/confirm_modal_controller.js',
+    ],
+    'confirm-modal-trigger' => [
+        'path' => './assets/controllers/confirm_modal_trigger_controller.js',
+    ],
+    'request-deposit-modal' => [
+        'path' => './assets/controllers/request_deposit_modal_controller.js',
+    ],
+    'request-deposit-modal-trigger' => [
+        'path' => './assets/controllers/request_deposit_modal_trigger_controller.js',
+    ],
 ];

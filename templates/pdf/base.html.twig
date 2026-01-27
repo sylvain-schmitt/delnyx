@@ -340,6 +340,39 @@
 					print-color-adjust: exact;
 				}
 			}
+			/* Filigrane / Tampon */
+			.watermark {
+				position: fixed;
+				top: 40%;
+				left: 50%;
+				transform: translate(-50%, -50%) rotate(-45deg);
+				font-size: 80px;
+				font-weight: bold;
+				color: rgba(220, 38, 38, 0.2); /* Rouge semi-transparent par défaut */
+				border: 10px solid rgba(220, 38, 38, 0.2);
+				padding: 10px 40px;
+				border-radius: 15px;
+				z-index: 1000;
+				text-transform: uppercase;
+				pointer-events: none;
+				opacity: 0.3;
+				text-align: center;
+			}
+
+			.watermark-paid {
+				color: #22c55e;
+				border-color: #22c55e;
+			}
+
+			.watermark-signed {
+				color: #2563eb;
+				border-color: #2563eb;
+			}
+
+			.watermark-refunded {
+				color: #6b7280;
+				border-color: #6b7280;
+			}
 		</style>
 	</head>
 	<body>

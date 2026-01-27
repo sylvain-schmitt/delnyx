@@ -107,6 +107,17 @@ class ClientType extends AbstractType
                     'class' => 'form-select'
                 ]
             ])
+
+            ->add('stripeCustomerId', TextType::class, [
+                'label' => 'ID Client Stripe',
+                'required' => false,
+                'disabled' => true,
+                'attr' => [
+                    'class' => 'form-input bg-gray-100 cursor-not-allowed',
+                    'placeholder' => 'Synchronisé automatiquement (cus_...)'
+                ],
+                'help' => 'Synchronisé automatiquement lors du premier paiement'
+            ])
             ->add('notes', TextareaType::class, [
                 'label' => 'Notes',
                 'required' => false,

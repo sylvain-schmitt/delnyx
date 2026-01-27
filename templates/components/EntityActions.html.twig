@@ -1,8 +1,8 @@
 {% props entity, type, layout = 'inline' %}
 
-{# 
+{#
     Composant réutilisable pour afficher les boutons d'actions d'une entité
-    
+
     Paramètres:
     - entity: L'entité (Quote, Invoice, Amendment, CreditNote)
     - type: Le type d'entité ('quote', 'invoice', 'amendment', 'credit_note')
@@ -237,8 +237,38 @@
 
 	{# Boutons spécifiques CreditNote #}
 	{% if type == 'credit_note' %}
-		{# Bouton Émettre (DRAFT uniquement) #}
-		{% if is_granted('CREDIT_NOTE_ISSUE', entity) and entity.statutEnum.value == 'draft' %}
+		{% set isStripeRefundable = false %}
+		{% if entity.invoice %}
+			{# Vérifier s'il y a un paiement Stripe (succès OU en attente si facture payée manuellement) #}
+			{% set hasStripeCandidate = false %}
+			{% for payment in entity.invoice.payments %}
+				{% if payment.provider.value == 'stripe' %}
+					{% if payment.status.value == 'succeeded' or (entity.invoice.statut == 'paid' and payment.status.value == 'pending') %}
+						{% set hasStripeCandidate = true %}
+					{% endif %}
+				{% endif %}
+			{% endfor %}
+
+			{# Éligible si candidat Stripe présent ET pas encore remboursé via Stripe sur cet avoir #}
+			{% if hasStripeCandidate and not entity.stripeRefundId %}
+				{% set isStripeRefundable = true %}
+			{% endif %}
+		{% endif %}
+
+		{# Bouton Émettre & Rembourser via Stripe (DRAFT uniquement, si facture payée par Stripe) #}
+		{% if isStripeRefundable and entity.statutEnum.value == 'draft' %}
+			<form action="{{ path('admin_credit_note_issue_and_refund', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="L'avoir sera émis, envoyé au client, et le remboursement sera déclenché sur Stripe. Continuer ?" data-confirm-modal-title="Émettre & Rembourser Stripe" data-confirm-modal-button="Confirmer & Rembourser">
+				<input type="hidden" name="_token" value="{{ csrf_token('credit_note_issue_and_refund_' ~ entity.id) }}">
+				<button type="submit" class="{{ layout == 'inline' ? 'text-indigo-400 hover:text-indigo-300' : 'w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-200' }}" title="Émettre et rembourser via Stripe">
+					{{ ux_icon('lucide:refresh-ccw', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+					{% if showText %}Émettre & Rembourser Stripe
+					{% endif %}
+				</button>
+			</form>
+		{% endif %}
+
+		{# Bouton Émettre (DRAFT uniquement) - seulement si PAS de remboursement Stripe possible pour simplifier #}
+		{% if is_granted('CREDIT_NOTE_ISSUE', entity) and entity.statutEnum.value == 'draft' and not isStripeRefundable %}
 			<form action="{{ path('admin_credit_note_issue', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}">
 				<input type="hidden" name="_token" value="{{ csrf_token('credit_note_issue_' ~ entity.id) }}">
 				<button type="submit" class="{{ secondaryButtonClass }}" title="Émettre">
@@ -249,8 +279,8 @@
 			</form>
 		{% endif %}
 
-		{# Bouton Émettre & Envoyer (DRAFT uniquement) #}
-		{% if is_granted('CREDIT_NOTE_ISSUE', entity) and entity.statutEnum.value == 'draft' and hasEmail %}
+		{# Bouton Émettre & Envoyer (DRAFT uniquement) - seulement si PAS de remboursement Stripe possible #}
+		{% if is_granted('CREDIT_NOTE_ISSUE', entity) and entity.statutEnum.value == 'draft' and not isStripeRefundable and hasEmail %}
 			<button type="button" class="{{ buttonClass }}" title="Émettre et envoyer" data-controller="email-trigger" data-email-trigger-url-value="{{ path('admin_credit_note_issue_and_send', {id: entity.id}) }}" data-email-trigger-csrf-token-value="{{ csrf_token('credit_note_issue_and_send_' ~ entity.id) }}" data-email-trigger-recipient-value="{{ recipientEmail }}" data-email-trigger-document-type-value="{{ type }}" data-email-trigger-document-number-value="{{ entity.number }}" data-action="click->email-trigger#open">
 				{{ ux_icon('lucide:send', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
 				{% if showText %}Émettre & Envoyer
@@ -276,16 +306,36 @@
 			</button>
 		{% endif %}
 
-		{# Appliquer (ISSUED ou SENT) #}
-		{% if is_granted('CREDIT_NOTE_APPLY', entity) %}
-			<form action="{{ path('admin_credit_note_apply', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="Marquer cet avoir comme remboursé ?">
+		{# Appliquer (ISSUED ou SENT) - Manuel #}
+		{% if is_granted('CREDIT_NOTE_APPLY', entity) and entity.statutEnum.value in ['issued', 'sent'] and not entity.stripeRefundId %}
+			<form action="{{ path('admin_credit_note_apply', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="Marquer cet avoir comme remboursé (virement/chèque manuel) ?">
 				<input type="hidden" name="_token" value="{{ csrf_token('credit_note_apply_' ~ entity.id) }}">
-				<button type="submit" class="{{ successButtonClass }}" title="Rembourser">
+				<button type="submit" class="{{ successButtonClass }}" title="Marquer comme remboursé">
 					{{ ux_icon('lucide:check-circle', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
-					{% if showText %}Rembourser
+					{% if showText %}Remboursement Manuel
 					{% endif %}
 				</button>
 			</form>
+		{% endif %}
+
+		{# Rembourser via Stripe (Si déjà émis mais pas encore remboursé) #}
+		{% if isStripeRefundable and entity.statutEnum.value in ['issued', 'sent'] %}
+			<form action="{{ path('admin_credit_note_issue_and_refund', {id: entity.id}) }}" method="POST" class="{{ layout == 'inline' ? 'inline' : (layout == 'mobile' ? 'contents' : 'w-full') }}" data-action="submit->confirm-modal#open" data-confirm-modal-message="Déclencher le remboursement Stripe pour cet avoir déjà émis ?">
+				<input type="hidden" name="_token" value="{{ csrf_token('credit_note_issue_and_refund_' ~ entity.id) }}">
+				<button type="submit" class="{{ layout == 'inline' ? 'text-indigo-400 hover:text-indigo-300' : 'w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-200' }}" title="Rembourser via Stripe">
+					{{ ux_icon('lucide:refresh-ccw', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+					{% if showText %}Rembourser via Stripe
+					{% endif %}
+				</button>
+			</form>
+		{% endif %}
+
+		{# Badge Remboursé Stripe #}
+		{% if entity.stripeRefundId and entity.refundStatus == 'succeeded' %}
+			<div class="flex items-center gap-2 text-green-400 text-sm font-medium py-2 px-3 bg-green-400/10 rounded-lg">
+				{{ ux_icon('lucide:check-circle', {class: 'w-4 h-4'}) }}
+				Remboursé via Stripe
+			</div>
 		{% endif %}
 	{% endif %}
 

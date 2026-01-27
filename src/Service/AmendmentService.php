@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\Amendment;
 use App\Entity\AmendmentStatus;
 use App\Entity\Quote;
+use App\Entity\QuoteLine;
 use App\Entity\QuoteStatus;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -17,13 +18,13 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Service pour gérer les transitions d'état et les opérations métier sur les avenants
- * 
+ *
  * Ce service centralise toute la logique métier liée aux avenants :
  * - Création depuis un devis signé
  * - Transitions d'état (send, sign, cancel)
  * - Validation des règles métier
  * - Audit et traçabilité
- * 
+ *
  * @package App\Service
  */
 class AmendmentService
@@ -35,6 +36,7 @@ class AmendmentService
         private readonly LoggerInterface $logger,
         private readonly AmendmentNumberGenerator $numberGenerator,
         private readonly PdfGeneratorService $pdfGeneratorService,
+        private readonly InvoiceService $invoiceService,
     ) {}
 
     /**
@@ -49,7 +51,7 @@ class AmendmentService
 
     /**
      * Crée un avenant à partir d'un devis signé
-     * 
+     *
      * @throws AccessDeniedException si le devis n'est pas signé
      * @throws \RuntimeException si un avenant existe déjà
      */
@@ -94,11 +96,11 @@ class AmendmentService
 
     /**
      * Émet un avenant (DRAFT → ISSUED)
-     * 
+     *
      * Note: Cette méthode est conservée pour backward compatibility
      * mais n'est plus utilisée dans le workflow simplifié.
      * Le workflow est maintenant : DRAFT → SENT (via send())
-     * 
+     *
      * @deprecated Utiliser send() à la place
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
@@ -112,11 +114,11 @@ class AmendmentService
 
     /**
      * Envoie un avenant (DRAFT → SENT, ou renvoie si déjà SENT)
-     * 
+     *
      * Dans le workflow simplifié :
      * - DRAFT → SENT : Génère le PDF, attribue le numéro, envoie l'email
      * - SENT → SENT : Renvoie l'email (relance)
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -176,11 +178,11 @@ class AmendmentService
                 )
             );
         }
-        
+
         // Toujours enregistrer la date d'envoi et incrémenter le compteur
         $amendment->setSentAt(new \DateTime());
         $amendment->incrementSentCount();
-        
+
         // Par défaut, le canal est 'email' (peut être modifié plus tard)
         if (!$amendment->getDeliveryChannel()) {
             $amendment->setDeliveryChannel('email');
@@ -200,7 +202,7 @@ class AmendmentService
 
     /**
      * Valide qu'un avenant peut être envoyé
-     * 
+     *
      * @throws \RuntimeException si la validation échoue
      */
     private function validateBeforeSend(Amendment $amendment): void
@@ -224,10 +226,10 @@ class AmendmentService
 
     /**
      * Remet un avenant en brouillon (SENT → DRAFT)
-     * 
+     *
      * Permet de modifier un avenant déjà envoyé si le client demande des ajustements.
      * Le PDF sera régénéré lors du prochain envoi.
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -270,9 +272,9 @@ class AmendmentService
 
     /**
      * Envoie un email de relance pour un avenant SENT
-     * 
+     *
      * N'enregistre que la relance (l'envoi email est géré par le controller)
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -321,7 +323,7 @@ class AmendmentService
 
     /**
      * Signe un avenant (SENT → SIGNED)
-     * 
+     *
      * @param string|null $signatureClient Signature électronique du client (optionnel)
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
@@ -361,17 +363,22 @@ class AmendmentService
         // Persister
         $this->entityManager->flush();
 
-        $this->logger->info('Avenant signé - devient opposable', [
-            'amendment_id' => $amendment->getId(),
-            'amendment_number' => $amendment->getNumero(),
-            'old_status' => $oldStatus?->value,
-            'new_status' => AmendmentStatus::SIGNED->value,
-        ]);
+
+        // Générer automatiquement la facture ou l'avoir
+        try {
+            $this->invoiceService->createFromAmendment($amendment);
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur lors de la génération automatique de la facture d\'avenant', [
+                'amendment_id' => $amendment->getId(),
+                'error' => $e->getMessage()
+            ]);
+            // On ne bloque pas la signature, mais on log l'erreur critique
+        }
     }
 
     /**
      * Annule un avenant (DRAFT/SENT → CANCELLED)
-     * 
+     *
      * @throws AccessDeniedException si l'utilisateur n'a pas la permission
      * @throws \RuntimeException si la transition n'est pas possible
      */
@@ -427,6 +434,34 @@ class AmendmentService
     {
         $amendment->recalculateTotalsFromLines();
         $this->entityManager->flush();
+    }
+
+    /**
+     * Calcule la valeur HT actuelle d'une ligne de devis en tenant compte
+     * de tous les avenants signés jusqu'à présent.
+     */
+    public function getCurrentTotalHtForLine(QuoteLine $quoteLine): float
+    {
+        $initialTotalHt = (float) $quoteLine->getTotalHt();
+        $totalDelta = 0.0;
+
+        $quote = $quoteLine->getQuote();
+        if ($quote) {
+            $amendments = $this->entityManager->getRepository(Amendment::class)->findBy([
+                'quote' => $quote,
+                'statut' => AmendmentStatus::SIGNED
+            ]);
+
+            foreach ($amendments as $amendment) {
+                foreach ($amendment->getLines() as $amendmentLine) {
+                    if ($amendmentLine->getSourceLine() && $amendmentLine->getSourceLine()->getId() === $quoteLine->getId()) {
+                        $totalDelta += (float) $amendmentLine->getDelta();
+                    }
+                }
+            }
+        }
+
+        return $initialTotalHt + $totalDelta;
     }
 
     /**

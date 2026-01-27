@@ -165,6 +165,10 @@ class Client
     #[Groups(['client:read', 'client:write'])]
     private ?string $notes = null;
 
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['client:read', 'client:write'])]
+    private ?string $stripeCustomerId = null;
+
     /**
      * @var Collection<int, Quote>
      */
@@ -355,6 +359,17 @@ class Client
         return $this;
     }
 
+    public function getStripeCustomerId(): ?string
+    {
+        return $this->stripeCustomerId;
+    }
+
+    public function setStripeCustomerId(?string $stripeCustomerId): static
+    {
+        $this->stripeCustomerId = $stripeCustomerId;
+        return $this;
+    }
+
     /**
      * @return Collection<int, Quote>
      */
@@ -415,12 +430,12 @@ class Client
     public function getNomComplet(): string
     {
         $nomComplet = trim($this->prenom . ' ' . $this->nom);
-        
+
         // Si une raison sociale est définie, l'ajouter
         if ($this->companyName) {
             $nomComplet = $this->companyName . ' (' . $nomComplet . ')';
         }
-        
+
         return $nomComplet;
     }
 

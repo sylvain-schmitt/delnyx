@@ -6,6 +6,8 @@ use App\Entity\Quote;
 use App\Entity\Amendment;
 use App\Entity\Invoice;
 use App\Entity\CreditNote;
+use App\Entity\Deposit;
+use App\Entity\Subscription;
 use App\Service\MagicLinkService;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
@@ -28,13 +30,13 @@ class MagicLinkExtension extends AbstractExtension
 
     /**
      * Génère un magic link pour une entité et une action
-     * 
+     *
      * Usage dans Twig :
      *   {{ magic_link(quote, 'view') }}
      *   {{ magic_link(invoice, 'pay') }}
      */
     public function generateMagicLink(
-        Quote|Amendment|Invoice|CreditNote $document,
+        Quote|Amendment|Invoice|CreditNote|Deposit|Subscription $document,
         string $action
     ): string {
         return $this->magicLinkService->generatePublicLink($document, $action);

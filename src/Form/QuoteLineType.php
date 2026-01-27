@@ -43,6 +43,18 @@ class QuoteLineType extends AbstractType
                 'help' => 'Description de la prestation',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
+            ->add('subscriptionMode', ChoiceType::class, [
+                'label' => 'Récurrence',
+                'required' => false,
+                'placeholder' => 'Aucune',
+                'choices' => [
+                    'Mensuel' => 'monthly',
+                    'Annuel' => 'yearly',
+                ],
+                'attr' => ['class' => 'form-select'],
+                'help' => 'Choisir si cette ligne est un abonnement récurrent',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
             ->add('quantity', IntegerType::class, [
                 'label' => 'Quantité',
                 'required' => false,
@@ -54,8 +66,8 @@ class QuoteLineType extends AbstractType
                 'label' => 'Prix unitaire HT',
                 'required' => false,
                 'scale' => 2,
-                'attr' => ['class' => 'form-input', 'step' => '0.01', 'min' => 0],
-                'help' => 'Prix unitaire en euros',
+                'attr' => ['class' => 'form-input', 'step' => '0.01'],
+                'help' => 'Prix unitaire HT en euros (négatif pour une réduction)',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('tvaRate', ChoiceType::class, [
@@ -81,4 +93,3 @@ class QuoteLineType extends AbstractType
         ]);
     }
 }
-

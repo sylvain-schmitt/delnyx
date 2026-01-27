@@ -1,0 +1,149 @@
+{% extends 'admin/layout/base.html.twig' %}
+{% import 'admin/macros/pagination.html.twig' as pagination_macro %}
+
+{% block title %}Abonnements - Administration Delnyx
+{% endblock %}
+
+{% block page_title %}Abonnements
+{% endblock %}
+
+{% block body %}
+	<div
+		class="space-y-6">
+		{# Header #}
+		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+			<div>
+				<h1 class="text-2xl font-bold text-white">Abonnements</h1>
+				<p class="text-white/60 mt-1">Gérez les abonnements récurrents de vos clients</p>
+			</div>
+		</div>
+
+		{# Liste des abonnements #}
+		{% if subscriptions|length > 0 %}
+			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl overflow-hidden scroll-animate">
+				<div class="overflow-x-auto">
+					<table class="w-full text-left text-sm text-white/80">
+						<thead class="bg-white/5 text-white uppercase text-xs">
+							<tr>
+								<th class="px-6 py-4 font-semibold">Client</th>
+								<th class="px-6 py-4 font-semibold">Service</th>
+								<th class="px-6 py-4 font-semibold">Montant</th>
+								<th class="px-6 py-4 font-semibold">Statut</th>
+								<th class="px-6 py-4 font-semibold">Prochaine Échéance</th>
+								<th class="px-6 py-4 font-semibold text-right">Actions</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-white/10">
+							{% for subscription in subscriptions %}
+								<tr class="hover:bg-white/5 transition-colors">
+									<td class="px-6 py-4 font-medium text-white">
+										<div class="flex flex-col">
+											<span>{{ subscription.client.nomComplet }}</span>
+											<span class="text-xs text-white/50">{{ subscription.client.email }}</span>
+										</div>
+									</td>
+									<td class="px-6 py-4">
+										{{ subscription.label }}
+										<span class="ml-2 px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-300">
+											{{ subscription.intervalUnit == 'month' ? 'Mensuel' : 'Annuel' }}
+										</span>
+										{% if subscription.stripeSubscriptionId %}
+											<span class="ml-1 px-2 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">STRIPE</span>
+										{% else %}
+											<span class="ml-1 px-2 py-0.5 rounded text-[10px] bg-gray-500/20 text-gray-400 border border-white/10">MANUEL</span>
+										{% endif %}
+									</td>
+									<td
+										class="px-6 py-4">
+										{# Affichage du montant si disponible, sinon N/A #}
+										{% if subscription.amount %}
+											{{ subscription.amount|number_format(2, ',', ' ') }}
+											€
+										{% else %}
+											<span class="text-white/40">N/A</span>
+										{% endif %}
+									</td>
+									<td class="px-6 py-4">
+										{% if subscription.status == 'active' %}
+											<span class="px-2 py-1 rounded text-xs font-medium bg-green-500/20 text-green-300 flex items-center w-fit gap-1">
+												{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+												Actif
+											</span>
+										{% elseif subscription.status == 'past_due' %}
+											<span class="px-2 py-1 rounded text-xs font-medium bg-orange-500/20 text-orange-300 flex items-center w-fit gap-1">
+												{{ ux_icon('lucide:alert-circle', {class: 'w-3 h-3'}) }}
+												Retard
+											</span>
+										{% elseif subscription.status == 'canceled' %}
+											<span class="px-2 py-1 rounded text-xs font-medium bg-red-500/20 text-red-300 flex items-center w-fit gap-1">
+												{{ ux_icon('lucide:x-circle', {class: 'w-3 h-3'}) }}
+												Annulé
+											</span>
+										{% else %}
+											<span class="px-2 py-1 rounded text-xs font-medium bg-gray-500/20 text-gray-300">
+												{{ subscription.status }}
+											</span>
+										{% endif %}
+									</td>
+									<td class="px-6 py-4">
+										{% if subscription.currentPeriodEnd %}
+											{{ subscription.currentPeriodEnd|date('d/m/Y') }}
+										{% else %}
+											-
+										{% endif %}
+									</td>
+									<td class="px-6 py-4 text-right">
+										<div
+											class="flex justify-end gap-2">
+											{# Bouton Sync #}
+											{% if subscription.stripeSubscriptionId %}
+												<form method="post" action="{{ path('admin_subscription_sync', {id: subscription.id}) }}" class="inline-block">
+													<input type="hidden" name="_token" value="{{ csrf_token('sync' ~ subscription.id) }}">
+													<button type="submit" class="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors" title="Synchroniser avec Stripe">
+														{{ ux_icon('lucide:refresh-cw', {class: 'w-4 h-4'}) }}
+													</button>
+												</form>
+											{% endif %}
+
+											{# Bouton Cancel (si actif) #}
+											{% if subscription.status == 'active' or subscription.status == 'past_due' %}
+												<button type="button" data-action="click->confirm-modal#open" data-url="{{ path('admin_subscription_cancel', {id: subscription.id}) }}" data-method="POST" data-csrf-token="{{ csrf_token('cancel' ~ subscription.id) }}" data-item-name="cet abonnement" data-message="L'annulation prendra fin à la fin de la période courante. Êtes-vous sûr ?" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors" title="Annuler l'abonnement">
+													{{ ux_icon('lucide:ban', {class: 'w-4 h-4'}) }}
+												</button>
+											{% endif %}
+										</div>
+									</td>
+								</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			{# Pagination #}
+			{% if total_pages > 1 %}
+				<div
+					class="mt-6">
+					{# Simple pagination placeholder #}
+					<div class="flex justify-center gap-2">
+						{% for i in 1..total_pages %}
+							<a href="{{ path('admin_subscription_index', {page: i}) }}" class="px-3 py-1 rounded {{ current_page == i ? 'bg-blue-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20' }}">
+								{{ i }}
+							</a>
+						{% endfor %}
+					</div>
+				</div>
+			{% endif %}
+
+		{% else %}
+			{# État vide #}
+			<div class="text-center py-20 scroll-animate">
+				<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-12 max-w-md mx-auto">
+					{{ ux_icon('lucide:credit-card', {class: 'w-16 h-16 text-gray-400 mb-6 mx-auto'}) }}
+					<h3 class="text-2xl font-bold text-white mb-4">Aucun abonnement</h3>
+					<p class="text-gray-300 mb-6">Les abonnements apparaîtront ici une fois que vos clients auront souscrit à vos services récurrents.</p>
+				</div>
+			</div>
+		{% endif %}
+	</div>
+{% endblock %}
