@@ -148,6 +148,20 @@ class CompanySettings
     #[Groups(['company_settings:read', 'company_settings:write'])]
     private bool $stripeEnabled = false;
 
+    // ===== CONFIGURATION GOOGLE REVIEWS =====
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?string $googlePlaceId = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['company_settings:write'])] // Pas en read pour sécurité
+    private ?string $googleApiKey = null;
+
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private bool $googleReviewsEnabled = false;
+
     // ===== CONFIGURATION SIGNATURE ÉLECTRONIQUE =====
 
     #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
@@ -573,5 +587,50 @@ class CompanySettings
         return $this->stripeEnabled
             && !empty($this->stripeSecretKey)
             && !empty($this->stripePublishableKey);
+    }
+
+    // ===== GETTERS/SETTERS GOOGLE REVIEWS =====
+
+    public function getGooglePlaceId(): ?string
+    {
+        return $this->googlePlaceId;
+    }
+
+    public function setGooglePlaceId(?string $googlePlaceId): static
+    {
+        $this->googlePlaceId = $googlePlaceId;
+        return $this;
+    }
+
+    public function getGoogleApiKey(): ?string
+    {
+        return $this->googleApiKey;
+    }
+
+    public function setGoogleApiKey(?string $googleApiKey): static
+    {
+        $this->googleApiKey = $googleApiKey;
+        return $this;
+    }
+
+    public function isGoogleReviewsEnabled(): bool
+    {
+        return $this->googleReviewsEnabled;
+    }
+
+    public function setGoogleReviewsEnabled(bool $googleReviewsEnabled): static
+    {
+        $this->googleReviewsEnabled = $googleReviewsEnabled;
+        return $this;
+    }
+
+    /**
+     * Vérifie si la configuration Google Reviews est complète et activée
+     */
+    public function hasValidGoogleReviewsConfig(): bool
+    {
+        return $this->googleReviewsEnabled
+            && !empty($this->googlePlaceId)
+            && !empty($this->googleApiKey);
     }
 }

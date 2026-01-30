@@ -234,6 +234,29 @@ class CompanySettingsType extends AbstractType
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
 
+            // ===== CONFIGURATION GOOGLE REVIEWS =====
+            ->add('googleReviewsEnabled', CheckboxType::class, [
+                'label' => 'Activer les avis Google Business',
+                'required' => false,
+                'attr' => ['class' => 'form-checkbox'],
+                'help' => 'Affiché sur la page d\'accueil pour la preuve sociale',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('googlePlaceId', TextType::class, [
+                'label' => 'Google Place ID',
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'placeholder' => 'ChIJs...'],
+                'help' => 'Identifiant unique de votre établissement sur Google Maps',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('googleApiKey', PasswordType::class, [
+                'label' => 'Clé API Google Places',
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'placeholder' => 'AIzaSy...', 'autocomplete' => 'new-password'],
+                'help' => 'Nécessite une clé avec l\'API "Places API" activée dans Google Cloud Console',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+
             ->add('submit', SubmitType::class, [
                 'label' => 'Enregistrer les paramètres',
                 'attr' => ['class' => 'btn btn-primary']

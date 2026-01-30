@@ -223,7 +223,63 @@
 					<code class="block bg-blue-900/50 px-3 py-2 rounded text-xs mt-2 select-all">{{ app.request.schemeAndHttpHost }}/webhook/stripe</code>
 					<p class="text-blue-400/70 text-xs mt-2 italic">⚠️ Cette URL n'est pas visitable directement - elle accepte uniquement les requêtes POST envoyées par Stripe.</p>
 				</div>
-                
+			</div>
+
+			{# Configuration Google Reviews #}
+			<div class="space-y-4 pt-6 border-t border-white/20">
+				<div class="flex items-center justify-between pb-2 border-b border-white/20">
+					<h3 class="text-lg font-semibold text-white/90">Avis Google Business</h3>
+					<a href="https://console.cloud.google.com/" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+						{{ ux_icon('lucide:external-link', {class: 'w-3 h-3'}) }}
+						Google Cloud Console
+					</a>
+				</div>
+
+				{# Checkbox d'activation #}
+				<div class="form-group flex items-center gap-3 bg-white/5 p-4 rounded-lg">
+					{{ form_widget(form.googleReviewsEnabled, {'attr': {'class': 'form-checkbox', 'data-admin-form-target': 'field'}}) }}
+					<div>
+						<span class="text-white font-medium">{{ form.googleReviewsEnabled.vars.label }}</span>
+						<p class="text-white/60 text-sm">Affiche vos derniers avis Google sur la page d'accueil</p>
+					</div>
+				</div>
+
+				<div
+					class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{# Place ID #}
+					<div class="form-group">
+						{{ form_label(form.googlePlaceId, null, {'label_attr': {'class': 'form-label'}}) }}
+						{{ form_widget(form.googlePlaceId, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+						{% if companySettings.googlePlaceId %}
+							<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
+								{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+								ID configuré ({{ companySettings.googlePlaceId[:12] }}...)
+							</p>
+						{% endif %}
+						{{ form_help(form.googlePlaceId) }}
+						{{ form_errors(form.googlePlaceId) }}
+					</div>
+
+					{# API Key #}
+					<div class="form-group">
+						{{ form_label(form.googleApiKey, null, {'label_attr': {'class': 'form-label'}}) }}
+						{{ form_widget(form.googleApiKey, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+						{% if companySettings.googleApiKey %}
+							<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
+								{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+								Clé configurée (AIza...{{ companySettings.googleApiKey[-4:] }})
+							</p>
+						{% else %}
+							<p class="text-amber-400 text-xs mt-1 flex items-center gap-1">
+								{{ ux_icon('lucide:alert-circle', {class: 'w-3 h-3'}) }}
+								Non configurée
+							</p>
+						{% endif %}
+						{{ form_help(form.googleApiKey) }}
+						{{ form_errors(form.googleApiKey) }}
+					</div>
+				</div>
+
 				{# Automatisation #}
 				<div class="space-y-4 pt-6 border-t border-white/20">
 					<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Automatisation</h3>

@@ -1,0 +1,101 @@
+{% if googleReviews.reviews is defined and googleReviews.reviews|length > 0 %}
+	<section class="py-24 relative overflow-hidden bg-slate-950" id="google-reviews">
+		<style>
+			#google-reviews .star-fill path {
+				fill: currentColor;
+			}
+		</style>
+		{# Effets de fond #}
+		<div class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+		<div class="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+		<div class="container mx-auto px-4 relative z-10">
+			<div class="max-w-4xl mx-auto text-center mb-16">
+				<h2 class="text-4xl md:text-5xl font-extrabold text-white mb-6">
+					Ils nous font
+					<span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">confiance</span>
+				</h2>
+				<div class="flex flex-col items-center justify-center gap-4">
+					<div class="flex items-center gap-3">
+						<span class="text-5xl font-black text-white">{{ (googleReviews.rating == 5) ? '5/5' : (googleReviews.rating|number_format(1, ',', '.') ~ '/5') }}</span>
+						<div class="flex text-amber-400">
+							{% for i in 1..5 %}
+								{% if i <= googleReviews.rating %}
+									{{ ux_icon('lucide:star', {class: 'w-8 h-8 star-fill'}) }}
+								{% elseif i - 0.5 <= googleReviews.rating %}
+									{{ ux_icon('lucide:star-half', {class: 'w-8 h-8 star-fill'}) }}
+								{% else %}
+									{{ ux_icon('lucide:star', {class: 'w-8 h-8 text-slate-700/50'}) }}
+								{% endif %}
+							{% endfor %}
+						</div>
+					</div>
+					<p class="text-slate-400 text-lg">Basé sur
+						{{ googleReviews.total_ratings }}
+						avis Google Business</p>
+					{% if companySettings is defined and companySettings and companySettings.googlePlaceId %}
+						<a href="https://www.google.com/maps/place/?q=place_id:{{ companySettings.googlePlaceId }}" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors flex items-center gap-2">
+							Voir tous les avis sur Google
+							{{ ux_icon('lucide:arrow-right', {class: 'w-4 h-4'}) }}
+						</a>
+					{% endif %}
+				</div>
+			</div>
+
+			<div data-controller="reviews-carousel" data-action="mouseenter->reviews-carousel#pause mouseleave->reviews-carousel#resume" class="relative">
+				<div data-reviews-carousel-target="track" class="flex overflow-x-auto gap-8 pb-8 no-scrollbar scroll-smooth snap-x snap-mandatory" style="scrollbar-width: none; -ms-overflow-style: none;">
+					{% for review in googleReviews.reviews %}
+						<div class="flex-none w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)] snap-center group relative">
+							<div class="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+							<div
+								class="relative h-full p-8 bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col items-start transition-all duration-300 hover:-translate-y-1">
+								{# Header de l'avis #}
+								<div class="flex items-center gap-4 mb-6">
+									{% if review.profile_photo_url is defined and review.profile_photo_url %}
+										<img src="{{ review.profile_photo_url }}" alt="{{ review.author_name }}" class="w-12 h-12 rounded-full border border-white/10 ring-2 ring-blue-500/20" loading="lazy">
+									{% else %}
+										<div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center border border-white/10 text-blue-400 font-bold">
+											{{ review.author_name|first|upper }}
+										</div>
+									{% endif %}
+									<div>
+										<h4 class="text-white font-semibold leading-tight">{{ review.author_name }}</h4>
+										<span class="text-slate-500 text-xs">{{ review.relative_time_description }}</span>
+									</div>
+								</div>
+
+								{# Étoiles #}
+								<div class="flex text-amber-500 mb-4">
+									{% for i in 1..5 %}
+										{% if i <= review.rating %}
+											{{ ux_icon('lucide:star', {class: 'w-4 h-4 star-fill'}) }}
+										{% else %}
+											{{ ux_icon('lucide:star', {class: 'w-4 h-4 text-slate-700/50'}) }}
+										{% endif %}
+									{% endfor %}
+								</div>
+
+								{# Texte #}
+								<p class="text-slate-300 text-sm leading-relaxed mb-6 italic">
+									"{{ review.text|length > 200 ? review.text|slice(0, 197) ~ '...' : review.text }}"
+								</p>
+
+								<div class="mt-auto flex items-center gap-2 text-xs text-slate-500">
+									{{ ux_icon('lucide:badge-check', {class: 'w-4 h-4 text-emerald-500'}) }}
+									Avis vérifié Google
+								</div>
+							</div>
+						</div>
+					{% endfor %}
+				</div>
+
+				{# Indicateur de swipe #}
+				<div class="flex justify-center gap-2 mt-4 opacity-50 md:hidden">
+					<div class="w-12 h-1 bg-white/20 rounded-full overflow-hidden">
+						<div class="w-1/3 h-full bg-blue-500 rounded-full"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+{% endif %}

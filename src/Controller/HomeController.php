@@ -9,9 +9,14 @@ use Symfony\Component\Routing\Attribute\Route;
 final class HomeController extends AbstractController
 {
     #[Route('/', name: 'app_home')]
-    public function index(): Response
-    {
-        return $this->render('home/index.html.twig');
+    public function index(
+        \App\Service\Google\GoogleReviewService $googleReviewService,
+        \App\Repository\CompanySettingsRepository $settingsRepository
+    ): Response {
+        return $this->render('home/index.html.twig', [
+            'googleReviews' => $googleReviewService->getLatestReviews(),
+            'companySettings' => $settingsRepository->findOneBy([])
+        ]);
     }
 
     #[Route('/about', name: 'app_about')]
@@ -25,5 +30,4 @@ final class HomeController extends AbstractController
     {
         return $this->render('home/services.html.twig');
     }
-
 }
