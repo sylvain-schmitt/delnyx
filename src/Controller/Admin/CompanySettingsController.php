@@ -40,14 +40,14 @@ class CompanySettingsController extends AbstractController
             // Fallback : générer un UUID v4 aléatoire
             $companyId = Uuid::v4()->toString();
         }
-        
+
         $companySettings = $this->companySettingsRepository->findByCompanyId($companyId);
 
         // Si les paramètres n'existent pas, créer une nouvelle entité
         if (!$companySettings) {
             $companySettings = new CompanySettings();
             $companySettings->setCompanyId($companyId);
-            
+
             // Pré-remplir l'email avec celui de l'utilisateur connecté
             $user = $this->getUser();
             if ($user && method_exists($user, 'getEmail')) {
@@ -74,6 +74,22 @@ class CompanySettingsController extends AbstractController
                     $logoPath = $this->handleLogoUpload($logoFile, $companySettings);
                     if ($logoPath) {
                         $companySettings->setLogoPath($logoPath);
+                    }
+                }
+
+                // Mappage manuel des champs secrets (mapped => false)
+                $secretFields = [
+                    'stripeSecretKey' => 'setStripeSecretKey',
+                    'stripeWebhookSecret' => 'setStripeWebhookSecret',
+                    'googleApiKey' => 'setGoogleApiKey',
+                    'signatureApiKey' => 'setSignatureApiKey',
+                    'pdpApiKey' => 'setPdpApiKey'
+                ];
+
+                foreach ($secretFields as $fieldName => $setter) {
+                    $value = $form->get($fieldName)->getData();
+                    if ($value !== null && $value !== '') {
+                        $companySettings->$setter($value);
                     }
                 }
 
@@ -148,4 +164,3 @@ class CompanySettingsController extends AbstractController
         }
     }
 }
-

@@ -178,10 +178,11 @@ class CompanySettingsType extends AbstractType
                 'help' => 'Ex: Jefacture, DPii, Pennylane...',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
-            ->add('pdpApiKey', TextType::class, [
+            ->add('pdpApiKey', PasswordType::class, [
                 'label' => 'Clé API PDP',
                 'required' => false,
-                'attr' => ['class' => 'form-input', 'type' => 'password'],
+                'mapped' => false,
+                'attr' => ['class' => 'form-input', 'autocomplete' => 'new-password'],
                 'help' => 'Clé API pour l\'intégration avec la plateforme PDP',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
@@ -198,10 +199,11 @@ class CompanySettingsType extends AbstractType
                 'placeholder' => 'Aucun',
                 'attr' => ['class' => 'form-select']
             ])
-            ->add('signatureApiKey', TextType::class, [
+            ->add('signatureApiKey', PasswordType::class, [
                 'label' => 'Clé API Signature',
                 'required' => false,
-                'attr' => ['class' => 'form-input', 'type' => 'password']
+                'mapped' => false,
+                'attr' => ['class' => 'form-input', 'autocomplete' => 'new-password']
             ])
 
             // ===== CONFIGURATION STRIPE (Paiement en ligne) =====
@@ -222,6 +224,7 @@ class CompanySettingsType extends AbstractType
             ->add('stripeSecretKey', PasswordType::class, [
                 'label' => 'Clé secrète Stripe',
                 'required' => false,
+                'mapped' => false,
                 'attr' => ['class' => 'form-input', 'placeholder' => 'sk_test_... ou sk_live_...', 'autocomplete' => 'new-password'],
                 'help' => 'Ne jamais exposer côté client - utilisée uniquement côté serveur',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
@@ -229,6 +232,7 @@ class CompanySettingsType extends AbstractType
             ->add('stripeWebhookSecret', PasswordType::class, [
                 'label' => 'Secret webhook Stripe',
                 'required' => false,
+                'mapped' => false,
                 'attr' => ['class' => 'form-input', 'placeholder' => 'whsec_...', 'autocomplete' => 'new-password'],
                 'help' => 'Récupérez-le depuis le dashboard Stripe > Webhooks > Détails du endpoint',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
@@ -252,6 +256,7 @@ class CompanySettingsType extends AbstractType
             ->add('googleApiKey', PasswordType::class, [
                 'label' => 'Clé API Google Places',
                 'required' => false,
+                'mapped' => false,
                 'attr' => ['class' => 'form-input', 'placeholder' => 'AIzaSy...', 'autocomplete' => 'new-password'],
                 'help' => 'Nécessite une clé avec l\'API "Places API" activée dans Google Cloud Console',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
@@ -262,28 +267,20 @@ class CompanySettingsType extends AbstractType
                 'attr' => ['class' => 'btn btn-primary']
             ]);
 
-        // Sécurité validation: si TVA décochée à la soumission, retirer tauxTVADefaut
+        // Logic TVA
         $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
             $data = $event->getData();
-            $form = $event->getForm();
+            if (!$data) return;
 
-            if (!$data) {
-                return;
-            }
-
-            $tvaEnabled = array_key_exists('tvaEnabled', $data) ? (bool) $data['tvaEnabled'] : false;
             $tvaEnabled = array_key_exists('tvaEnabled', $data) ? (bool) $data['tvaEnabled'] : false;
 
             if (isset($data['iban'])) {
-                // Nettoyer l'IBAN (retirer les espaces et majuscules)
                 $data['iban'] = mb_strtoupper(str_replace(' ', '', $data['iban']));
             }
 
             if (!$tvaEnabled) {
-                // Si TVA désactivée, on force à 0.00
                 $data['tauxTVADefaut'] = '0.00';
             } elseif (empty($data['tauxTVADefaut'])) {
-                // Si TVA activée mais pas de taux choisi, on met 20% par défaut
                 $data['tauxTVADefaut'] = '20.00';
             }
 
