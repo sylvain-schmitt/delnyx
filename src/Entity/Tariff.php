@@ -355,8 +355,8 @@ class Tariff
     #[Groups(['tariff:read'])]
     public function getPrixFormate(): string
     {
-        // Convertir les centimes en euros (MoneyField stocke en centimes)
-        $prixEnEuros = (float) $this->prix / 100;
+        // Le prix est déjà stocké en décimal (euros) dans la base
+        $prixEnEuros = (float) $this->prix;
         $prix = number_format($prixEnEuros, 2, ',', ' ');
 
         return match ($this->unite) {
@@ -375,7 +375,7 @@ class Tariff
     public function getPrixTTCFormate(): string
     {
         // Calculer le prix TTC (HT + TVA)
-        $prixHT = (float) $this->prix / 100;
+        $prixHT = (float) $this->prix;
         $tauxTVA = 0.20; // 20% par défaut, à adapter selon vos besoins
         $prixTTC = $prixHT * (1 + $tauxTVA);
         $prix = number_format($prixTTC, 2, ',', ' ');

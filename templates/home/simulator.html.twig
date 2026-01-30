@@ -1,0 +1,236 @@
+{# templates/home/simulator.html.twig #}
+{% extends 'layout/base.html.twig' %}
+
+{% block title %}Simulateur de Tarifs | Estimez votre projet web | Delnyx
+{% endblock %}
+{% block meta_description %}Utilisez notre simulateur interactif pour obtenir une estimation immédiate pour votre site vitrine, application web ou maintenance. Simple, transparent et sans engagement.
+{% endblock %}
+
+{% block body %}
+	{# Hero Section #}
+	<section class="relative py-20 lg:py-24 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 section-transition">
+		<div class="absolute top-1/4 left-[5%] w-[200px] h-[200px] rounded-full light-ambient opacity-20 z-10" style="background: radial-gradient(circle, rgba(59,130,246,0.2) 0%, transparent 70%);"></div>
+		<div class="absolute bottom-1/4 right-[5%] w-[180px] h-[180px] rounded-full light-ambient opacity-20 z-10" style="background: radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%); animation-delay: 1s;"></div>
+
+		<div class="relative z-20 max-w-7xl mx-auto px-6 sm:px-8">
+			<div class="text-center">
+				<h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 scroll-animate animate-delay-100">
+					Simulateur de
+					<span class="bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-500 bg-clip-text text-transparent">
+						Tarifs
+					</span>
+				</h1>
+				<p class="text-xl text-gray-300 max-w-2xl mx-auto scroll-animate animate-delay-200">
+					Sélectionnez les options adaptées à vos besoins et obtenez une estimation instantanée pour votre projet.
+				</p>
+			</div>
+		</div>
+	</section>
+
+	{# Simulator Section #}
+	<section class="relative py-16 lg:py-24 bg-slate-900" data-controller="simulator" data-simulator-tva-enabled-value="{{ tvaEnabled ? 'true' : 'false' }}" data-simulator-tva-rate-value="{{ tvaRate }}">
+		<div class="relative z-10 max-w-7xl mx-auto px-6 sm:px-8">
+			<div
+				class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+
+				{# Options Column #}
+				<div class="lg:col-span-8 space-y-12">
+					{% for category, tariffs in groupedTariffs %}
+						<div class="scroll-animate animate-stagger-{{ loop.index <= 4 ? loop.index : 4 }}">
+							<div class="flex items-center mb-8">
+								<div class="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center mr-4 border border-blue-500/20 transition-all duration-300" data-simulator-category-icon="{{ category }}">
+									{% if category == 'site_vitrine' %}
+										{{ ux_icon('lucide:monitor', {class: 'w-6 h-6 text-blue-400'}) }}
+									{% elseif category == 'reservation' %}
+										{{ ux_icon('lucide:calendar-check', {class: 'w-6 h-6 text-cyan-400'}) }}
+									{% elseif category == 'application_gestion' %}
+										{{ ux_icon('lucide:database', {class: 'w-6 h-6 text-purple-400'}) }}
+									{% elseif category == 'maintenance' %}
+										{{ ux_icon('lucide:shield-check', {class: 'w-6 h-6 text-emerald-400'}) }}
+									{% else %}
+										{{ ux_icon('lucide:layers', {class: 'w-6 h-6 text-slate-400'}) }}
+									{% endif %}
+								</div>
+								<h2 class="text-2xl font-bold text-white flex items-center">
+									{% if category == 'site_vitrine' %}Sites Vitrine
+										{% elseif category == 'reservation' %}Systèmes de Réservation
+										{% elseif category == 'application_gestion' %}Applications sur-mesure
+										{% elseif category == 'maintenance' %}Maintenance & Support
+									{% else %}
+										{{ category|capitalize }}
+									{% endif %}
+									<span class="ml-4 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 hidden" data-simulator-category-count="{{ category }}">
+										0
+									</span>
+								</h2>
+							</div>
+
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								{% for tariff in tariffs %}
+									<label class="group relative block transition-all duration-300" data-simulator-item-container>
+										<input type="checkbox" class="peer hidden" data-action="change->simulator#updateTotals" data-price="{{ tariff.prix }}" data-name="{{ tariff.nom }}" data-unit="{{ tariff.unite }}" data-category="{{ tariff.categorie }}">
+										<div
+											class="glass-card h-full p-6 cursor-pointer border-white/5 group-hover:border-blue-500/30 peer-checked:border-blue-500/80 peer-checked:bg-blue-500/10 transition-all relative overflow-hidden">
+											{# Badge Sélectionné #}
+											<div class="selection-badge absolute top-0 right-0 px-3 py-1 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-bl-lg transform translate-x-full transition-transform duration-300 z-10">
+												Sélectionné
+											</div>
+											<div class="flex justify-between items-start mb-4">
+												<h3 class="text-white font-bold group-hover:text-blue-400 transition-colors">{{ tariff.nom }}</h3>
+												<div class="selection-check w-6 h-6 rounded-full border border-white/20 flex items-center justify-center transition-all">
+													<div class="selection-dot hidden w-2.5 h-2.5 bg-white rounded-full"></div>
+												</div>
+											</div>
+											<p class="text-gray-400 text-sm mb-6 leading-relaxed">{{ tariff.description }}</p>
+											<div class="flex items-baseline space-x-1">
+												<span class="text-xl font-bold text-white">{{ tariff.prix|number_format(0, ',', ' ') }}
+													€</span>
+												<span class="text-xs text-gray-500">
+													{% if tariff.unite == 'forfait' %}/ forfait{% else %}/
+														{{ tariff.uniteLabel|lower }}
+													{% endif %}
+												</span>
+											</div>
+										</div>
+									</label>
+								{% endfor %}
+							</div>
+						</div>
+					{% endfor %}
+				</div>
+
+				{# Summary Sticky Column #}
+				<div class="lg:col-span-4 sticky top-24">
+					<div class="glass-card backdrop-blur-xl border-blue-500/20 p-8 shadow-2xl shadow-blue-500/10">
+						<h3 class="text-xl font-bold text-white mb-6 flex items-center">
+							{{ ux_icon('lucide:shopping-bag', {class: 'w-5 h-5 mr-3 text-blue-400'}) }}
+							Votre projet
+							<span class="ml-auto text-sm font-normal text-slate-400" data-simulator-target="itemCount">0</span>
+						</h3>
+
+						{# Selection List #}
+						<div class="space-y-1 mb-8 max-h-60 overflow-y-auto pr-2 custom-scrollbar" data-simulator-target="selectionList">
+							<div class="text-slate-400 text-sm italic py-4 text-center">
+								Aucun service sélectionné
+							</div>
+						</div>
+
+						{# Totals #}
+						<div class="space-y-4 pt-6 border-t border-white/10">
+							<div class="flex justify-between items-center text-slate-400">
+								<span>Total Estimation (HT)</span>
+								<span class="font-semibold text-white" data-simulator-target="totalHT">0,00 €</span>
+							</div>
+
+							<div class="flex justify-between items-center text-slate-400 {% if not tvaEnabled %}hidden{% endif %}" data-simulator-target="tvaRow">
+								<span>TVA ({{ tvaRate }}%)</span>
+								<span class="font-semibold text-white" data-simulator-target="totalTVA">0,00 €</span>
+							</div>
+
+							<div class="flex justify-between items-center pt-4">
+								<span class="text-lg font-bold text-white">Total Estimé</span>
+								<span class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent" data-simulator-target="totalTTC">0,00 €</span>
+							</div>
+						</div>
+
+						{% if not tvaEnabled %}
+							<p class="mt-4 text-[10px] text-slate-500 text-center uppercase tracking-widest">
+								TVA non applicable, art. 293 B du CGI
+							</p>
+						{% endif %}
+
+						<div class="mt-8">
+							<a href="{{ path('app_contact') }}" class="block w-full py-4 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 text-white font-bold rounded-xl text-center shadow-lg shadow-blue-500/25 hover:shadow-indigo-500/40 transform hover:-translate-y-0.5 hover:scale-[1.02] transition-all duration-300 opacity-50 pointer-events-none group" data-simulator-target="ctaButton">
+								<span class="relative z-10">Discutons de votre projet</span>
+								{{ ux_icon('lucide:messages-square', {class: 'inline-block ml-2 w-5 h-5 group-hover:rotate-12 transition-transform'}) }}
+							</a>
+							<p class="mt-4 text-xs text-center text-gray-500 leading-relaxed">
+								Cette estimation est fournie à titre indicatif et ne constitue pas un devis contractuel.
+							</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	{# Accentuation d'arrière-plan immersive #}
+	<div class="fixed inset-0 pointer-events-none z-0">
+		<div class="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full opacity-10 blur-[120px]" style="background: radial-gradient(circle, rgba(96, 165, 250, 0.4) 0%, transparent 70%);"></div>
+		<div class="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full opacity-10 blur-[120px]" style="background: radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, transparent 70%);"></div>
+	</div>
+{% endblock %}
+
+{% block stylesheets %}
+	{{ parent() }}
+	<style>
+		.custom-scrollbar::-webkit-scrollbar {
+			width: 4px;
+		}
+		.custom-scrollbar::-webkit-scrollbar-track {
+			background: rgba(255, 255, 255, 0.05);
+			border-radius: 10px;
+		}
+		.custom-scrollbar::-webkit-scrollbar-thumb {
+			background: rgba(59, 130, 246, 0.3);
+			border-radius: 10px;
+		}
+		.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+			background: rgba(59, 130, 246, 0.5);
+		}
+
+		/* Staggered entry animations */
+		.animate-stagger-1 {
+			animation-delay: 100ms;
+		}
+		.animate-stagger-2 {
+			animation-delay: 200ms;
+		}
+		.animate-stagger-3 {
+			animation-delay: 300ms;
+		}
+		.animate-stagger-4 {
+			animation-delay: 400ms;
+		}
+
+		.glass-card {
+			transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+		}
+
+		.glass-card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.3);
+		}
+
+		input[type="checkbox"]:checked + .glass-card {
+			box-shadow: 0 0 20px -5px rgba(59, 130, 246, 0.4);
+			animation: pulse-border 2s infinite;
+		}
+
+		/* Correction des indicateurs de sélection */
+		input[type="checkbox"]:checked + .glass-card .selection-badge {
+			transform: translateX(0);
+		}
+
+		input[type="checkbox"]:checked + .glass-card .selection-check {
+			background-color: #3b82f6; /* bg-blue-500 */
+			border-color: #3b82f6;
+		}
+
+		input[type="checkbox"]:checked + .glass-card .selection-dot {
+			display: block;
+		}
+
+		@keyframes pulse-border {
+			0% {
+				border-color: rgba(59, 130, 246, 0.3);
+			}
+			50% {
+				border-color: rgba(59, 130, 246, 0.6);
+			}
+			100% {
+				border-color: rgba(59, 130, 246, 0.3);
+			}
+		}
+	</style>
+{% endblock %}
