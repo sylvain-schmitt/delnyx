@@ -821,7 +821,12 @@ class PublicDocumentController extends AbstractController
     ): mixed {
         // Récupérer les paramètres de signature
         $expires = (int) $request->query->get('expires', 0);
-        $signature = $request->query->get('signature', '');
+
+        // Récupération robuste de la signature (gère le mangling fréquent ;signature en email/proxy)
+        $signature = $request->query->get('signature');
+        if (!$signature) {
+            $signature = $request->query->get(';signature') ?? '';
+        }
 
         // Vérifier la signature
         if (!$this->magicLinkService->verifySignature($entityType, $id, $action, $expires, $signature)) {
