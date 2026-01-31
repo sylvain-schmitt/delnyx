@@ -21,6 +21,8 @@ class DashboardController extends AbstractController
         private QuoteRepository $quoteRepository,
         private InvoiceRepository $invoiceRepository,
         private DashboardService $dashboardService,
+        private \App\Repository\CompanySettingsRepository $companySettingsRepository,
+        private \App\Service\Google\GoogleCalendarService $googleCalendarService,
     ) {}
 
     #[Route('/', name: 'dashboard')]
@@ -60,6 +62,20 @@ class DashboardController extends AbstractController
         $advancedStats = $this->dashboardService->getAllStats();
         $revenueChart = $this->dashboardService->createMonthlyRevenueChart();
 
+        // Événements Google Calendar
+        $googleEvents = [];
+        $settings = $this->companySettingsRepository->findOneBy([]);
+        if ($settings && $settings->isGoogleCalendarEnabled() && $settings->getGoogleOauthAccessToken()) {
+            try {
+                $start = new \DateTime('today');
+                $end = new \DateTime('+7 days');
+                $googleEvents = $this->googleCalendarService->listEvents($settings, $start, $end);
+            } catch (\Exception $e) {
+                // On log l'erreur mais on ne bloque pas le dashboard
+                error_log("DASHBOARD Google Calendar error: " . $e->getMessage());
+            }
+        }
+
         return $this->render('admin/dashboard/index.html.twig', [
             'stats' => $stats,
             'growth' => $growth,
@@ -67,6 +83,7 @@ class DashboardController extends AbstractController
             'recent_invoices' => $recent_invoices,
             'advanced_stats' => $advancedStats,
             'revenue_chart' => $revenueChart,
+            'google_events' => $googleEvents,
         ]);
     }
 

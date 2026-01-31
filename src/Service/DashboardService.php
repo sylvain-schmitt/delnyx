@@ -39,7 +39,7 @@ class DashboardService
             $endOfMonth = (clone $date)->modify('last day of this month')->setTime(23, 59, 59);
 
             $invoices = $this->invoiceRepository->createQueryBuilder('i')
-                ->where('i.dateCreation BETWEEN :start AND :end')
+                ->where('i.datePaiement BETWEEN :start AND :end')
                 ->andWhere('i.statut = :statut')
                 ->setParameter('start', $startOfMonth)
                 ->setParameter('end', $endOfMonth)

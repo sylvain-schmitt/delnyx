@@ -1,0 +1,36 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block body %}
+	<h1>Confirmation de votre rendez-vous</h1>
+
+	<p>Bonjour
+		{{ client.prenom }},</p>
+
+	<p>Votre rendez-vous a bien été enregistré. Voici les détails :</p>
+
+	<div class="info-box" style="background-color: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 20px 0;">
+		<p style="margin: 5px 0;">
+			<strong>📅 Date :</strong>
+			{{ appointment.startAt|date('d/m/Y') }}</p>
+		<p style="margin: 5px 0;">
+			<strong>🕒 Heure :</strong>
+			{{ appointment.startAt|date('H:i') }}
+			-
+			{{ appointment.endAt|date('H:i') }}</p>
+		{% if appointment.description %}
+			<p style="margin: 15px 0 5px 0;">
+				<strong>📝 Votre besoin :</strong>
+			</p>
+			<p style="margin: 0; color: #475569; font-style: italic;">"{{ appointment.description }}"</p>
+		{% endif %}
+	</div>
+
+	<p>Le rendez-vous a été ajouté à mon agenda. Vous recevrez une invitation Google Calendar si ce n'est pas déjà fait.</p>
+
+	<p>Si vous avez un empêchement, merci de me prévenir au plus vite.</p>
+
+	<p style="margin-top: 30px;">
+		À bientôt,<br>
+		<strong>Sylvain de Delnyx</strong>
+	</p>
+{% endblock %}

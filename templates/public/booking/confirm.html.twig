@@ -1,0 +1,64 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block title %}Confirmation de réservation - Delnyx
+{% endblock %}
+
+{% block body %}
+	<div class="min-h-screen bg-slate-950 py-20 px-4">
+		<div class="max-w-2xl mx-auto">
+			<div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+				<h1 class="text-2xl font-bold text-white mb-6">Confirmer votre rendez-vous</h1>
+
+				<div class="flex items-center gap-4 p-4 bg-blue-600/10 border border-blue-500/20 rounded-xl mb-8">
+					<div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+						<i class="lucide-calendar w-6 h-6"></i>
+					</div>
+					<div>
+						<p class="text-sm text-blue-400 font-medium uppercase tracking-wider">Le
+							{{ dateLabel }}</p>
+						<p class="text-lg text-white font-bold">{{ appointment.startAt|date('H:i') }}
+							-
+							{{ appointment.endAt|date('H:i') }}</p>
+					</div>
+				</div>
+
+				{{ form_start(form, {'attr': {'class': 'space-y-6'}}) }}
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div>
+						{{ form_label(form.firstName, null, {'label_attr': {'class': 'block text-sm font-medium text-slate-400 mb-2'}}) }}
+						{{ form_widget(form.firstName, {'attr': {'class': 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-all'}}) }}
+					</div>
+					<div>
+						{{ form_label(form.lastName, null, {'label_attr': {'class': 'block text-sm font-medium text-slate-400 mb-2'}}) }}
+						{{ form_widget(form.lastName, {'attr': {'class': 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-all'}}) }}
+					</div>
+				</div>
+
+				<div>
+					{{ form_label(form.email, null, {'label_attr': {'class': 'block text-sm font-medium text-slate-400 mb-2'}}) }}
+					{{ form_widget(form.email, {'attr': {'class': 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-all'}}) }}
+				</div>
+
+				<div>
+					{{ form_label(form.phone, null, {'label_attr': {'class': 'block text-sm font-medium text-slate-400 mb-2'}}) }}
+					{{ form_widget(form.phone, {'attr': {'class': 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-all'}}) }}
+				</div>
+
+				<div>
+					{{ form_label(form.description, null, {'label_attr': {'class': 'block text-sm font-medium text-slate-400 mb-2'}}) }}
+					{{ form_widget(form.description, {'attr': {'class': 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-all'}}) }}
+				</div>
+
+				<div class="pt-4">
+					<button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-500/25">
+						Confirmer la réservation
+					</button>
+					<a href="{{ path('public_booking') }}" class="block text-center text-slate-500 text-sm mt-4 hover:text-slate-400 transition-all">
+						Retour au choix du créneau
+					</a>
+				</div>
+				{{ form_end(form) }}
+			</div>
+		</div>
+	</div>
+{% endblock %}

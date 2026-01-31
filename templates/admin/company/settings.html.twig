@@ -225,91 +225,191 @@
 				</div>
 			</div>
 
-			{# Configuration Google Reviews #}
-			<div class="space-y-4 pt-6 border-t border-white/20">
-				<div class="flex items-center justify-between pb-2 border-b border-white/20">
-					<h3 class="text-lg font-semibold text-white/90">Avis Google Business</h3>
-					<a href="https://console.cloud.google.com/" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
-						{{ ux_icon('lucide:external-link', {class: 'w-3 h-3'}) }}
-						Google Cloud Console
-					</a>
-				</div>
-
-				{# Checkbox d'activation #}
-				<div class="form-group flex items-center gap-3 bg-white/5 p-4 rounded-lg">
-					{{ form_widget(form.googleReviewsEnabled, {'attr': {'class': 'form-checkbox', 'data-admin-form-target': 'field'}}) }}
-					<div>
-						<span class="text-white font-medium">{{ form.googleReviewsEnabled.vars.label }}</span>
-						<p class="text-white/60 text-sm">Affiche vos derniers avis Google sur la page d'accueil</p>
-					</div>
-				</div>
-
-				<div
-					class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					{# Place ID #}
-					<div class="form-group">
-						{{ form_label(form.googlePlaceId, null, {'label_attr': {'class': 'form-label'}}) }}
-						{{ form_widget(form.googlePlaceId, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
-						{% if companySettings.googlePlaceId %}
-							<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
-								{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
-								ID configuré ({{ companySettings.googlePlaceId[:12] }}...)
-							</p>
-						{% endif %}
-						{{ form_help(form.googlePlaceId) }}
-						{{ form_errors(form.googlePlaceId) }}
-					</div>
-
-					{# API Key #}
-					<div class="form-group">
-						{{ form_label(form.googleApiKey, null, {'label_attr': {'class': 'form-label'}}) }}
-						{{ form_widget(form.googleApiKey, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
-						{% if companySettings.googleApiKey %}
-							<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
-								{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
-								Clé configurée (AIza...{{ companySettings.googleApiKey[-4:] }})
-							</p>
-						{% else %}
-							<p class="text-amber-400 text-xs mt-1 flex items-center gap-1">
-								{{ ux_icon('lucide:alert-circle', {class: 'w-3 h-3'}) }}
-								Non configurée
-							</p>
-						{% endif %}
-						{{ form_help(form.googleApiKey) }}
-						{{ form_errors(form.googleApiKey) }}
-					</div>
-				</div>
-
-				{# Automatisation #}
+			{# Configuration Google Reviews (Si Admin) #}
+			{% if form.googleReviewsEnabled is defined %}
 				<div class="space-y-4 pt-6 border-t border-white/20">
-					<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Automatisation</h3>
+					<div class="flex items-center justify-between pb-2 border-b border-white/20">
+						<h3 class="text-lg font-semibold text-white/90">Avis Google Business</h3>
+						<a href="https://console.cloud.google.com/" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+							{{ ux_icon('lucide:external-link', {class: 'w-3 h-3'}) }}
+							Google Cloud Console
+						</a>
+					</div>
 
-					<div class="bg-white/5 border border-white/10 rounded-lg p-4">
-						<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-							<div class="flex items-start gap-4">
-								{{ ux_icon('lucide:bell', {class: 'w-8 h-8 text-blue-400 flex-shrink-0'}) }}
-								<div>
-									<h4 class="text-white font-medium">Relances automatiques</h4>
-									<p class="text-white/60 text-sm">Configurez des règles pour envoyer automatiquement des rappels aux clients avec des factures impayées.</p>
-								</div>
-							</div>
-							<a href="{{ path('admin_reminder_index') }}" class="btn-secondary flex items-center justify-center gap-2 text-sm flex-shrink-0">
-								{{ ux_icon('lucide:settings', {class: 'w-4 h-4'}) }}
-								Configurer
-							</a>
+					{# Checkbox d'activation #}
+					<div class="form-group flex items-center gap-3 bg-white/5 p-4 rounded-lg">
+						{{ form_widget(form.googleReviewsEnabled, {'attr': {'class': 'form-checkbox', 'data-admin-form-target': 'field'}}) }}
+						<div>
+							<span class="text-white font-medium">{{ form.googleReviewsEnabled.vars.label }}</span>
+							<p class="text-white/60 text-sm">Affiche vos derniers avis Google sur la page d'accueil</p>
+						</div>
+					</div>
+
+					<div
+						class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						{# Place ID #}
+						<div class="form-group">
+							{{ form_label(form.googlePlaceId, null, {'label_attr': {'class': 'form-label'}}) }}
+							{{ form_widget(form.googlePlaceId, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+							{% if companySettings.googlePlaceId %}
+								<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
+									{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+									ID configuré ({{ companySettings.googlePlaceId[:12] }}...)
+								</p>
+							{% endif %}
+							{{ form_help(form.googlePlaceId) }}
+							{{ form_errors(form.googlePlaceId) }}
+						</div>
+
+						{# API Key #}
+						<div class="form-group">
+							{{ form_label(form.googleApiKey, null, {'label_attr': {'class': 'form-label'}}) }}
+							{{ form_widget(form.googleApiKey, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+							{% if companySettings.googleApiKey %}
+								<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
+									{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+									Clé configurée (AIza...{{ companySettings.googleApiKey[-4:] }})
+								</p>
+							{% else %}
+								<p class="text-amber-400 text-xs mt-1 flex items-center gap-1">
+									{{ ux_icon('lucide:alert-circle', {class: 'w-3 h-3'}) }}
+									Non configurée
+								</p>
+							{% endif %}
+							{{ form_help(form.googleApiKey) }}
+							{{ form_errors(form.googleApiKey) }}
 						</div>
 					</div>
 				</div>
+			{% endif %}
 
-				{# Submit Button #}
-				<div class="pt-6 border-t border-white/20">
-					{{ form_widget(form.submit, {'attr': {
+			{# Configuration Google Calendar (Si Admin) #}
+			{% if form.googleCalendarEnabled is defined %}
+				<div class="space-y-4 pt-6 border-t border-white/20">
+					<div class="flex items-center justify-between pb-2 border-b border-white/20">
+						<h3 class="text-lg font-semibold text-white/90">Synchronisation Google Calendar</h3>
+						<div class="flex items-center gap-2">
+							{% if companySettings.googleOauthAccessToken %}
+								<span class="flex items-center gap-1 px-2 py-1 rounded bg-green-500/20 text-green-400 text-xs font-semibold">
+									<span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+									Connecté
+								</span>
+								<a href="{{ path('admin_google_calendar_disconnect') }}" class="text-xs text-red-400 hover:text-red-300 underline" onclick="return confirm('Voulez-vous vraiment déconnecter votre compte Google ?')">
+									Déconnecter
+								</a>
+							{% else %}
+								<span class="px-2 py-1 rounded bg-amber-500/20 text-amber-400 text-xs font-semibold">Non connecté</span>
+							{% endif %}
+						</div>
+					</div>
+
+					{# Alert si manque Client ID/Secret #}
+					{% if not companySettings.googleClientId or not companySettings.googleClientSecret %}
+						<div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-start gap-4 mb-4">
+							{{ ux_icon('lucide:alert-triangle', {class: 'w-6 h-6 text-amber-400 flex-shrink-0'}) }}
+							<div>
+								<h4 class="text-amber-300 font-semibold mb-1">Configuration incomplète</h4>
+								<p class="text-amber-300/80 text-sm">Veuillez renseigner votre **Client ID** et **Client Secret** (obtenus sur Google Cloud Console) pour activer la connexion.</p>
+							</div>
+						</div>
+					{% elseif not companySettings.googleOauthAccessToken %}
+						<div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex items-center justify-between gap-4 mb-4">
+							<div class="flex items-start gap-4">
+								{{ ux_icon('lucide:info', {class: 'w-6 h-6 text-blue-400 flex-shrink-0'}) }}
+								<div>
+									<h4 class="text-blue-300 font-semibold mb-1">Authentification requise</h4>
+									<p class="text-blue-300/80 text-sm">Cliquez sur le bouton pour autoriser Delnyx à accéder à votre agenda.</p>
+								</div>
+							</div>
+							<a href="{{ path('admin_google_calendar_connect') }}" class="flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+								{{ ux_icon('logos:google-icon', {class: 'w-4 h-4'}) }}
+								Se connecter
+							</a>
+						</div>
+					{% endif %}
+
+					{# Checkbox d'activation synchronisation #}
+					<div class="form-group flex items-center gap-3 bg-white/5 p-4 rounded-lg">
+						{{ form_widget(form.googleCalendarEnabled, {'attr': {'class': 'form-checkbox', 'data-admin-form-target': 'field'}}) }}
+						<div>
+							<span class="text-white font-medium">{{ form.googleCalendarEnabled.vars.label }}</span>
+							<p class="text-white/60 text-sm">Permet la synchronisation des rendez-vous et la gestion des disponibilités</p>
+						</div>
+					</div>
+
+					<div
+						class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						{# Client ID #}
+						<div class="form-group">
+							{{ form_label(form.googleClientId, null, {'label_attr': {'class': 'form-label'}}) }}
+							{{ form_widget(form.googleClientId, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+							{{ form_help(form.googleClientId) }}
+							{{ form_errors(form.googleClientId) }}
+						</div>
+
+						{# Client Secret #}
+						<div class="form-group">
+							{{ form_label(form.googleClientSecret, null, {'label_attr': {'class': 'form-label'}}) }}
+							{{ form_widget(form.googleClientSecret, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+							{% if companySettings.googleClientSecret %}
+								<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
+									{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+									Configuré
+								</p>
+							{% endif %}
+							{{ form_help(form.googleClientSecret) }}
+							{{ form_errors(form.googleClientSecret) }}
+						</div>
+					</div>
+
+					{# Calendar ID #}
+					<div class="form-group">
+						{{ form_label(form.googleCalendarId, null, {'label_attr': {'class': 'form-label'}}) }}
+						{{ form_widget(form.googleCalendarId, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+						{{ form_help(form.googleCalendarId) }}
+						{{ form_errors(form.googleCalendarId) }}
+					</div>
+
+					{# Working Hours (Plages horaires) #}
+					<div class="form-group pt-4 border-t border-white/5">
+						{{ form_label(form.workingHours, null, {'label_attr': {'class': 'form-label'}}) }}
+						{{ form_widget(form.workingHours, {'attr': {'class': 'form-textarea font-mono text-xs bg-black/20 text-blue-300 border-white/10 rounded-lg p-4 focus:border-blue-500/50 transition-all', 'data-admin-form-target': 'field', 'rows': 8}}) }}
+						{{ form_help(form.workingHours) }}
+						{{ form_errors(form.workingHours) }}
+					</div>
+				</div>
+			{% endif %}
+
+			{# Automatisation #}
+			<div class="space-y-4 pt-6 border-t border-white/20">
+				<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Automatisation</h3>
+
+				<div class="bg-white/5 border border-white/10 rounded-lg p-4">
+					<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+						<div class="flex items-start gap-4">
+							{{ ux_icon('lucide:bell', {class: 'w-8 h-8 text-blue-400 flex-shrink-0'}) }}
+							<div>
+								<h4 class="text-white font-medium">Relances automatiques</h4>
+								<p class="text-white/60 text-sm">Configurez des règles pour envoyer automatiquement des rappels aux clients avec des factures impayées.</p>
+							</div>
+						</div>
+						<a href="{{ path('admin_reminder_index') }}" class="btn-secondary flex items-center justify-center gap-2 text-sm flex-shrink-0">
+							{{ ux_icon('lucide:settings', {class: 'w-4 h-4'}) }}
+							Configurer
+						</a>
+					</div>
+				</div>
+			</div>
+
+			{# Submit Button #}
+			<div class="pt-6 border-t border-white/20">
+				{{ form_widget(form.submit, {'attr': {
                 'class': 'px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40',
                 'data-admin-form-target': 'submit'
             }}) }}
-				</div>
-
-				{{ form_end(form) }}
 			</div>
+
+			{{ form_end(form) }}
 		</div>
-	{% endblock %}
+	</div>
+{% endblock %}

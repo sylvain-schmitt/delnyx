@@ -6,6 +6,7 @@ namespace App\Form;
 
 use App\Entity\CompanySettings;
 use App\Entity\PDPMode;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -21,13 +22,19 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Validator\Constraints\Image;
+use Symfony\Component\Form\CallbackTransformer;
 
 class CompanySettingsType extends AbstractType
 {
+    public function __construct(
+        private Security $security
+    ) {}
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $isAdmin = $this->security->isGranted('ROLE_ADMIN');
+
         $builder
             // ===== INFORMATIONS ENTREPRISE =====
             ->add('raisonSociale', TextType::class, [
@@ -236,36 +243,99 @@ class CompanySettingsType extends AbstractType
                 'attr' => ['class' => 'form-input', 'placeholder' => 'whsec_...', 'autocomplete' => 'new-password'],
                 'help' => 'Récupérez-le depuis le dashboard Stripe > Webhooks > Détails du endpoint',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
-            ])
-
-            // ===== CONFIGURATION GOOGLE REVIEWS =====
-            ->add('googleReviewsEnabled', CheckboxType::class, [
-                'label' => 'Activer les avis Google Business',
-                'required' => false,
-                'attr' => ['class' => 'form-checkbox'],
-                'help' => 'Affiché sur la page d\'accueil pour la preuve sociale',
-                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
-            ])
-            ->add('googlePlaceId', TextType::class, [
-                'label' => 'Google Place ID',
-                'required' => false,
-                'attr' => ['class' => 'form-input', 'placeholder' => 'ChIJs...'],
-                'help' => 'Identifiant unique de votre établissement sur Google Maps',
-                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
-            ])
-            ->add('googleApiKey', PasswordType::class, [
-                'label' => 'Clé API Google Places',
-                'required' => false,
-                'mapped' => false,
-                'attr' => ['class' => 'form-input', 'placeholder' => 'AIzaSy...', 'autocomplete' => 'new-password'],
-                'help' => 'Nécessite une clé avec l\'API "Places API" activée dans Google Cloud Console',
-                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
-            ])
-
-            ->add('submit', SubmitType::class, [
-                'label' => 'Enregistrer les paramètres',
-                'attr' => ['class' => 'btn btn-primary']
             ]);
+
+        // ===== CONFIGURATION GOOGLE (Reviews & Calendar) - RESTREINT ADMIN =====
+        if ($isAdmin) {
+            $builder
+                // Avis Google
+                ->add('googleReviewsEnabled', CheckboxType::class, [
+                    'label' => 'Activer les avis Google Business',
+                    'required' => false,
+                    'attr' => ['class' => 'form-checkbox'],
+                    'help' => 'Affiché sur la page d\'accueil pour la preuve sociale',
+                    'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+                ])
+                ->add('googlePlaceId', TextType::class, [
+                    'label' => 'Google Place ID',
+                    'required' => false,
+                    'attr' => ['class' => 'form-input', 'placeholder' => 'ChIJs...'],
+                    'help' => 'Identifiant unique de votre établissement sur Google Maps',
+                    'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+                ])
+                ->add('googleApiKey', PasswordType::class, [
+                    'label' => 'Clé API Google Places',
+                    'required' => false,
+                    'mapped' => false,
+                    'attr' => ['class' => 'form-input', 'placeholder' => 'AIzaSy...', 'autocomplete' => 'new-password'],
+                    'help' => 'Nécessite une clé avec l\'API "Places API" activée dans Google Cloud Console',
+                    'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+                ])
+                // Google Calendar
+                ->add('googleCalendarEnabled', CheckboxType::class, [
+                    'label' => 'Activer Google Calendar',
+                    'required' => false,
+                    'attr' => ['class' => 'form-checkbox'],
+                    'help' => 'Permet la synchronisation des rendez-vous et des créneaux',
+                    'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+                ])
+                ->add('googleClientId', TextType::class, [
+                    'label' => 'Client ID Google',
+                    'required' => false,
+                    'attr' => ['class' => 'form-input', 'placeholder' => 'xxxx.apps.googleusercontent.com'],
+                    'help' => 'À récupérer dans la console Google Cloud > Identifiants',
+                    'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+                ])
+                ->add('googleClientSecret', PasswordType::class, [
+                    'label' => 'Client Secret Google',
+                    'required' => false,
+                    'mapped' => false,
+                    'attr' => ['class' => 'form-input', 'autocomplete' => 'new-password'],
+                    'help' => 'À récupérer dans la console Google Cloud > Identifiants',
+                    'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+                ])
+                ->add('googleCalendarId', TextType::class, [
+                    'label' => 'ID Agenda Google',
+                    'required' => false,
+                    'attr' => ['class' => 'form-input', 'placeholder' => 'primary ou email@gmail.com'],
+                    'help' => '"primary" utilisera votre agenda par défaut',
+                    'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+                ])
+                ->add('workingHours', TextareaType::class, [
+                    'label' => 'Plages horaires disponibles (JSON)',
+                    'required' => false,
+                    'attr' => [
+                        'class' => 'form-textarea font-mono text-xs',
+                        'rows' => 8,
+                        'placeholder' => '{
+  "monday": ["18:00-20:00"],
+  "tuesday": ["18:00-20:00"],
+  "wednesday": ["18:00-20:00"],
+  "thursday": ["18:00-20:00"],
+  "friday": ["14:00-18:00"]
+}'
+                    ],
+                    'help' => 'Format JSON. Exemple : {"monday": ["18:00-20:00"]}. Laissez vide pour ne pas avoir de disponibilités.',
+                    'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+                ]);
+
+            $builder->get('workingHours')->addModelTransformer(new CallbackTransformer(
+                function ($hoursAsArray) {
+                    // array to string (for textarea)
+                    return $hoursAsArray ? json_encode($hoursAsArray, JSON_PRETTY_PRINT) : '';
+                },
+                function ($hoursAsString) {
+                    // string to array (for entity)
+                    if (!$hoursAsString) return null;
+                    return json_decode($hoursAsString, true);
+                }
+            ));
+        }
+
+        $builder->add('submit', SubmitType::class, [
+            'label' => 'Enregistrer les paramètres',
+            'attr' => ['class' => 'btn btn-primary']
+        ]);
 
         // Logic TVA
         $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {

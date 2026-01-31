@@ -274,6 +274,7 @@ class EmailService
         ?string $pdfFilename = null,
         array $additionalAttachments = []
     ): EmailLog {
+        error_log("DEBUG: EmailService->send called for $type to $recipient");
         // Créer le log avant l'envoi
         $emailLog = new EmailLog();
         $emailLog->setEntityType($entityType);
@@ -769,6 +770,69 @@ class EmailService
             type: 'payment_failed',
             senderEmail: $senderInfo['email'],
             senderName: $senderInfo['name']
+        );
+    }
+
+    /**
+     * Envoie une confirmation de rendez-vous au client
+     */
+    public function sendAppointmentConfirmation(\App\Entity\Appointment $appointment): EmailLog
+    {
+        error_log("DEBUG: sendAppointmentConfirmation called for appointment " . $appointment->getId());
+        $client = $appointment->getClient();
+        $senderInfo = $this->getSenderInfo();
+
+        $subject = sprintf('Confirmation de votre rendez-vous - %s', $senderInfo['name']);
+
+        $html = $this->twig->render('emails/appointment_confirmation.html.twig', [
+            'appointment' => $appointment,
+            'client' => $client,
+            'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
+        ]);
+
+        return $this->send(
+            recipient: $client->getEmail(),
+            subject: $subject,
+            html: $html,
+            entityType: 'Appointment',
+            entityId: $appointment->getId(),
+            type: 'appointment_confirmation',
+            senderEmail: $senderInfo['email'],
+            senderName: $senderInfo['name']
+        );
+    }
+
+    /**
+     * Envoie une notification de nouveau rendez-vous à l'administrateur
+     */
+    public function sendAppointmentNotificationAdmin(\App\Entity\Appointment $appointment): void
+    {
+        $senderInfo = $this->getSenderInfo();
+        $adminEmail = $senderInfo['email'];
+
+        $subject = sprintf(
+            'Nouveau RDV : %s - %s',
+            $appointment->getClient()->getNomComplet(),
+            $appointment->getStartAt()->format('d/m H:i')
+        );
+
+        $html = $this->twig->render('emails/notification/appointment_notification_admin.html.twig', [
+            'appointment' => $appointment,
+            'client' => $appointment->getClient(),
+            'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
+        ]);
+
+        $this->send(
+            recipient: $adminEmail,
+            subject: $subject,
+            html: $html,
+            entityType: 'Appointment',
+            entityId: $appointment->getId(),
+            type: 'appointment_admin_notification',
+            senderEmail: $senderInfo['email'],
+            senderName: 'Delnyx System'
         );
     }
 }

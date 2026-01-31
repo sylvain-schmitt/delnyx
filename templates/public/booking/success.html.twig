@@ -1,0 +1,27 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block title %}Rendez-vous confirmé - Delnyx
+{% endblock %}
+
+{% block body %}
+	<div class="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+		<div class="max-w-md w-full text-center">
+			<div class="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-8 text-green-500">
+				<svg class="w-10 h-10" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+				</svg>
+			</div>
+
+			<h1 class="text-3xl font-bold text-white mb-4">C'est confirmé !</h1>
+			<p class="text-slate-400 mb-8">
+				Votre rendez-vous a bien été enregistré. Un récapitulatif a été ajouté à mon agenda et vous avez reçu une confirmation par email.
+			</p>
+
+			<div class="space-y-4">
+				<a href="{{ path('app_home') }}" class="block w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all">
+					Retour à l'accueil
+				</a>
+			</div>
+		</div>
+	</div>
+{% endblock %}

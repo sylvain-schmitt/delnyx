@@ -48,6 +48,9 @@ RUN echo "opcache.enable=1\n\
     opcache.max_accelerated_files=10000\n\
     opcache.validate_timestamps=0" > /usr/local/etc/php/conf.d/opcache.ini
 
+# Configuration de la timezone PHP
+RUN echo "date.timezone = Europe/Paris" > /usr/local/etc/php/conf.d/timezone.ini
+
 # Copier la configuration Supervisor
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 

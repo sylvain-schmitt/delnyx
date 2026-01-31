@@ -117,13 +117,16 @@
 		</div>
 
 		{# Stats Avancées #}
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+		<div
+			class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 			{# CA Annuel #}
 			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-white/60 text-sm font-medium">CA Annuel {{ "now"|date("Y") }}</p>
-						<p class="text-3xl font-bold text-white">{{ advanced_stats.annual_revenue|default(0)|number_format(0, ',', ' ') }} €</p>
+						<p class="text-white/60 text-sm font-medium">CA Annuel
+							{{ "now"|date("Y") }}</p>
+						<p class="text-3xl font-bold text-white">{{ advanced_stats.annual_revenue|default(0)|number_format(0, ',', ' ') }}
+							€</p>
 					</div>
 					<div class="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center">
 						{{ ux_icon('lucide:trending-up', {class: 'w-6 h-6 text-emerald-400'}) }}
@@ -138,7 +141,8 @@
 					{% else %}
 						<span class="text-white/60 text-sm font-medium">{{ comparison.growth }}%</span>
 					{% endif %}
-					<span class="text-white/60 text-sm ml-2">vs {{ "now"|date("Y") - 1 }}</span>
+					<span class="text-white/60 text-sm ml-2">vs
+						{{ "now"|date("Y") - 1 }}</span>
 				</div>
 			</div>
 
@@ -147,14 +151,16 @@
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-white/60 text-sm font-medium">Factures Impayées</p>
-						<p class="text-3xl font-bold text-white">{{ advanced_stats.unpaid_invoices.total|default(0)|number_format(0, ',', ' ') }} €</p>
+						<p class="text-3xl font-bold text-white">{{ advanced_stats.unpaid_invoices.total|default(0)|number_format(0, ',', ' ') }}
+							€</p>
 					</div>
 					<div class="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
 						{{ ux_icon('lucide:alert-circle', {class: 'w-6 h-6 text-orange-400'}) }}
 					</div>
 				</div>
 				<div class="mt-4">
-					<span class="text-orange-400 text-sm font-medium">{{ advanced_stats.unpaid_invoices.count|default(0) }} facture(s)</span>
+					<span class="text-orange-400 text-sm font-medium">{{ advanced_stats.unpaid_invoices.count|default(0) }}
+						facture(s)</span>
 					<span class="text-white/60 text-sm ml-2">en attente</span>
 				</div>
 			</div>
@@ -180,8 +186,10 @@
 			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate animate-delay-300">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-white/60 text-sm font-medium">CA {{ "now"|date("Y") - 1 }}</p>
-						<p class="text-3xl font-bold text-white">{{ advanced_stats.yearly_comparison.previous_year|default(0)|number_format(0, ',', ' ') }} €</p>
+						<p class="text-white/60 text-sm font-medium">CA
+							{{ "now"|date("Y") - 1 }}</p>
+						<p class="text-3xl font-bold text-white">{{ advanced_stats.yearly_comparison.previous_year|default(0)|number_format(0, ',', ' ') }}
+							€</p>
 					</div>
 					<div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
 						{{ ux_icon('lucide:calendar', {class: 'w-6 h-6 text-purple-400'}) }}
@@ -224,7 +232,7 @@
 						<p class="text-white/60 text-sm">Créer une facture</p>
 					</div>
 				</a>
-                <a href="{{ path('admin_tariff_new') }}" class="flex items-center space-x-3 p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 group">
+				<a href="{{ path('admin_tariff_new') }}" class="flex items-center space-x-3 p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 group">
 					<div class="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center group-hover:bg-yellow-500/30 transition-colors duration-300">
 						{{ ux_icon('lucide:package', {class: 'w-5 h-5 text-yellow-400'}) }}
 					</div>
@@ -235,6 +243,74 @@
 				</a>
 			</div>
 		</div>
+
+		{# Prochains Rendez-vous Google #}
+		{% if google_events is defined and google_events is not empty %}
+			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200 mt-6">
+				<div class="flex items-center justify-between mb-6">
+					<div class="flex items-center gap-3">
+						<div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+							{{ ux_icon('logos:google-calendar', {class: 'w-6 h-6'}) }}
+						</div>
+						<h2 class="text-xl font-semibold text-white">Prochains Rendez-vous</h2>
+					</div>
+					<span class="text-white/40 text-xs text-right">Synchronisé en temps réel<br>avec Google Calendar</span>
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+					{% for event in google_events %}
+						{% set start = event.start.dateTime|default(event.start.date) %}
+						{% set end = event.end.dateTime|default(event.end.date) %}
+
+						<div class="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all duration-300">
+							<div class="flex items-start justify-between mb-3">
+								<div class="flex flex-col">
+									<span class="text-blue-400 text-xs font-bold uppercase tracking-wider">
+										{{ start|date('d F')|trans }}
+									</span>
+									<span class="text-white font-semibold line-clamp-1 truncate" title="{{ event.summary }}">{{ event.summary|default('(Sans titre)') }}</span>
+								</div>
+								<div class="px-2 py-1 rounded bg-blue-500/20 text-blue-300 text-[10px] font-bold uppercase flex-shrink-0">
+									{{ start|date('H:i') }}
+								</div>
+							</div>
+
+							{% if event.description %}
+								<p class="text-white/60 text-xs line-clamp-2 mb-3 h-8">{{ event.description|striptags }}</p>
+							{% else %}
+								<p class="text-white/30 text-xs italic mb-3 h-8">Aucune description</p>
+							{% endif %}
+
+							<div class="flex items-center gap-2 pt-3 border-t border-white/5">
+								{{ ux_icon('lucide:clock', {class: 'w-3 h-3 text-white/40'}) }}
+								<span class="text-white/40 text-[11px]">
+									{{ start|date('H:i') }}
+									-
+									{{ end|date('H:i') }}
+								</span>
+							</div>
+						</div>
+					{% endfor %}
+				</div>
+			</div>
+		{% elseif google_events is defined %}
+			{# Afficher un état vide si c'est activé mais pas d'événements #}
+			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate animate-delay-200 mt-6">
+				<div class="flex items-center justify-between mb-4">
+					<div class="flex items-center gap-3">
+						<div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+							{{ ux_icon('logos:google-calendar', {class: 'w-6 h-6'}) }}
+						</div>
+						<h2 class="text-xl font-semibold text-white">Prochains Rendez-vous</h2>
+					</div>
+				</div>
+				<div class="bg-white/5 border border-dotted border-white/20 rounded-xl p-8 text-center">
+					{{ ux_icon('lucide:calendar-range', {class: 'w-12 h-12 text-white/20 mx-auto mb-4'}) }}
+					<p class="text-white/60">Aucun rendez-vous prévu pour les 7 prochains jours.</p>
+					<p class="text-white/30 text-xs mt-2">Pensez à ajouter des événements dans votre agenda Google pour les voir ici.</p>
+				</div>
+			</div>
+		{% endif %}
 	</div>
 
 	{# Activité Récente #}
@@ -260,9 +336,13 @@
 								<p class="text-white font-medium">{{ quote.numero }}</p>
 								<p class="text-white/60 text-sm">
 									{% if quote.client.companyName %}
-										{{ quote.client.companyName }} - {{ quote.client.prenom }} {{ quote.client.nom }}
+										{{ quote.client.companyName }}
+										-
+										{{ quote.client.prenom }}
+										{{ quote.client.nom }}
 									{% else %}
-										{{ quote.client.prenom }} {{ quote.client.nom }}
+										{{ quote.client.prenom }}
+										{{ quote.client.nom }}
 									{% endif %}
 								</p>
 							</div>
@@ -271,14 +351,14 @@
 							<p class="text-white font-medium">{{ quote.montantTTCFormate }}</p>
 							{% set status = quote.statut %}
 							<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-																										{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-																										{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
-																										{% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
-																										{% elseif status.value == 'accepted' %}bg-green-500/20 text-green-300
-																										{% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
-																										{% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
-																										{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
-																										{% else %}bg-gray-500/20 text-gray-300{% endif %}">
+																																												{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+																																												{% elseif status.value == 'sent' %}bg-blue-500/20 text-blue-300
+																																												{% elseif status.value == 'signed' %}bg-green-500/20 text-green-300
+																																												{% elseif status.value == 'accepted' %}bg-green-500/20 text-green-300
+																																												{% elseif status.value == 'refused' %}bg-red-500/20 text-red-300
+																																												{% elseif status.value == 'expired' %}bg-yellow-500/20 text-yellow-300
+																																												{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+																																												{% else %}bg-gray-500/20 text-gray-300{% endif %}">
 								{{ status.label }}
 							</span>
 						</div>
@@ -307,9 +387,13 @@
 								<p class="text-white font-medium">{{ invoice.numero }}</p>
 								<p class="text-white/60 text-sm">
 									{% if invoice.client.companyName %}
-										{{ invoice.client.companyName }} - {{ invoice.client.prenom }} {{ invoice.client.nom }}
+										{{ invoice.client.companyName }}
+										-
+										{{ invoice.client.prenom }}
+										{{ invoice.client.nom }}
 									{% else %}
-										{{ invoice.client.prenom }} {{ invoice.client.nom }}
+										{{ invoice.client.prenom }}
+										{{ invoice.client.nom }}
 									{% endif %}
 								</p>
 							</div>
@@ -318,12 +402,12 @@
 							<p class="text-white font-medium">{{ invoice.montantTTCFormate }}</p>
 							{% set status = invoice.statutEnum %}
 							<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-																										{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
-																										{% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
-																										{% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
-																										{% elseif status.value == 'paid' %}bg-green-500/20 text-green-300
-																										{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
-																										{% else %}bg-gray-500/20 text-gray-300{% endif %}">
+																																												{% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
+																																												{% elseif status.value == 'issued' %}bg-blue-500/20 text-blue-300
+																																												{% elseif status.value == 'sent' %}bg-purple-500/20 text-purple-300
+																																												{% elseif status.value == 'paid' %}bg-green-500/20 text-green-300
+																																												{% elseif status.value == 'cancelled' %}bg-gray-600/20 text-gray-400
+																																												{% else %}bg-gray-500/20 text-gray-300{% endif %}">
 								{{ status.label }}
 							</span>
 						</div>

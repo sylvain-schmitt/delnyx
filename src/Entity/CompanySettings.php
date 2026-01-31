@@ -199,6 +199,40 @@ class CompanySettings
     #[Groups(['company_settings:read', 'company_settings:write'])]
     private string $indemniteForfaitaireRecouvrement = '40.00'; // Montant légal minimum : 40€
 
+    // ===== CONFIGURATION GOOGLE CALENDAR & OAUTH2 =====
+
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private bool $googleCalendarEnabled = false;
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['company_settings:write'])]
+    private ?string $googleClientId = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['company_settings:write'])]
+    private ?string $googleClientSecret = null;
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?string $googleCalendarId = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['company_settings:write'])]
+    private ?string $googleOauthAccessToken = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['company_settings:write'])]
+    private ?string $googleOauthRefreshToken = null;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?\DateTimeImmutable $googleOauthTokenExpiresAt = null;
+
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?array $workingHours = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -632,5 +666,93 @@ class CompanySettings
         return $this->googleReviewsEnabled
             && !empty($this->googlePlaceId)
             && !empty($this->googleApiKey);
+    }
+
+    public function isGoogleCalendarEnabled(): bool
+    {
+        return $this->googleCalendarEnabled;
+    }
+
+    public function setGoogleCalendarEnabled(bool $googleCalendarEnabled): static
+    {
+        $this->googleCalendarEnabled = $googleCalendarEnabled;
+        return $this;
+    }
+
+    public function getGoogleClientId(): ?string
+    {
+        return $this->googleClientId;
+    }
+
+    public function setGoogleClientId(?string $googleClientId): static
+    {
+        $this->googleClientId = $googleClientId;
+        return $this;
+    }
+
+    public function getGoogleClientSecret(): ?string
+    {
+        return $this->googleClientSecret;
+    }
+
+    public function setGoogleClientSecret(?string $googleClientSecret): static
+    {
+        $this->googleClientSecret = $googleClientSecret;
+        return $this;
+    }
+
+    public function getGoogleCalendarId(): ?string
+    {
+        return $this->googleCalendarId;
+    }
+
+    public function setGoogleCalendarId(?string $googleCalendarId): static
+    {
+        $this->googleCalendarId = $googleCalendarId;
+        return $this;
+    }
+
+    public function getGoogleOauthAccessToken(): ?string
+    {
+        return $this->googleOauthAccessToken;
+    }
+
+    public function setGoogleOauthAccessToken(?string $googleOauthAccessToken): static
+    {
+        $this->googleOauthAccessToken = $googleOauthAccessToken;
+        return $this;
+    }
+
+    public function getGoogleOauthRefreshToken(): ?string
+    {
+        return $this->googleOauthRefreshToken;
+    }
+
+    public function setGoogleOauthRefreshToken(?string $googleOauthRefreshToken): static
+    {
+        $this->googleOauthRefreshToken = $googleOauthRefreshToken;
+        return $this;
+    }
+
+    public function getGoogleOauthTokenExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->googleOauthTokenExpiresAt;
+    }
+
+    public function setGoogleOauthTokenExpiresAt(?\DateTimeImmutable $googleOauthTokenExpiresAt): static
+    {
+        $this->googleOauthTokenExpiresAt = $googleOauthTokenExpiresAt;
+        return $this;
+    }
+
+    public function getWorkingHours(): ?array
+    {
+        return $this->workingHours;
+    }
+
+    public function setWorkingHours(?array $workingHours): static
+    {
+        $this->workingHours = $workingHours;
+        return $this;
     }
 }

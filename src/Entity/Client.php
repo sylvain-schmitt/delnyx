@@ -183,10 +183,18 @@ class Client
     #[Groups(['client:detail'])]
     private Collection $invoices;
 
+    /**
+     * @var Collection<int, Appointment>
+     */
+    #[ORM\OneToMany(mappedBy: 'client', targetEntity: Appointment::class, cascade: ['persist', 'remove'])]
+    #[Groups(['client:detail'])]
+    private Collection $appointments;
+
     public function __construct()
     {
         $this->quotes = new ArrayCollection();
         $this->invoices = new ArrayCollection();
+        $this->appointments = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -437,6 +445,34 @@ class Client
         }
 
         return $nomComplet;
+    }
+
+    /**
+     * @return Collection<int, Appointment>
+     */
+    public function getAppointments(): Collection
+    {
+        return $this->appointments;
+    }
+
+    public function addAppointment(Appointment $appointment): static
+    {
+        if (!$this->appointments->contains($appointment)) {
+            $this->appointments->add($appointment);
+            $appointment->setClient($this);
+        }
+        return $this;
+    }
+
+    public function removeAppointment(Appointment $appointment): static
+    {
+        if ($this->appointments->removeElement($appointment)) {
+            // set the owning side to null (unless already changed)
+            if ($appointment->getClient() === $this) {
+                $appointment->setClient(null);
+            }
+        }
+        return $this;
     }
 
     /**

@@ -1,0 +1,42 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block body %}
+	<h1>Nouveau rendez-vous réservé !</h1>
+
+	<p>Un nouveau rendez-vous a été pris via le site public.</p>
+
+	<div class="info-box" style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; border: 1px solid #bae6fd; margin: 20px 0;">
+		<p style="margin: 5px 0;">
+			<strong>👤 Client :</strong>
+			{{ client.nomComplet }}
+			({{ client.email }})</p>
+		<p style="margin: 5px 0;">
+			<strong>📅 Date :</strong>
+			{{ appointment.startAt|date('d/m/Y') }}</p>
+		<p style="margin: 5px 0;">
+			<strong>🕒 Heure :</strong>
+			{{ appointment.startAt|date('H:i') }}
+			-
+			{{ appointment.endAt|date('H:i') }}</p>
+		<p style="margin: 5px 0;">
+			<strong>📞 Téléphone :</strong>
+			{{ client.telephone ?: 'Non renseigné' }}</p>
+
+		{% if appointment.description %}
+			<p style="margin: 15px 0 5px 0;">
+				<strong>📝 Message du client :</strong>
+			</p>
+			<p style="margin: 0; color: #475569; font-style: italic;">"{{ appointment.description }}"</p>
+		{% endif %}
+	</div>
+
+	<div style="text-align: center; margin: 30px 0;">
+		<a href="{{ url('admin_dashboard') }}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+			Accéder au dashboard
+		</a>
+	</div>
+
+	<p style="color: #64748b; font-size: 14px;">
+		Note : L'événement a normalement déjà été créé dans ton Google Calendar.
+	</p>
+{% endblock %}

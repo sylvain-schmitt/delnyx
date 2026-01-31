@@ -82,6 +82,7 @@ class CompanySettingsController extends AbstractController
                     'stripeSecretKey' => 'setStripeSecretKey',
                     'stripeWebhookSecret' => 'setStripeWebhookSecret',
                     'googleApiKey' => 'setGoogleApiKey',
+                    'googleClientSecret' => 'setGoogleClientSecret',
                     'signatureApiKey' => 'setSignatureApiKey',
                     'pdpApiKey' => 'setPdpApiKey'
                 ];
