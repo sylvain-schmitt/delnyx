@@ -28,20 +28,21 @@ class DashboardController extends AbstractController
     #[Route('/', name: 'dashboard')]
     public function index(): Response
     {
-        // Statistiques générales
+        // Nouvelles statistiques centralisées
+        $cardStats = $this->dashboardService->getStatsForCards();
+
         $stats = [
-            'clients' => $this->clientRepository->count([]),
-            'quotes' => $this->quoteRepository->count([]),
-            'invoices' => $this->invoiceRepository->count([]),
-            'ca_mensuel' => $this->getCAMensuel(),
+            'clients' => $cardStats['clients']['count'],
+            'quotes' => $cardStats['quotes']['count'],
+            'invoices' => $cardStats['invoices']['count'],
+            'ca_mensuel' => $cardStats['ca']['total'],
         ];
 
-        // Calculs de croissance
         $growth = [
-            'clients' => $this->getClientsGrowth(),
-            'quotes' => $this->getQuotesGrowth(),
-            'invoices' => $this->getInvoicesGrowth(),
-            'ca' => $this->getCAGrowth(),
+            'clients' => $cardStats['clients']['growth'],
+            'quotes' => $cardStats['quotes']['growth'],
+            'invoices' => $cardStats['invoices']['growth'],
+            'ca' => $cardStats['ca']['growth'],
         ];
 
         // Quotes récents (5 derniers)
@@ -67,8 +68,8 @@ class DashboardController extends AbstractController
         $settings = $this->companySettingsRepository->findOneBy([]);
         if ($settings && $settings->isGoogleCalendarEnabled() && $settings->getGoogleOauthAccessToken()) {
             try {
-                $start = new \DateTime('today');
-                $end = new \DateTime('+7 days');
+                $start = new \DateTime('today 00:00:00');
+                $end = new \DateTime('+7 days 23:59:59');
                 $googleEvents = $this->googleCalendarService->listEvents($settings, $start, $end);
             } catch (\Exception $e) {
                 // On log l'erreur mais on ne bloque pas le dashboard
@@ -85,202 +86,5 @@ class DashboardController extends AbstractController
             'revenue_chart' => $revenueChart,
             'google_events' => $googleEvents,
         ]);
-    }
-
-    /**
-     * Calcule le CA mensuel
-     */
-    private function getCAMensuel(): int
-    {
-        $debutMois = new \DateTime('first day of this month');
-        $finMois = new \DateTime('last day of this month');
-
-        $invoices = $this->invoiceRepository->createQueryBuilder('i')
-            ->where('i.dateCreation BETWEEN :debut AND :fin')
-            ->andWhere('i.statut = :statut')
-            ->setParameter('debut', $debutMois)
-            ->setParameter('fin', $finMois)
-            ->setParameter('statut', 'paid')
-            ->getQuery()
-            ->getResult();
-
-        $ca = 0;
-        foreach ($invoices as $invoice) {
-            $ca += $invoice->getMontantTTC();
-        }
-
-        return $ca;
-    }
-
-    /**
-     * Calcule la croissance du nombre de clients (mois actuel vs mois précédent)
-     */
-    private function getClientsGrowth(): array
-    {
-        $debutMoisActuel = new \DateTime('first day of this month');
-        $finMoisActuel = new \DateTime('last day of this month');
-
-        $debutMoisPrecedent = (new \DateTime('first day of last month'));
-        $finMoisPrecedent = (new \DateTime('last day of last month'));
-
-        $clientsMoisActuel = $this->clientRepository->createQueryBuilder('c')
-            ->select('COUNT(c.id)')
-            ->where('c.dateCreation BETWEEN :debut AND :fin')
-            ->setParameter('debut', $debutMoisActuel)
-            ->setParameter('fin', $finMoisActuel)
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        $clientsMoisPrecedent = $this->clientRepository->createQueryBuilder('c')
-            ->select('COUNT(c.id)')
-            ->where('c.dateCreation BETWEEN :debut AND :fin')
-            ->setParameter('debut', $debutMoisPrecedent)
-            ->setParameter('fin', $finMoisPrecedent)
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        return $this->calculateGrowth($clientsMoisActuel, $clientsMoisPrecedent);
-    }
-
-    /**
-     * Calcule la croissance du nombre de quotes
-     */
-    private function getQuotesGrowth(): array
-    {
-        $debutMoisActuel = new \DateTime('first day of this month');
-        $finMoisActuel = new \DateTime('last day of this month');
-
-        $debutMoisPrecedent = (new \DateTime('first day of last month'));
-        $finMoisPrecedent = (new \DateTime('last day of last month'));
-
-        $quotesMoisActuel = $this->quoteRepository->createQueryBuilder('q')
-            ->select('COUNT(q.id)')
-            ->where('q.dateCreation BETWEEN :debut AND :fin')
-            ->setParameter('debut', $debutMoisActuel)
-            ->setParameter('fin', $finMoisActuel)
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        $quotesMoisPrecedent = $this->quoteRepository->createQueryBuilder('q')
-            ->select('COUNT(q.id)')
-            ->where('q.dateCreation BETWEEN :debut AND :fin')
-            ->setParameter('debut', $debutMoisPrecedent)
-            ->setParameter('fin', $finMoisPrecedent)
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        return $this->calculateGrowth($quotesMoisActuel, $quotesMoisPrecedent);
-    }
-
-    /**
-     * Calcule la croissance du nombre de invoices
-     */
-    private function getInvoicesGrowth(): array
-    {
-        $debutMoisActuel = new \DateTime('first day of this month');
-        $finMoisActuel = new \DateTime('last day of this month');
-
-        $debutMoisPrecedent = (new \DateTime('first day of last month'));
-        $finMoisPrecedent = (new \DateTime('last day of last month'));
-
-        $invoicesMoisActuel = $this->invoiceRepository->createQueryBuilder('i')
-            ->select('COUNT(i.id)')
-            ->where('i.dateCreation BETWEEN :debut AND :fin')
-            ->setParameter('debut', $debutMoisActuel)
-            ->setParameter('fin', $finMoisActuel)
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        $invoicesMoisPrecedent = $this->invoiceRepository->createQueryBuilder('i')
-            ->select('COUNT(i.id)')
-            ->where('i.dateCreation BETWEEN :debut AND :fin')
-            ->setParameter('debut', $debutMoisPrecedent)
-            ->setParameter('fin', $finMoisPrecedent)
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        return $this->calculateGrowth($invoicesMoisActuel, $invoicesMoisPrecedent);
-    }
-
-    /**
-     * Calcule la croissance du CA
-     */
-    private function getCAGrowth(): array
-    {
-        $debutMoisActuel = new \DateTime('first day of this month');
-        $finMoisActuel = new \DateTime('last day of this month');
-
-        $debutMoisPrecedent = (new \DateTime('first day of last month'));
-        $finMoisPrecedent = (new \DateTime('last day of last month'));
-
-        // CA mois actuel
-        $invoicesMoisActuel = $this->invoiceRepository->createQueryBuilder('i')
-            ->where('i.dateCreation BETWEEN :debut AND :fin')
-            ->andWhere('i.statut = :statut')
-            ->setParameter('debut', $debutMoisActuel)
-            ->setParameter('fin', $finMoisActuel)
-            ->setParameter('statut', 'paid')
-            ->getQuery()
-            ->getResult();
-
-        $caMoisActuel = 0;
-        foreach ($invoicesMoisActuel as $invoice) {
-            $caMoisActuel += $invoice->getMontantTTC();
-        }
-
-        // CA mois précédent
-        $invoicesMoisPrecedent = $this->invoiceRepository->createQueryBuilder('i')
-            ->where('i.dateCreation BETWEEN :debut AND :fin')
-            ->andWhere('i.statut = :statut')
-            ->setParameter('debut', $debutMoisPrecedent)
-            ->setParameter('fin', $finMoisPrecedent)
-            ->setParameter('statut', 'paid')
-            ->getQuery()
-            ->getResult();
-
-        $caMoisPrecedent = 0;
-        foreach ($invoicesMoisPrecedent as $invoice) {
-            $caMoisPrecedent += $invoice->getMontantTTC();
-        }
-
-        return $this->calculateGrowth($caMoisActuel, $caMoisPrecedent);
-    }
-
-    /**
-     * Calcule le pourcentage de croissance et détermine la direction
-     *
-     * @return array ['percentage' => float, 'direction' => 'up'|'down'|'stable']
-     */
-    private function calculateGrowth(float $current, float $previous): array
-    {
-        // Si les deux sont à 0, c'est stable
-        if ($current == 0 && $previous == 0) {
-            return ['percentage' => 0, 'direction' => 'stable'];
-        }
-
-        // Si le précédent est à 0 mais pas l'actuel, croissance de 100%
-        if ($previous == 0 && $current > 0) {
-            return ['percentage' => 100, 'direction' => 'up'];
-        }
-
-        // Si l'actuel est à 0 mais pas le précédent, décroissance de 100%
-        if ($current == 0 && $previous > 0) {
-            return ['percentage' => 100, 'direction' => 'down'];
-        }
-
-        // Calcul normal du pourcentage
-        $percentage = (($current - $previous) / $previous) * 100;
-
-        $direction = 'stable';
-        if ($percentage > 0.5) {
-            $direction = 'up';
-        } elseif ($percentage < -0.5) {
-            $direction = 'down';
-        }
-
-        return [
-            'percentage' => round(abs($percentage), 1),
-            'direction' => $direction
-        ];
     }
 }

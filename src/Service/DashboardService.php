@@ -124,11 +124,11 @@ class DashboardService
      */
     public function getAnnualRevenue(): float
     {
-        $startOfYear = new \DateTime('first day of January this year');
-        $endOfYear = new \DateTime('last day of December this year');
+        $startOfYear = new \DateTime('first day of January this year 00:00:00');
+        $endOfYear = new \DateTime('last day of December this year 23:59:59');
 
         $invoices = $this->invoiceRepository->createQueryBuilder('i')
-            ->where('i.dateCreation BETWEEN :start AND :end')
+            ->where('i.datePaiement BETWEEN :start AND :end')
             ->andWhere('i.statut = :statut')
             ->setParameter('start', $startOfYear)
             ->setParameter('end', $endOfYear)
@@ -253,7 +253,7 @@ class DashboardService
         $endOfYear = new \DateTime("{$year}-12-31 23:59:59");
 
         $invoices = $this->invoiceRepository->createQueryBuilder('i')
-            ->where('i.dateCreation BETWEEN :start AND :end')
+            ->where('i.datePaiement BETWEEN :start AND :end')
             ->andWhere('i.statut = :statut')
             ->setParameter('start', $startOfYear)
             ->setParameter('end', $endOfYear)
@@ -270,6 +270,103 @@ class DashboardService
     }
 
     /**
+     * Calcule la croissance pour n'importe quel repository
+     */
+    public function getEntityGrowth(string $repositoryName, string $dateField = 'dateCreation'): array
+    {
+        $repo = match ($repositoryName) {
+            'client' => $this->invoiceRepository->getEntityManager()->getRepository(\App\Entity\Client::class),
+            'quote' => $this->quoteRepository,
+            'invoice' => $this->invoiceRepository,
+            default => throw new \InvalidArgumentException("Repository inconnu: $repositoryName"),
+        };
+
+        // Période actuelle : du 1er du mois à MAINTENANT
+        $debutMoisActuel = new \DateTime('first day of this month 00:00:00');
+        $maintenant = new \DateTime('now');
+
+        // Période précédente : du 1er du mois dernier au MÊME JOUR/HEURE le mois dernier
+        $debutMoisPrecedent = new \DateTime('first day of last month 00:00:00');
+        $memeMomentMoisPrecedent = (new \DateTime('now'))->modify('-1 month');
+
+        $current = $repo->createQueryBuilder('e')
+            ->select('COUNT(e.id)')
+            ->where("e.$dateField BETWEEN :debut AND :fin")
+            ->setParameter('debut', $debutMoisActuel)
+            ->setParameter('fin', $maintenant)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $previous = $repo->createQueryBuilder('e')
+            ->select('COUNT(e.id)')
+            ->where("e.$dateField BETWEEN :debut AND :fin")
+            ->setParameter('debut', $debutMoisPrecedent)
+            ->setParameter('fin', $memeMomentMoisPrecedent)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $this->calculateGrowth((float)$current, (float)$previous);
+    }
+
+    /**
+     * Calcule la croissance du CA spécifique (MTD)
+     */
+    public function getCAGrowth(): array
+    {
+        $debutMoisActuel = new \DateTime('first day of this month 00:00:00');
+        $maintenant = new \DateTime('now');
+
+        $debutMoisPrecedent = new \DateTime('first day of last month 00:00:00');
+        $memeMomentMoisPrecedent = (new \DateTime('now'))->modify('-1 month');
+
+        $caMoisActuel = $this->getRevenueBetween($debutMoisActuel, $maintenant);
+        $caMoisPrecedent = $this->getRevenueBetween($debutMoisPrecedent, $memeMomentMoisPrecedent);
+
+        return $this->calculateGrowth($caMoisActuel, $caMoisPrecedent);
+    }
+
+    private function getRevenueBetween(\DateTime $start, \DateTime $end): float
+    {
+        $invoices = $this->invoiceRepository->createQueryBuilder('i')
+            ->where('i.datePaiement BETWEEN :start AND :end')
+            ->andWhere('i.statut = :statut')
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->setParameter('statut', InvoiceStatus::PAID->value)
+            ->getQuery()
+            ->getResult();
+
+        $total = 0.0;
+        foreach ($invoices as $invoice) {
+            $total += (float) $invoice->getMontantTTC();
+        }
+
+        return $total;
+    }
+
+    public function getStatsForCards(): array
+    {
+        return [
+            'clients' => [
+                'count' => $this->invoiceRepository->getEntityManager()->getRepository(\App\Entity\Client::class)->count([]),
+                'growth' => $this->getEntityGrowth('client')
+            ],
+            'quotes' => [
+                'count' => $this->quoteRepository->count([]),
+                'growth' => $this->getEntityGrowth('quote')
+            ],
+            'invoices' => [
+                'count' => $this->invoiceRepository->count([]),
+                'growth' => $this->getEntityGrowth('invoice')
+            ],
+            'ca' => [
+                'total' => $this->getRevenueBetween(new \DateTime('first day of this month 00:00:00'), new \DateTime('last day of this month 23:59:59')),
+                'growth' => $this->getCAGrowth()
+            ]
+        ];
+    }
+
+    /**
      * Récupère toutes les statistiques du dashboard
      *
      * @return array<string, mixed>
@@ -281,6 +378,44 @@ class DashboardService
             'unpaid_invoices' => $this->getUnpaidInvoices(),
             'conversion_rate' => $this->getConversionRate(),
             'yearly_comparison' => $this->getYearlyComparison(),
+        ];
+    }
+
+    /**
+     * Calcule le pourcentage de croissance et détermine la direction
+     *
+     * @return array ['percentage' => float, 'direction' => 'up'|'down'|'stable']
+     */
+    private function calculateGrowth(float $current, float $previous): array
+    {
+        // Si les deux sont à 0, c'est stable
+        if ($current == 0 && $previous == 0) {
+            return ['percentage' => 0, 'direction' => 'stable'];
+        }
+
+        // Si le précédent est à 0 mais pas l'actuel, croissance de 100%
+        if ($previous == 0 && $current > 0) {
+            return ['percentage' => 100, 'direction' => 'up'];
+        }
+
+        // Si l'actuel est à 0 mais pas le précédent, décroissance de 100%
+        if ($current == 0 && $previous > 0) {
+            return ['percentage' => 100, 'direction' => 'down'];
+        }
+
+        // Calcul normal du pourcentage
+        $percentage = (($current - $previous) / $previous) * 100;
+
+        $direction = 'stable';
+        if ($percentage > 0.5) {
+            $direction = 'up';
+        } elseif ($percentage < -0.5) {
+            $direction = 'down';
+        }
+
+        return [
+            'percentage' => round(abs($percentage), 1),
+            'direction' => $direction
         ];
     }
 }
