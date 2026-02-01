@@ -1,0 +1,64 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block title %}Erreur serveur - Delnyx
+{% endblock %}
+
+{% block meta_description %}Une erreur serveur s'est produite. Nous travaillons à résoudre le problème.
+{% endblock %}
+
+{% block body %}
+	<div class="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+		<div
+			class="max-w-2xl mx-auto text-center">
+			{# Illustration 500 #}
+			<div class="mb-8">
+				<div class="relative inline-block">
+					<span class="text-[150px] sm:text-[200px] font-bold bg-gradient-to-r from-red-500 via-orange-400 to-yellow-500 bg-clip-text text-transparent leading-none">
+						500
+					</span>
+					<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+						{{ ux_icon('lucide:alert-triangle', {class: 'w-16 h-16 text-orange-400 animate-pulse'}) }}
+					</div>
+				</div>
+			</div>
+
+			{# Message d'erreur #}
+			<h1 class="text-3xl sm:text-4xl font-bold text-white mb-4">
+				Oups ! Quelque chose s'est mal passé
+			</h1>
+			<p class="text-lg text-slate-400 mb-8 max-w-lg mx-auto">
+				Une erreur inattendue s'est produite sur notre serveur. Notre équipe a été notifiée et travaille à résoudre le problème.
+			</p>
+
+			{# Actions #}
+			<div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+				<a href="{{ path('app_home') }}" class="btn-primary group px-8 py-4 w-full sm:w-auto">
+					{{ ux_icon('lucide:home', {class: 'w-5 h-5 mr-2'}) }}
+					Retour à l'accueil
+					{{ ux_icon('lucide:arrow-right', {class: 'ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform'}) }}
+				</a>
+				<button onclick="window.location.reload()" class="btn-secondary group px-8 py-4 w-full sm:w-auto">
+					{{ ux_icon('lucide:refresh-cw', {class: 'w-5 h-5 mr-2'}) }}
+					Réessayer
+				</button>
+			</div>
+
+			{# Message de réassurance #}
+			<div class="mt-12 pt-8 border-t border-white/10">
+				<div class="bg-white/5 border border-white/10 rounded-2xl p-6 max-w-md mx-auto">
+					<div class="flex items-center justify-center mb-3">
+						{{ ux_icon('lucide:info', {class: 'w-5 h-5 text-blue-400 mr-2'}) }}
+						<span class="text-white font-medium">Besoin d'aide ?</span>
+					</div>
+					<p class="text-sm text-slate-400 mb-4">
+						Si le problème persiste, n'hésitez pas à me contacter directement.
+					</p>
+					<a href="{{ path('app_contact') }}" class="inline-flex items-center text-blue-400 hover:text-blue-300 text-sm transition-colors">
+						{{ ux_icon('lucide:mail', {class: 'w-4 h-4 mr-2'}) }}
+						Me contacter
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}

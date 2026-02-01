@@ -1,0 +1,62 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block title %}Page non trouvée - Delnyx
+{% endblock %}
+
+{% block meta_description %}La page que vous recherchez n'existe pas ou a été déplacée.
+{% endblock %}
+
+{% block body %}
+	<div class="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+		<div
+			class="max-w-2xl mx-auto text-center">
+			{# Illustration 404 #}
+			<div class="mb-8">
+				<div class="relative inline-block">
+					<span style="font-size: 180px; line-height: 1;" class="font-bold bg-gradient-to-r from-blue-500 via-cyan-400 to-purple-500 bg-clip-text text-transparent">
+						404
+					</span>
+					<div class="absolute -top-4 -right-4 w-8 h-8 bg-blue-500 rounded-full animate-ping opacity-75"></div>
+					<div class="absolute -bottom-2 -left-2 w-6 h-6 bg-purple-500 rounded-full animate-pulse"></div>
+				</div>
+			</div>
+
+			{# Message d'erreur #}
+			<h1 class="text-3xl sm:text-4xl font-bold text-white mb-4">
+				Oups ! Page introuvable
+			</h1>
+			<p class="text-lg text-slate-400 mb-8 max-w-lg mx-auto">
+				La page que vous recherchez n'existe pas, a été déplacée ou n'est temporairement pas disponible.
+			</p>
+
+			{# Actions #}
+			<div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+				<a href="{{ path('app_home') }}" class="btn-primary group px-8 py-4 w-full sm:w-auto">
+					{{ ux_icon('lucide:home', {class: 'w-5 h-5 mr-2'}) }}
+					Retour à l'accueil
+					{{ ux_icon('lucide:arrow-right', {class: 'ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform'}) }}
+				</a>
+				<a href="{{ path('app_contact') }}" class="btn-secondary group px-8 py-4 w-full sm:w-auto">
+					{{ ux_icon('lucide:mail', {class: 'w-5 h-5 mr-2'}) }}
+					Me contacter
+				</a>
+			</div>
+
+			{# Suggestions #}
+			<div class="mt-12 pt-8 border-t border-white/10">
+				<p class="text-sm text-slate-500 mb-4">Vous cherchez peut-être :</p>
+				<div class="flex flex-wrap justify-center gap-3">
+					<a href="{{ path('app_services') }}" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-slate-300 text-sm transition-all">
+						Nos services
+					</a>
+					<a href="{{ path('app_portfolio') }}" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-slate-300 text-sm transition-all">
+						Portfolio
+					</a>
+					<a href="{{ path('public_booking') }}" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-slate-300 text-sm transition-all">
+						Prendre RDV
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}

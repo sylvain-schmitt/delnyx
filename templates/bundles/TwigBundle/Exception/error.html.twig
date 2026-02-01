@@ -1,0 +1,42 @@
+{% extends 'layout/base.html.twig' %}
+
+{% block title %}Erreur - Delnyx
+{% endblock %}
+
+{% block meta_description %}Une erreur s'est produite.
+{% endblock %}
+
+{% block body %}
+	<div class="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+		<div
+			class="max-w-2xl mx-auto text-center">
+			{# Illustration générique #}
+			<div class="mb-8">
+				<div class="w-24 h-24 mx-auto bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center">
+					{{ ux_icon('lucide:alert-circle', {class: 'w-12 h-12 text-blue-400'}) }}
+				</div>
+			</div>
+
+			{# Message d'erreur #}
+			<h1 class="text-3xl sm:text-4xl font-bold text-white mb-4">
+				Une erreur s'est produite
+			</h1>
+			<p class="text-lg text-slate-400 mb-8 max-w-lg mx-auto">
+				Nous sommes désolés, quelque chose ne s'est pas passé comme prévu. Veuillez réessayer.
+			</p>
+
+			{# Actions #}
+			<div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+				<a href="{{ path('app_home') }}" class="btn-primary group px-8 py-4 w-full sm:w-auto">
+					{{ ux_icon('lucide:home', {class: 'w-5 h-5 mr-2'}) }}
+					Retour à l'accueil
+					{{ ux_icon('lucide:arrow-right', {class: 'ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform'}) }}
+				</a>
+				<a href="{{ path('app_contact') }}" class="btn-secondary group px-8 py-4 w-full sm:w-auto">
+					{{ ux_icon('lucide:mail', {class: 'w-5 h-5 mr-2'}) }}
+					Me contacter
+				</a>
+			</div>
+		</div>
+	</div>
+{% endblock %}
