@@ -19,7 +19,7 @@
 
 	{# Dropdown Menu #}
 	<div
-		class="absolute right-0 mt-2 w-80 md:w-96 bg-slate-800/95 backdrop-blur-3xl border border-white/20 rounded-xl shadow-2xl z-50 hidden overflow-hidden" data-dropdown-target="menu" data-controller="notification-action" data-notification-action-mark-all-url-value="{{ path('admin_notification_read_all') }}" data-notification-action-hide-all-url-value="{{ path('admin_notification_hide_all') }}">
+		class="fixed sm:absolute inset-x-4 sm:inset-x-auto sm:right-0 top-16 sm:top-full mt-2 w-auto sm:w-[30rem] lg:w-[35rem] bg-slate-800/95 backdrop-blur-3xl border border-white/20 rounded-xl shadow-2xl z-50 hidden overflow-hidden" data-dropdown-target="menu" data-controller="notification-action" data-notification-action-mark-all-url-value="{{ path('admin_notification_read_all') }}" data-notification-action-hide-all-url-value="{{ path('admin_notification_hide_all') }}">
 		{# Header #}
 		<div class="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
 			<div>
@@ -47,13 +47,13 @@
 			{% for notification in notifications %}
 				<div
 					class="relative flex items-start gap-4 p-4 hover:bg-white/5 transition-all border-b border-white/5 group
-						                        {% if not notification.is_read %}bg-blue-900/10 notification-unread{% endif %}" data-controller="notification-item" data-notification-item-read-url-value="{{ path('admin_notification_read', {key: notification.id}) }}" data-notification-item-hide-url-value="{{ path('admin_notification_hide', {key: notification.id}) }}" data-notification-item-is-read-value="{{ notification.is_read ? 'true' : 'false' }}">
+																																										                        {% if not notification.is_read %}bg-blue-900/10 notification-unread{% endif %}" data-controller="notification-item" data-notification-item-read-url-value="{{ path('admin_notification_read', {key: notification.id}) }}" data-notification-item-hide-url-value="{{ path('admin_notification_hide', {key: notification.id}) }}" data-notification-item-is-read-value="{{ notification.is_read ? 'true' : 'false' }}">
 					{# Link Wrapper (pour le titre et message) #}
 					<div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center
-							                        {% if notification.type == 'appointment' %}bg-blue-500/20 text-blue-400
-							                        {% elseif notification.type == 'sale' %}bg-green-500/20 text-green-400
-							                        {% elseif notification.type == 'system' %}bg-purple-500/20 text-purple-400
-							                        {% else %}bg-slate-500/20 text-slate-400{% endif %}">
+																																																	                        {% if notification.type == 'appointment' %}bg-blue-500/20 text-blue-400
+																																																	                        {% elseif notification.type == 'sale' %}bg-green-500/20 text-green-400
+																																																	                        {% elseif notification.type == 'system' %}bg-purple-500/20 text-purple-400
+																																																	                        {% else %}bg-slate-500/20 text-slate-400{% endif %}">
 						{{ ux_icon(notification.icon, {class: 'w-5 h-5'}) }}
 					</div>
 
