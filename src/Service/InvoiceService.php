@@ -314,6 +314,16 @@ class InvoiceService
                 ]);
             }
 
+            // Notification à l'administrateur
+            try {
+                $this->emailService->sendInvoicePaidNotificationAdmin($invoice);
+            } catch (\Exception $e) {
+                $this->logger->error('Erreur lors de l\'envoi de la notification admin (paiement)', [
+                    'invoice_id' => $invoice->getId(),
+                    'error' => $e->getMessage()
+                ]);
+            }
+
             // Créer les abonnements manuels si nécessaire
             if (!$skipSubscriptions) {
                 $this->createManualSubscriptionFromInvoice($invoice);
@@ -393,6 +403,16 @@ class InvoiceService
                 }
             } catch (\Exception $e) {
                 $this->logger->error('Erreur lors de l\'envoi de l\'email de confirmation de paiement (externe)', [
+                    'invoice_id' => $invoice->getId(),
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            // Notification à l'administrateur
+            try {
+                $this->emailService->sendInvoicePaidNotificationAdmin($invoice);
+            } catch (\Exception $e) {
+                $this->logger->error('Erreur lors de l\'envoi de la notification admin (paiement externe)', [
                     'invoice_id' => $invoice->getId(),
                     'error' => $e->getMessage()
                 ]);

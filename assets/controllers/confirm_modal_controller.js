@@ -37,12 +37,13 @@ export default class extends Controller {
      * Gère l'ouverture via événement personnalisé
      */
     openModal(event) {
-        const { url, method, csrfToken, itemName, message, title, buttonText } = event.detail
+        const { url, method, csrfToken, itemName, message, title, buttonText, confirmCallback } = event.detail
 
-        this.actionUrlValue = url
+        this.actionUrlValue = url || ''
         this.actionMethodValue = method || 'POST'
         this.csrfTokenValue = csrfToken || ''
         this.itemNameValue = itemName || 'cet élément'
+        this.confirmCallback = confirmCallback || null
 
         // Mettre à jour le titre de la modale
         if (this.hasTitleTarget) {
@@ -108,6 +109,13 @@ export default class extends Controller {
     confirm() {
         // Fermer la modale avant la soumission
         this.close()
+
+        // Si un callback est défini (ex: pour AJAX), on l'appelle et on s'arrête là
+        if (this.confirmCallback) {
+            this.confirmCallback()
+            this.confirmCallback = null
+            return
+        }
 
         // Créer un formulaire temporaire pour la soumission native
         // Cela permet au navigateur de gérer la redirection et les messages flash correctement

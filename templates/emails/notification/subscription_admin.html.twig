@@ -1,0 +1,35 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block body %}
+	<h1>🚀 [SaaS]
+		{{ action|capitalize }}</h1>
+
+	<p>Une nouvelle activité SaaS a été détectée.</p>
+
+	<div class="info-box" style="background-color: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 20px 0;">
+		<p style="margin: 5px 0;">
+			<strong>⚡ Action :</strong>
+			{{ action|upper }}</p>
+		<p style="margin: 5px 0;">
+			<strong>👤 Client :</strong>
+			{{ client.nomComplet }}
+			({{ client.email }})</p>
+		<p style="margin: 5px 0;">
+			<strong>📦 Abonnement :</strong>
+			{{ subscription.stripeSubscriptionId }}</p>
+		<p style="margin: 5px 0;">
+			<strong>💰 Montant :</strong>
+			{{ subscription.amount }}
+			€ /
+			{{ subscription.intervalUnit }}</p>
+		<p style="margin: 5px 0;">
+			<strong>📊 Statut :</strong>
+			{{ subscription.status|upper }}</p>
+	</div>
+
+	<div style="text-align: center; margin: 30px 0;">
+		<a href="{{ url('admin_dashboard') }}" style="display: inline-block; padding: 12px 24px; background-color: #0f172a; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+			Tableau de bord
+		</a>
+	</div>
+{% endblock %}

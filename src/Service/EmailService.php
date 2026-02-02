@@ -835,4 +835,91 @@ class EmailService
             senderName: 'Delnyx System'
         );
     }
+    /**
+     * Envoie une notification de devis signé à l'administrateur
+     */
+    public function sendQuoteSignedNotificationAdmin(Quote $quote): void
+    {
+        $senderInfo = $this->getSenderInfo();
+        $adminEmail = $senderInfo['email'];
+
+        $subject = sprintf('Devis Signé : %s - %s', $quote->getNumero(), $quote->getClient()->getNomComplet());
+
+        $html = $this->twig->render('emails/notification/quote_signed_admin.html.twig', [
+            'quote' => $quote,
+            'client' => $quote->getClient(),
+            'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
+        ]);
+
+        $this->send(
+            recipient: $adminEmail,
+            subject: $subject,
+            html: $html,
+            entityType: 'Quote',
+            entityId: $quote->getId(),
+            type: 'quote_signed_admin_notification',
+            senderEmail: $senderInfo['email'],
+            senderName: 'Delnyx System'
+        );
+    }
+
+    /**
+     * Envoie une notification de facture payée à l'administrateur
+     */
+    public function sendInvoicePaidNotificationAdmin(Invoice $invoice): void
+    {
+        $senderInfo = $this->getSenderInfo();
+        $adminEmail = $senderInfo['email'];
+
+        $subject = sprintf('Facture Payée : %s - %s', $invoice->getNumero(), $invoice->getClient()->getNomComplet());
+
+        $html = $this->twig->render('emails/notification/invoice_paid_admin.html.twig', [
+            'invoice' => $invoice,
+            'client' => $invoice->getClient(),
+            'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
+        ]);
+
+        $this->send(
+            recipient: $adminEmail,
+            subject: $subject,
+            html: $html,
+            entityType: 'Invoice',
+            entityId: $invoice->getId(),
+            type: 'invoice_paid_admin_notification',
+            senderEmail: $senderInfo['email'],
+            senderName: 'Delnyx System'
+        );
+    }
+
+    /**
+     * Envoie une notification de changement d'abonnement (SaaS)
+     */
+    public function sendSubscriptionNotificationAdmin(string $action, \App\Entity\Subscription $subscription): void
+    {
+        $senderInfo = $this->getSenderInfo();
+        $adminEmail = $senderInfo['email'];
+
+        $subject = sprintf('[SaaS] %s : %s', ucfirst($action), $subscription->getClient()->getNomComplet());
+
+        $html = $this->twig->render('emails/notification/subscription_admin.html.twig', [
+            'action' => $action,
+            'subscription' => $subscription,
+            'client' => $subscription->getClient(),
+            'subject' => $subject,
+            'companySettings' => $senderInfo['settings'],
+        ]);
+
+        $this->send(
+            recipient: $adminEmail,
+            subject: $subject,
+            html: $html,
+            entityType: 'Subscription',
+            entityId: $subscription->getId(),
+            type: 'subscription_admin_notification',
+            senderEmail: $senderInfo['email'],
+            senderName: 'Delnyx System'
+        );
+    }
 }

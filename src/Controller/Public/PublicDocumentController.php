@@ -150,6 +150,13 @@ class PublicDocumentController extends AbstractController
                 );
                 $this->entityManager->flush();
 
+                // Notification à l'administrateur
+                try {
+                    $emailService->sendQuoteSignedNotificationAdmin($quote);
+                } catch (\Exception $e) {
+                    error_log('Erreur notification admin devis signé: ' . $e->getMessage());
+                }
+
                 // === AUTOMATISATION ACCOMPTE ===
                 // Si le devis a un pourcentage d'acompte > 0, créer automatiquement l'accompte et envoyer l'email
                 $this->createAndSendDepositIfNeeded($quote, $depositService, $emailService);

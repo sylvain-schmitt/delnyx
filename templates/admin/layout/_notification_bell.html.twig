@@ -1,0 +1,108 @@
+{# Template de notification avec extension Twig (plus stable que les composants) #}
+{% set notifications = get_notifications(8) %}
+{% set unreadCount = get_unread_notifications_count() %}
+
+<div
+	class="relative" data-controller="dropdown notification-bell">
+	{# Button #}
+	<button class="relative p-2 text-white/70 hover:text-white transition-colors duration-200" data-action="click->dropdown#toggle">
+		{{ ux_icon('lucide:bell', {class: 'w-6 h-6'}) }}
+
+		{# Notification Badge #}
+		<span class="absolute top-1.5 right-1.5 flex h-4 w-4 {{ unreadCount == 0 ? 'hidden' : '' }}" data-notification-bell-target="badge">
+			<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+			<span class="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[10px] text-white items-center justify-center font-bold" data-notification-bell-target="unreadCount">
+				{{ unreadCount > 9 ? '9+' : unreadCount }}
+			</span>
+		</span>
+	</button>
+
+	{# Dropdown Menu #}
+	<div
+		class="absolute right-0 mt-2 w-80 md:w-96 bg-slate-800/95 backdrop-blur-3xl border border-white/20 rounded-xl shadow-2xl z-50 hidden overflow-hidden" data-dropdown-target="menu" data-controller="notification-action" data-notification-action-mark-all-url-value="{{ path('admin_notification_read_all') }}" data-notification-action-hide-all-url-value="{{ path('admin_notification_hide_all') }}">
+		{# Header #}
+		<div class="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
+			<div>
+				<h3 class="text-sm font-semibold text-white">Notifications</h3>
+				<p class="text-[10px] text-white/40" data-notification-action-target="countText">
+					<span data-notification-action-target="countValue">{{ notifications|length }}</span>
+					visisbles
+				</p>
+			</div>
+
+			{% if notifications|length > 0 %}
+				<div class="flex items-center gap-2">
+					<button title="Tout marquer comme lu" class="p-1.5 text-white/40 hover:text-green-400 transition-colors" data-action="click->notification-action#confirmMarkAll">
+						{{ ux_icon('lucide:check-check', {class: 'w-4 h-4'}) }}
+					</button>
+					<button title="Tout supprimer" class="p-1.5 text-white/40 hover:text-red-400 transition-colors" data-action="click->notification-action#confirmHideAll">
+						{{ ux_icon('lucide:trash-2', {class: 'w-4 h-4'}) }}
+					</button>
+				</div>
+			{% endif %}
+		</div>
+
+		{# List #}
+		<div class="max-h-[32rem] overflow-y-auto custom-scrollbar" data-notification-action-target="list">
+			{% for notification in notifications %}
+				<div
+					class="relative flex items-start gap-4 p-4 hover:bg-white/5 transition-all border-b border-white/5 group
+						                        {% if not notification.is_read %}bg-blue-900/10 notification-unread{% endif %}" data-controller="notification-item" data-notification-item-read-url-value="{{ path('admin_notification_read', {key: notification.id}) }}" data-notification-item-hide-url-value="{{ path('admin_notification_hide', {key: notification.id}) }}" data-notification-item-is-read-value="{{ notification.is_read ? 'true' : 'false' }}">
+					{# Link Wrapper (pour le titre et message) #}
+					<div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center
+							                        {% if notification.type == 'appointment' %}bg-blue-500/20 text-blue-400
+							                        {% elseif notification.type == 'sale' %}bg-green-500/20 text-green-400
+							                        {% elseif notification.type == 'system' %}bg-purple-500/20 text-purple-400
+							                        {% else %}bg-slate-500/20 text-slate-400{% endif %}">
+						{{ ux_icon(notification.icon, {class: 'w-5 h-5'}) }}
+					</div>
+
+					<div class="flex-1 min-w-0 pr-8">
+						<div class="flex items-center justify-between mb-1">
+							<a href="{{ notification.link }}" class="text-sm font-medium text-white hover:text-blue-400 transition-colors truncate block" data-action="click->notification-item#markAsRead">
+								{{ notification.title }}
+							</a>
+						</div>
+						<p class="text-[11px] text-white/50 line-clamp-2">
+							{{ notification.message }}
+						</p>
+						<span class="text-[9px] text-white/30 block mt-1">
+							{{ notification.date|format_datetime('short', 'short', locale='fr') }}
+						</span>
+					</div>
+
+					{# Actions Hover #}
+					<div class="absolute right-2 top-4 flex flex-col gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+						<button title="Marquer comme lu" class="p-1 text-white/40 hover:text-green-400 transition-colors bg-slate-800 rounded shadow-lg border border-white/10 {{ notification.is_read ? 'hidden' : '' }}" data-action="click->notification-item#markAsRead" data-notification-item-target="readButton">
+							{{ ux_icon('lucide:check', {class: 'w-3 h-3'}) }}
+						</button>
+						<button title="Supprimer" class="p-1 text-white/40 hover:text-red-400 transition-colors bg-slate-800 rounded shadow-lg border border-white/10" data-action="click->notification-item#hide">
+							{{ ux_icon('lucide:x', {class: 'w-3 h-3'}) }}
+						</button>
+					</div>
+
+					{# Unread Indicator #}
+					<div class="absolute right-0 top-0 w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 {{ notification.is_read ? 'hidden' : '' }}" data-notification-item-target="unreadIndicator"></div>
+				</div>
+			{% else %}
+				<div class="p-8 text-center" data-notification-action-target="emptyState">
+					{{ ux_icon('lucide:bell-off', {class: 'w-10 h-10 text-white/10 mx-auto mb-3'}) }}
+					<p class="text-sm text-white/40">Aucune notification pour le moment.</p>
+				</div>
+			{% endfor %}
+
+			<div class="p-8 text-center hidden" data-notification-action-target="emptyState">
+				{{ ux_icon('lucide:bell-off', {class: 'w-10 h-10 text-white/10 mx-auto mb-3'}) }}
+				<p class="text-sm text-white/40">Aucune notification pour le moment.</p>
+			</div>
+		</div>
+
+		{% if notifications|length > 0 %}
+			<div class="p-2.5 bg-white/5 text-center border-t border-white/10" data-notification-action-target="footerActions">
+				<button class="text-[10px] text-white/40 hover:text-white transition-colors" data-action="click->notification-action#confirmHideAll">
+					Tout supprimer
+				</button>
+			</div>
+		{% endif %}
+	</div>
+</div>

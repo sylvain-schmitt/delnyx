@@ -203,6 +203,13 @@ class StripeService
             if ($stripeSub->status === 'canceled') {
                 $subscription->setStatus('canceled');
                 $this->entityManager->flush();
+
+                // Notification Admin
+                try {
+                    $this->emailService->sendSubscriptionNotificationAdmin('résiliation', $subscription);
+                } catch (\Exception $e) {
+                    $this->logger->error('Erreur notification admin annulation sub: ' . $e->getMessage());
+                }
             } else {
                 $this->logger->warning('Annulation incomplète Stripe le statut retourné est : ' . $stripeSub->status);
                 // On peut décider de mettre 'canceled' ou un autre statut intermédiaire
@@ -402,6 +409,13 @@ class StripeService
             $this->entityManager->flush();
             $this->logger->info('Nouvel abonnement créé localement', ['stripe_id' => $stripeSubscriptionId]);
             error_log('DEBUG: New subscription persisted local ID ' . $subscription->getId());
+
+            // Notification Admin
+            try {
+                $this->emailService->sendSubscriptionNotificationAdmin('création', $subscription);
+            } catch (\Exception $e) {
+                $this->logger->error('Erreur notification admin création sub: ' . $e->getMessage());
+            }
         }
 
         // 3. Synchroniser les détails

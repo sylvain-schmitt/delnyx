@@ -1,0 +1,29 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block body %}
+	<h1>💳 Facture Payée !</h1>
+
+	<p>Une nouvelle facture a été réglée par votre client.</p>
+
+	<div class="info-box" style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; border: 1px solid #bbf7d0; margin: 20px 0;">
+		<p style="margin: 5px 0;">
+			<strong>📄 Facture :</strong>
+			{{ invoice.numero }}</p>
+		<p style="margin: 5px 0;">
+			<strong>👤 Client :</strong>
+			{{ client.nomComplet }}</p>
+		<p style="margin: 5px 0;">
+			<strong>💰 Montant :</strong>
+			{{ invoice.montantTTC|number_format(2, ',', ' ') }}
+			€ TTC</p>
+		<p style="margin: 5px 0;">
+			<strong>📅 Date :</strong>
+			{{ invoice.datePaiement|date('d/m/Y H:i') }}</p>
+	</div>
+
+	<div style="text-align: center; margin: 30px 0;">
+		<a href="{{ url('admin_invoice_show', {id: invoice.id}) }}" style="display: inline-block; padding: 12px 24px; background-color: #22c55e; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+			Voir la facture
+		</a>
+	</div>
+{% endblock %}
