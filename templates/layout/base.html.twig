@@ -24,8 +24,8 @@
 		<meta property="og:description" content="{% block og_description %}{{ block('meta_description') }}{% endblock %}">
 		<meta property="og:url" content="{% block og_url %}{{ app.request.uri }}{% endblock %}">
 		<meta property="og:image" content="{% block og_image %}{{ absolute_url(asset('images/preview.png')) }}{% endblock %}">
-		<meta property="og:site_name" content="Delnyx">	
-		<meta property="og:image:width" content="1200">	
+		<meta property="og:site_name" content="Delnyx">
+		<meta property="og:image:width" content="1200">
 		<meta property="og:image:height" content="630">
 		<meta property="og:image:alt" content="Delnyx - Développeur Web Freelance Symfony">
 		<meta property="og:image:type" content="image/png">
@@ -42,6 +42,9 @@
 		<meta name="google-site-verification" content="I8Tmiz7luvHrxagDrHZvstTKfqxbBLCkU6kstBmBSYU"/>
 		<meta name="robots" content="{% block robots %}index, follow{% endblock %}">
 		<link rel="canonical" href="{% block canonical %}{{ app.request.uri }}{% endblock %}">
+
+		{# Structured Data (JSON-LD) #}
+		{% block schema_org %}{% endblock %}
 
 
 		<link rel="icon" type="image/png" href="{{ asset('images/favicon/favicon-96x96.png') }}" sizes="96x96"/>
@@ -72,11 +75,11 @@
 		{% include 'partials/_footer.html.twig' %}
 
 		{# Bouton Scroll to Top - Glassmorphique #}
-		<div 
+		<div
 			data-controller="scroll-to-top"
 			data-scroll-to-top-threshold-value="300"
 		>
-			<button 
+			<button
 				data-scroll-to-top-target="button"
 				data-action="click->scroll-to-top#scrollToTop"
 				class="fixed bottom-6 right-6 z-50 w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full shadow-lg hover:bg-white/20 hover:shadow-xl transition-all duration-300 transform hover:scale-110 opacity-0 pointer-events-none"

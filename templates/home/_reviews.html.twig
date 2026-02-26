@@ -1,54 +1,63 @@
 {% if googleReviews.reviews is defined and googleReviews.reviews|length > 0 %}
-	<section class="py-24 relative overflow-hidden bg-slate-950" id="google-reviews">
+	<section class="py-24 relative overflow-hidden section-transition" id="google-reviews">
 		<style>
 			#google-reviews .star-fill path {
 				fill: currentColor;
 			}
 		</style>
-		{# Effets de fond #}
-		<div class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none"></div>
-		<div class="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+		{# Background harmonisé avec les autres sections #}
+		<div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-700 to-slate-800"></div>
+
+		{# Background avec effet de transition fluide depuis la section précédente #}
+			<div class="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-700"></div>
+
+			{# Lumière bleue - responsive #}
+			<div class="absolute top-1/4 left-[2%] w-[150px] h-[150px] sm:w-[300px] sm:h-[300px] sm:left-[3%] rounded-full light-ambient z-20" style="background: radial-gradient(circle, rgba(59,130,246,0.25) 0%, transparent 70%);"></div>
+
+			{# Lumière violette - responsive #}
+			<div class="absolute bottom-[20%] right-[2%] w-[120px] h-[120px] sm:w-[200px] sm:h-[200px] sm:right-[5%] rounded-full light-ambient z-20" style="background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 70%);"></div>
 
 		<div class="container mx-auto px-4 relative z-10">
 			<div class="max-w-4xl mx-auto text-center mb-16">
-				<h2 class="text-4xl md:text-5xl font-extrabold text-white mb-6">
-					Ils nous font
-					<span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">confiance</span>
+				<h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-16">
+					Ce qu'ils disent de
+					<span class="bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-500 bg-clip-text text-transparent">Delnyx</span>
 				</h2>
-				<div class="flex flex-col items-center justify-center gap-4">
-					<div class="flex items-center gap-3">
-						<span class="text-5xl font-black text-white">{{ (googleReviews.rating == 5) ? '5/5' : (googleReviews.rating|number_format(1, ',', '.') ~ '/5') }}</span>
-						<div class="flex text-amber-400">
-							{% for i in 1..5 %}
-								{% if i <= googleReviews.rating %}
-									{{ ux_icon('lucide:star', {class: 'w-8 h-8 star-fill'}) }}
-								{% elseif i - 0.5 <= googleReviews.rating %}
-									{{ ux_icon('lucide:star-half', {class: 'w-8 h-8 star-fill'}) }}
-								{% else %}
-									{{ ux_icon('lucide:star', {class: 'w-8 h-8 text-slate-700/50'}) }}
-								{% endif %}
-							{% endfor %}
+				<div class="flex flex-col items-center justify-center gap-8 ">
+					<div class="flex items-center gap-4 px-8 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+						<span class="text-5xl font-black text-white">{{ (googleReviews.rating == 5) ? '5.0' : (googleReviews.rating|number_format(1, '.', '.')) }}</span>
+						<div class="flex flex-col items-start px-2">
+							<div class="flex text-amber-400 mb-1">
+								{% for i in 1..5 %}
+									{% if i <= googleReviews.rating %}
+										{{ ux_icon('lucide:star', {class: 'w-6 h-6 star-fill'}) }}
+									{% elseif i - 0.5 <= googleReviews.rating %}
+										{{ ux_icon('lucide:star-half', {class: 'w-6 h-6 star-fill'}) }}
+									{% else %}
+										{{ ux_icon('lucide:star', {class: 'w-6 h-6 text-slate-700/50'}) }}
+									{% endif %}
+								{% endfor %}
+							</div>
+							<p class="text-slate-400 text-sm font-medium">Basé sur {{ googleReviews.total_ratings }} avis Google Business</p>
 						</div>
 					</div>
-					<p class="text-slate-400 text-lg">Basé sur
-						{{ googleReviews.total_ratings }}
-						avis Google Business</p>
+
 					{% if companySettings is defined and companySettings and companySettings.googlePlaceId %}
-						<a href="https://www.google.com/maps/place/?q=place_id:{{ companySettings.googlePlaceId }}" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors flex items-center gap-2">
-							Voir tous les avis sur Google
-							{{ ux_icon('lucide:arrow-right', {class: 'w-4 h-4'}) }}
+						<a href="https://www.google.com/maps/place/?q=place_id:{{ companySettings.googlePlaceId }}"
+                           target="_blank"
+                           class="flex items-center gap-3 px-8 py-3 rounded-xl bg-blue-500/10 border border-blue-400/20 text-blue-400 hover:bg-blue-500/20 transition-all duration-300 font-bold group">
+							Voir sur Google Maps
+							{{ ux_icon('lucide:external-link', {class: 'w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform'}) }}
 						</a>
 					{% endif %}
 				</div>
 			</div>
 
 			<div data-controller="reviews-carousel" data-action="mouseenter->reviews-carousel#pause mouseleave->reviews-carousel#resume" class="relative">
-				<div data-reviews-carousel-target="track" class="flex overflow-x-auto gap-8 pb-8 no-scrollbar scroll-smooth snap-x snap-mandatory" style="scrollbar-width: none; -ms-overflow-style: none;">
+				<div data-reviews-carousel-target="track" class="flex overflow-x-auto gap-8 pb-8 pt-8 no-scrollbar scroll-smooth snap-x snap-mandatory" style="scrollbar-width: none; -ms-overflow-style: none;">
 					{% for review in googleReviews.reviews %}
 						<div class="flex-none w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)] snap-center group relative">
-							<div class="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-							<div
-								class="relative h-full p-8 bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col items-start transition-all duration-300 hover:-translate-y-1">
+							<div class="glass-card optimized-blur">
 								{# Header de l'avis #}
 								<div class="flex items-center gap-4 mb-6">
 									{% if review.profile_photo_url is defined and review.profile_photo_url %}
@@ -85,7 +94,6 @@
 									Avis vérifié Google
 								</div>
 							</div>
-						</div>
 					{% endfor %}
 				</div>
 

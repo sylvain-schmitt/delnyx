@@ -1,13 +1,13 @@
 {% extends 'layout/base.html.twig' %}
 
-{% block title %}Développeur Web Freelance Symfony & PHP | Solutions Sur-Mesure - Delnyx
+{% block title %}Développeur Web Freelance Haute-Saône (70) & Belfort (90) | Delnyx
 {% endblock %}
 
 {% block meta_description %}
-	Développeur web freelance en Haute-Saône (Ronchamp, Belfort, Montbéliard, Franche-Comté). Spécialiste Symfony & PHP pour la création de sites vitrine, applications de gestion et systèmes de RDV. Solutions sur-mesure, fiables et évolutives.
+	Développeur web freelance en Haute-Saône (70) et Territoire de Belfort (90). Basé à Ronchamp, je crée des sites vitrine, applications de gestion (Symfony/PHP) et systèmes de RDV sur toute la Franche-Comté.
 {% endblock %}
 
-{% block meta_keywords %}développeur web freelance Ronchamp, Belfort, Montbéliard, Franche-Comté, Symfony, PHP, création site web, application web, développement sur-mesure, PostgreSQL, React, Tailwind CSS
+{% block meta_keywords %}développeur web freelance, Haute-Saône, 70, Territoire de Belfort, 90, Ronchamp, Vesoul, Lure, Héricourt, Montbéliard, Franche-Comté, Symfony, PHP, création site web, application web, développement sur-mesure
 {% endblock %}
 
 {% block og_type %}website
@@ -15,6 +15,76 @@
 
 {% block og_image %}
 	{{ absolute_url(asset('images/preview.png')) }}
+{% endblock %}
+
+{% block schema_org %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "Delnyx",
+  "image": "{{ absolute_url(asset('images/preview.png')) }}",
+  "@id": "{{ absolute_url(path('app_home')) }}",
+  "url": "{{ absolute_url(path('app_home')) }}",
+  "telephone": "",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "",
+    "addressLocality": "Ronchamp",
+    "postalCode": "70250",
+    "addressRegion": "Bourgogne-Franche-Comté",
+    "addressCountry": "FR"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": 47.6997,
+    "longitude": 6.6343
+  },
+  "areaServed": [
+    {
+      "@type": "AdministrativeArea",
+      "name": "Haute-Saône"
+    },
+    {
+      "@type": "AdministrativeArea",
+      "name": "Territoire de Belfort"
+    },
+    {
+      "@type": "AdministrativeArea",
+      "name": "Franche-Comté"
+    },
+    {
+      "@type": "City",
+      "name": "Ronchamp"
+    },
+    {
+      "@type": "City",
+      "name": "Lure"
+    },
+    {
+      "@type": "City",
+      "name": "Vesoul"
+    },
+    {
+      "@type": "City",
+      "name": "Héricourt"
+    },
+    {
+      "@type": "City",
+      "name": "Belfort"
+    },
+    {
+      "@type": "City",
+      "name": "Montbéliard"
+    }
+  ],
+  "description": "Développeur web freelance spécialisé en Symfony & PHP. Création de sites vitrine et applications sur-mesure.",
+  "priceRange": "€€",
+  "sameAs": [
+    "{{ absolute_url(path('app_home')) }}"
+  ]
+}
+</script>
 {% endblock %}
 
 {% block body %}
@@ -33,7 +103,7 @@
 		<div class="absolute top-1/3 left-[5%] w-[150px] h-[150px] sm:w-[300px] sm:h-[300px] sm:left-[20%] rounded-full light-ambient z-20" style="background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 50%);"></div>
 
 		{# Contenu principal #}
-		<div class="relative z-30 text-center px-6 content-grid w-full max-w-7xl">
+		<div class="relative z-50 pointer-events-auto text-center px-6 content-grid w-full max-w-7xl">
 			<div class="title-section animate-fade-up animate-delay-100">
 				<div class="min-h-[120px] sm:min-h-[140px] lg:min-h-[180px] flex items-center justify-center">
 					<h1 class="text-3xl sm:text-4xl lg:text-6xl font-bold">
@@ -45,10 +115,13 @@
 			</div>
 
 			<div class="paragraph-section animate-fade-up animate-delay-200">
-				<p class="text-2xl sm:text-3xl lg:text-4xl text-gray-300 max-w-5xl mx-auto">
+				<p class="text-2xl sm:text-3xl lg:text-4xl text-gray-300 max-w-5xl mx-auto hidden md:block">
 					Je transforme vos idées en applications web performantes,<br class="hidden sm:block">
 					élégantes et évolutives avec les technologies modernes
 				</p>
+				<h2 class="text-xl sm:text-2xl lg:text-3xl text-gray-300 max-w-5xl mx-auto mt-4 leading-relaxed relative z-50 pointer-events-auto">
+					Création de sites internet et d'applications web sur-mesure en <strong class="text-white hover:text-cyan-400 transition-colors cursor-default">Haute-Saône</strong>, <strong class="text-white hover:text-purple-400 transition-colors cursor-default">Territoire de Belfort</strong> et dans toute la Franche-Comté.
+				</h2>
 			</div>
 
 			<div class="cta-section animate-fade-up animate-delay-300">
@@ -364,6 +437,8 @@
 			</div>
 		</section>
 
+		{% include 'home/_reviews.html.twig' with { 'companySettings': companySettings } %}
+
 		{# Section Technologies #}
 		<section
 			class="relative py-20 lg:py-32 overflow-hidden section-transition" loading="lazy">
@@ -674,5 +749,4 @@
 				</div>
 			</div>
 		</section>
-		{% include 'home/_reviews.html.twig' with { 'companySettings': companySettings } %}
 	{% endblock %}

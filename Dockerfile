@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     git unzip curl zip \
     libpq-dev libicu-dev libzip-dev libonig-dev \
     libpng-dev libjpeg-dev libfreetype6-dev \
-    supervisor \
+    supervisor nginx \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_pgsql intl zip opcache gd \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -50,6 +50,13 @@ RUN echo "opcache.enable=1\n\
 
 # Configuration de la timezone PHP
 RUN echo "date.timezone = Europe/Paris" > /usr/local/etc/php/conf.d/timezone.ini
+
+# Copier la configuration Nginx (le vhost va écouter sur 8001)
+COPY docker/nginx/app.conf /etc/nginx/sites-available/default
+
+# Re-router les logs Nginx vers la sortie standard
+RUN ln -sf /dev/stdout /var/log/nginx/access.log \
+    && ln -sf /dev/stderr /var/log/nginx/error.log
 
 # Copier la configuration Supervisor
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
