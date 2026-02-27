@@ -17,7 +17,7 @@ class GoogleReviewService
 {
     private const API_URL = 'https://maps.googleapis.com/maps/api/place/details/json';
     private const CACHE_KEY = 'google_business_reviews';
-    private const CACHE_TTL = 86400; // 24 heures
+    private const CACHE_TTL = 14400; // 4 heures (au lieu de 24h)
 
     public function __construct(
         private HttpClientInterface $httpClient,

@@ -3,39 +3,69 @@ import { Controller } from '@hotwired/stimulus';
 export default class extends Controller {
     static targets = ['track'];
     static values = {
-        delay: { type: Number, default: 4000 } // ms entre chaque saut de page
+        delay: { type: Number, default: 5000 }
     };
 
     connect() {
-        this.startAutoScroll();
+        this.index = 0;
+        this.isPaused = false;
+
+        setTimeout(() => {
+            this.startAutoScroll();
+            this.resizeObserver = new ResizeObserver(() => this.updatePosition('auto'));
+            this.resizeObserver.observe(this.trackTarget);
+        }, 500);
     }
 
     disconnect() {
         this.stopAutoScroll();
+        if (this.resizeObserver) this.resizeObserver.disconnect();
+    }
+
+    get slides() {
+        return Array.from(this.trackTarget.children);
+    }
+
+    get totalSlides() {
+        return this.slides.length;
+    }
+
+    get slidesPerPage() {
+        const tw = this.element.offsetWidth;
+        const sw = this.slides[0]?.offsetWidth || 1;
+        return Math.max(1, Math.round(tw / sw));
+    }
+
+    updatePosition(behavior = 'smooth') {
+        const sw = this.slides[0]?.offsetWidth || 0;
+        const gap = parseInt(window.getComputedStyle(this.trackTarget).gap) || 0;
+
+        // Calcul de l'offset maximal pour ne pas scroller dans le vide à la fin
+        const maxIndex = Math.max(0, this.totalSlides - this.slidesPerPage);
+        const currentIndex = Math.min(this.index, maxIndex);
+
+        const offset = currentIndex * (sw + gap);
+
+        this.trackTarget.style.transition = behavior === 'smooth' ? 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)' : 'none';
+        this.trackTarget.style.transform = `translateX(-${offset}px)`;
+
+        // Si on arrive au bout, on reset l'index pour le prochain tour
+        if (this.index >= maxIndex) {
+            this.index = -1; // Sera incrémenté à 0 par next()
+        }
+    }
+
+    next() {
+        this.index++;
+        this.updatePosition();
     }
 
     startAutoScroll() {
-        if (this.scroller) return;
+        this.stopAutoScroll();
+        if (this.totalSlides <= this.slidesPerPage) return;
 
         this.scroller = setInterval(() => {
-            if (!this.trackTarget) return;
-
-            const container = this.trackTarget;
-            const scrollLeft = container.scrollLeft;
-            const scrollWidth = container.scrollWidth;
-            const clientWidth = container.clientWidth;
-            const maxScroll = scrollWidth - clientWidth;
-
-            // Calculer le gap dynamiquement (basé sur Tailwind gap-8 = 32px)
-            const gap = parseInt(window.getComputedStyle(container).gap) || 0;
-
-            // Si on est à la fin (ou presque), on revient au début
-            if (scrollLeft >= maxScroll - 10) {
-                container.scrollTo({ left: 0, behavior: 'smooth' });
-            } else {
-                // On défile d'une page + le gap pour que la carte suivante soit bien centrée
-                container.scrollBy({ left: clientWidth + gap, behavior: 'smooth' });
-            }
+            if (!this.isPaused) this.next();
         }, this.delayValue);
     }
 
@@ -46,11 +76,9 @@ export default class extends Controller {
         }
     }
 
-    pause() {
-        this.stopAutoScroll();
-    }
+    pause() { this.isPaused = true; }
+    resume() { this.isPaused = false; }
 
-    resume() {
-        this.startAutoScroll();
-    }
+    // Pour mobile : on peut ajouter des listeners explicites dans le HTML si besoin
+    // Mais pointerenter/pointerleave du group Tailwind peuvent suffire.
 }
