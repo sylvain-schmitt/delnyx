@@ -32,6 +32,7 @@ class StripeService
         private readonly EmailService $emailService,
         private readonly MagicLinkService $magicLinkService,
         private readonly LoggerInterface $logger,
+        private readonly AqualizeNotifierService $aqualizeNotifier,
         ?string $stripeSecretKey = null
     ) {
         // Stocke la clé .env comme fallback
@@ -359,8 +360,42 @@ class StripeService
         }
 
         if (!$client) {
-            $this->logger->error('Client introuvable pour la session ' . $session->id);
-            return;
+            // Auto-création client Delnyx depuis les données Stripe Customer
+            if ($stripeCustomerId) {
+                try {
+                    $stripeCustomer = $this->getStripeClient()->customers->retrieve((string) $stripeCustomerId);
+                    $stripeEmail = $stripeCustomer->email ?? '';
+
+                    // Cherche d'abord par email pour éviter la violation de contrainte d'unicité
+                    $client = $stripeEmail ? $this->clientRepository->findOneBy(['email' => $stripeEmail]) : null;
+
+                    if ($client) {
+                        // Client existant sans stripeCustomerId — on le lie
+                        if (!$client->getStripeCustomerId()) {
+                            $client->setStripeCustomerId((string) $stripeCustomerId);
+                            $this->entityManager->flush();
+                        }
+                        $this->logger->info('Client Delnyx existant lié à Stripe', ['email' => $stripeEmail]);
+                    } else {
+                        $nameParts = explode(' ', $stripeCustomer->name ?? 'Aqualize User', 2);
+                        $client = new Client();
+                        $client->setNom($nameParts[0] ?? 'Aqualize');
+                        $client->setPrenom($nameParts[1] ?? 'User');
+                        $client->setEmail($stripeEmail);
+                        $client->setStripeCustomerId((string) $stripeCustomerId);
+                        $client->setStatut(\App\Entity\ClientStatus::ACTIF);
+                        $this->entityManager->persist($client);
+                        $this->entityManager->flush();
+                        $this->logger->info('Client Delnyx auto-créé depuis Stripe', ['email' => $stripeEmail]);
+                    }
+                } catch (\Exception $e) {
+                    $this->logger->error('Échec auto-création client Delnyx: ' . $e->getMessage());
+                    return;
+                }
+            } else {
+                $this->logger->error('Client introuvable et pas de stripeCustomerId pour la session ' . $session->id);
+                return;
+            }
         }
 
         // 2. Vérifier si l'abonnement existe déjà
@@ -395,6 +430,21 @@ class StripeService
             $subscription->setAmount('0.00');
             $subscription->setCurrentPeriodStart(new \DateTime());
             $subscription->setCurrentPeriodEnd((new \DateTime())->modify('+1 month'));
+
+            // Lier le Tariff si présent dans les métadonnées (checkout self-service)
+            $tariffId = $session->metadata->tariff_id ?? null;
+            if ($tariffId) {
+                $tariff = $this->entityManager->getRepository(Tariff::class)->find((int) $tariffId);
+                if ($tariff) {
+                    $subscription->setTariff($tariff);
+                    $subscription->setAmount($session->metadata->interval === 'yearly'
+                        ? ($tariff->getPrixAnnuel() ?? '0.00')
+                        : ($tariff->getPrixMensuel() ?? '0.00')
+                    );
+                    $subscription->setIntervalUnit($session->metadata->interval === 'yearly' ? 'year' : 'month');
+                }
+            }
+
             $this->entityManager->persist($subscription);
 
             // Lier l'abonnement à la facture si on a l'ID
@@ -416,10 +466,43 @@ class StripeService
             } catch (\Exception $e) {
                 $this->logger->error('Erreur notification admin création sub: ' . $e->getMessage());
             }
+
+            // Récupérer la facture Stripe déjà payée (invoice.paid arrive AVANT checkout.session.completed)
+            // et créer la facture locale + envoyer le mail si elle n'a pas encore été traitée
+            try {
+                $stripeInvoices = $this->getStripeClient()->invoices->all([
+                    'subscription' => $stripeSubscriptionId,
+                    'limit'        => 1,
+                ]);
+                if (!empty($stripeInvoices->data)) {
+                    $stripeInvoice = $stripeInvoices->data[0];
+                    if ($stripeInvoice->status === 'paid') {
+                        $existingLocalInvoice = $this->entityManager->getRepository(Invoice::class)->findOneBy(['stripeInvoiceId' => $stripeInvoice->id]);
+                        if (!$existingLocalInvoice) {
+                            $this->logger->info('Facture Stripe déjà payée — création locale rétroactive', ['stripe_invoice_id' => $stripeInvoice->id]);
+                            $this->handleInvoicePaymentSucceeded($stripeInvoice);
+                        } else {
+                            $this->logger->info('Facture locale déjà existante pour stripe invoice', ['stripe_invoice_id' => $stripeInvoice->id]);
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                $this->logger->error('Erreur récupération facture Stripe rétroactive: ' . $e->getMessage());
+            }
         }
 
         // 3. Synchroniser les détails
         $this->syncSubscriptionStatus($subscription);
+
+        // 4. Notifier Aqualize si c'est un abonnement Aqualize (self-service)
+        $isAqualize = ($session->metadata->aqualize ?? null) === 'true';
+        if ($isAqualize && $client->getEmail()) {
+            $this->aqualizeNotifier->notifyPlanUpdate(
+                $client->getEmail(),
+                'PREMIUM',
+                (string) $stripeCustomerId
+            );
+        }
     }
     /**
      * Récupère les items d'un abonnement Stripe
@@ -645,7 +728,226 @@ class StripeService
             } catch (\Exception $e) {
                 $this->logger->error('Error processing renewal invoice: ' . $e->getMessage());
             }
+
+        } elseif (in_array($billingReason, ['subscription_create', 'subscription_update'], true)) {
+            $this->logger->info('Processing first-payment invoice', ['stripe_invoice_id' => $stripeInvoice->id]);
+
+            // Idempotence
+            $existingInvoice = $this->entityManager->getRepository(Invoice::class)->findOneBy(['stripeInvoiceId' => $stripeInvoice->id]);
+            if ($existingInvoice) {
+                $this->logger->info("First-payment invoice {$stripeInvoice->id} already processed. Skipping.");
+                return;
+            }
+
+            // Chercher une facture locale existante via metadata->invoice_id
+            $invoice = null;
+            if ($invoiceId) {
+                $invoice = $this->entityManager->getRepository(Invoice::class)->find($invoiceId);
+            }
+
+            // Sinon créer une nouvelle facture (flux self-service Aqualize)
+            if (!$invoice) {
+                $invoice = new Invoice();
+                $invoice->setClient($subscription->getClient());
+                $invoice->setSubscription($subscription);
+
+                $periodStart = isset($stripeInvoice->period_start) ? (new \DateTime())->setTimestamp($stripeInvoice->period_start) : new \DateTime();
+                $periodEnd   = isset($stripeInvoice->period_end)   ? (new \DateTime())->setTimestamp($stripeInvoice->period_end)   : (new \DateTime())->modify('+1 month');
+
+                $lastInvoice = $this->entityManager->getRepository(Invoice::class)->findOneBy(['client' => $subscription->getClient()], ['id' => 'DESC']);
+                $invoice->setCompanyId($lastInvoice ? $lastInvoice->getCompanyId() : '1');
+                $invoice->setStatutEnum(InvoiceStatus::DRAFT);
+
+                $stripeInvoiceDate = isset($stripeInvoice->created) ? (new \DateTime())->setTimestamp($stripeInvoice->created) : new \DateTime();
+                $invoice->setDateCreation($stripeInvoiceDate);
+                $invoice->setDateEcheance((clone $stripeInvoiceDate)->modify('+30 days'));
+                $invoice->setNotes('Abonnement ' . $subscription->getLabel() . ' — Paiement initial');
+                $invoice->setConditionsPaiement('Paiement automatique Stripe');
+
+                $line = new InvoiceLine();
+                $periodStr = sprintf(' (Période du %s au %s)', $periodStart->format('d/m/Y'), $periodEnd->format('d/m/Y'));
+                $line->setDescription($subscription->getLabel() . $periodStr);
+                $line->setQuantity(1);
+                $line->setUnitPrice($subscription->getAmount());
+                $line->recalculateTotalHt();
+                $line->setTvaRate('0.00');
+                $invoice->addLine($line);
+                $invoice->recalculateTotalsFromLines();
+                $this->entityManager->persist($invoice);
+                $this->entityManager->flush();
+            }
+
+            $invoice->setStripeInvoiceId($stripeInvoice->id);
+
+            try {
+                $this->invoiceService->issue($invoice, true);
+
+                $amountPaid = (float) ($stripeInvoice->amount_paid / 100);
+                $stripeInvoiceDate = isset($stripeInvoice->created) ? (new \DateTime())->setTimestamp($stripeInvoice->created) : new \DateTime();
+                $this->invoiceService->markPaidByExternalPayment($invoice, $amountPaid, false, $stripeInvoiceDate);
+
+                $this->syncSubscriptionStatus($subscription);
+
+                try {
+                    $this->emailService->sendInvoice($invoice);
+                    $invoice->setStatutEnum(InvoiceStatus::SENT);
+                    $invoice->setDateEnvoi(new \DateTime());
+                    $invoice->incrementSentCount();
+                    $this->entityManager->flush();
+                } catch (\Exception $e) {
+                    $this->logger->error('Erreur envoi email première facture: ' . $e->getMessage());
+                }
+
+                $this->logger->info('First-payment invoice issued, paid and sent', ['invoice_id' => $invoice->getId()]);
+            } catch (\Exception $e) {
+                $this->logger->error('Error processing first-payment invoice: ' . $e->getMessage());
+            }
         }
+    }
+
+    /**
+     * Synchronise un Tariff avec Stripe : crée le produit et les prix manquants.
+     * Appelé au save du tariff depuis TariffController.
+     */
+    public function syncTariffWithStripe(\App\Entity\Tariff $tariff): void
+    {
+        if (!$this->isConfigured()) {
+            return;
+        }
+
+        try {
+            // 1. Créer le produit Stripe si absent
+            if (!$tariff->getStripeProductId()) {
+                $product = $this->getStripeClient()->products->create([
+                    'name'        => $tariff->getNom(),
+                    'description' => $tariff->getDescription() ?? $tariff->getNom(),
+                    'metadata'    => ['delnyx_tariff_id' => (string) $tariff->getId()],
+                ]);
+                $tariff->setStripeProductId($product->id);
+                $this->logger->info('Stripe product créé', ['product_id' => $product->id, 'tariff' => $tariff->getNom()]);
+            }
+
+            // 2. Créer le prix mensuel si absent et prixMensuel défini
+            if (!$tariff->getStripePriceIdMonthly() && $tariff->getPrixMensuel()) {
+                $price = $this->getStripeClient()->prices->create([
+                    'product'    => $tariff->getStripeProductId(),
+                    'unit_amount' => (int) round((float) $tariff->getPrixMensuel() * 100),
+                    'currency'   => 'eur',
+                    'recurring'  => ['interval' => 'month'],
+                    'nickname'   => $tariff->getNom() . ' — Mensuel',
+                ]);
+                $tariff->setStripePriceIdMonthly($price->id);
+                $this->logger->info('Stripe price mensuel créé', ['price_id' => $price->id]);
+            }
+
+            // 3. Créer le prix annuel si absent et prixAnnuel défini
+            if (!$tariff->getStripePriceIdYearly() && $tariff->getPrixAnnuel()) {
+                $price = $this->getStripeClient()->prices->create([
+                    'product'    => $tariff->getStripeProductId(),
+                    'unit_amount' => (int) round((float) $tariff->getPrixAnnuel() * 100),
+                    'currency'   => 'eur',
+                    'recurring'  => ['interval' => 'year'],
+                    'nickname'   => $tariff->getNom() . ' — Annuel',
+                ]);
+                $tariff->setStripePriceIdYearly($price->id);
+                $this->logger->info('Stripe price annuel créé', ['price_id' => $price->id]);
+            }
+
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur sync Tariff → Stripe: ' . $e->getMessage(), ['tariff' => $tariff->getNom()]);
+            // On ne remonte pas l'exception pour ne pas bloquer la sauvegarde
+        }
+    }
+
+    /**
+     * Crée une Stripe Checkout Session (utilisé par le checkout Aqualize self-service)
+     */
+    public function findOrCreateStripeCustomer(
+        ?string $email,
+        ?string $name = null,
+        ?string $existingCustomerId = null,
+    ): ?string {
+        if (!$email) {
+            return null;
+        }
+
+        try {
+            $stripe = $this->getStripeClient();
+
+            // Si on a déjà un customer ID Stripe, on met à jour le nom si besoin
+            if ($existingCustomerId) {
+                $customer = $stripe->customers->retrieve($existingCustomerId);
+                if (!$customer->isDeleted()) {
+                    if ($name && empty($customer->name)) {
+                        $stripe->customers->update($existingCustomerId, ['name' => $name]);
+                    }
+                    return $existingCustomerId;
+                }
+            }
+
+            // Cherche par email
+            $existing = $stripe->customers->search(['query' => 'email:"' . $email . '"', 'limit' => 1]);
+            if (count($existing->data) > 0) {
+                $customer = $existing->data[0];
+                if ($name && empty($customer->name)) {
+                    $stripe->customers->update($customer->id, ['name' => $name]);
+                }
+                return $customer->id;
+            }
+
+            // Crée un nouveau customer
+            $params = ['email' => $email];
+            if ($name) {
+                $params['name'] = $name;
+            }
+            $customer = $stripe->customers->create($params);
+
+            return $customer->id;
+        } catch (\Exception $e) {
+            $this->logger->warning('findOrCreateStripeCustomer failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Crée une Stripe Billing Portal Session pour la gestion d'abonnement self-service.
+     */
+    public function createBillingPortalSession(string $stripeCustomerId, string $returnUrl): string
+    {
+        $session = $this->getStripeClient()->billingPortal->sessions->create([
+            'customer'   => $stripeCustomerId,
+            'return_url' => $returnUrl,
+        ]);
+
+        return $session->url;
+    }
+
+    public function createCheckoutSession(
+        string $priceId,
+        string $successUrl,
+        string $cancelUrl,
+        array $metadata = [],
+        ?string $stripeCustomerId = null,
+        ?string $customerEmail = null,
+    ): \Stripe\Checkout\Session {
+        $params = [
+            'mode'       => 'subscription',
+            'line_items' => [['price' => $priceId, 'quantity' => 1]],
+            'success_url' => $successUrl,
+            'cancel_url'  => $cancelUrl,
+            'metadata'    => $metadata,
+            'subscription_data' => ['metadata' => $metadata],
+        ];
+
+        if ($stripeCustomerId) {
+            // Utilisateur existant — pré-remplit email + infos sauvegardées
+            $params['customer'] = $stripeCustomerId;
+        } elseif ($customerEmail) {
+            // Nouvel utilisateur — pré-remplit uniquement l'email
+            $params['customer_email'] = $customerEmail;
+        }
+
+        return $this->getStripeClient()->checkout->sessions->create($params);
     }
 
     /**

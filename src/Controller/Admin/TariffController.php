@@ -7,6 +7,7 @@ namespace App\Controller\Admin;
 use App\Entity\Tariff;
 use App\Form\TariffType;
 use App\Repository\TariffRepository;
+use App\Service\StripeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,7 +20,8 @@ class TariffController extends AbstractController
 {
     public function __construct(
         private TariffRepository $tariffRepository,
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private StripeService $stripeService,
     ) {}
 
     #[Route('/', name: 'index')]
@@ -65,7 +67,10 @@ class TariffController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $this->entityManager->persist($tariff);
-            $this->entityManager->flush();
+            $this->entityManager->flush(); // flush d'abord pour avoir l'ID du tariff
+
+            $this->stripeService->syncTariffWithStripe($tariff);
+            $this->entityManager->flush(); // flush les IDs Stripe récupérés
 
             $this->addFlash('success', 'Tarif créé avec succès');
             return $this->redirectToRoute('admin_tariff_index');
@@ -85,6 +90,7 @@ class TariffController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $this->stripeService->syncTariffWithStripe($tariff);
             $this->entityManager->flush();
 
             $this->addFlash('success', 'Tarif modifié avec succès');

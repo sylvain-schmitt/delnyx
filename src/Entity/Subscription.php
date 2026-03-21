@@ -53,6 +53,9 @@ class Subscription
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
     private ?string $customLabel = null; // Pour les lignes personnalisées sans Tariff
 
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $cancelAtPeriodEnd = false;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
@@ -183,6 +186,17 @@ class Subscription
     public function setCustomLabel(?string $customLabel): self
     {
         $this->customLabel = $customLabel;
+        return $this;
+    }
+
+    public function isCancelAtPeriodEnd(): bool
+    {
+        return $this->cancelAtPeriodEnd;
+    }
+
+    public function setCancelAtPeriodEnd(bool $cancelAtPeriodEnd): self
+    {
+        $this->cancelAtPeriodEnd = $cancelAtPeriodEnd;
         return $this;
     }
 

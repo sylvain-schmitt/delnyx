@@ -18,6 +18,8 @@ use Symfony\Component\Routing\Annotation\Route;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Repository\SubscriptionRepository;
 use App\Repository\ClientRepository;
+use App\Service\AqualizeNotifierService;
+use App\Service\EmailService;
 use App\Service\InvoiceNumberGenerator;
 use App\Entity\InvoiceStatus;
 use App\Entity\Payment;
@@ -35,7 +37,10 @@ class WebhookController extends AbstractController
         private EntityManagerInterface $entityManager,
         private SubscriptionRepository $subscriptionRepository,
         private ClientRepository $clientRepository,
-        private InvoiceNumberGenerator $invoiceNumberGenerator
+        private InvoiceNumberGenerator $invoiceNumberGenerator,
+        private AqualizeNotifierService $aqualizeNotifier,
+        private EmailService $emailService,
+        private string $aqualizeStripeProductId = '',
     ) {}
 
     public function __invoke(Request $request): Response
@@ -116,13 +121,71 @@ class WebhookController extends AbstractController
     {
         $subscription = $this->subscriptionRepository->findOneBy(['stripeSubscriptionId' => $stripeSubscription->id]);
 
+        // cancel_at_period_end OU cancel_at (date fixe) = résiliation programmée
+        $cancelAtTimestamp  = $stripeSubscription->cancel_at ?? null;
+        $cancelAtPeriodEnd  = (bool) ($stripeSubscription->cancel_at_period_end ?? false) || $cancelAtTimestamp !== null;
+
+        // current_period_start/end sont dans items.data[0] sur les nouveaux webhooks Stripe
+        $item = $stripeSubscription->items->data[0] ?? null;
+        $periodStart = $stripeSubscription->current_period_start ?? ($item->current_period_start ?? null);
+        $periodEnd   = $stripeSubscription->current_period_end   ?? ($item->current_period_end   ?? null);
+
         if ($subscription) {
             $subscription->setStatus($stripeSubscription->status);
-            $subscription->setCurrentPeriodStart((new \DateTime())->setTimestamp($stripeSubscription->current_period_start));
-            $subscription->setCurrentPeriodEnd((new \DateTime())->setTimestamp($stripeSubscription->current_period_end));
+
+            if ($periodStart) {
+                $subscription->setCurrentPeriodStart((new \DateTime())->setTimestamp($periodStart));
+            }
+            if ($periodEnd) {
+                $subscription->setCurrentPeriodEnd((new \DateTime())->setTimestamp($periodEnd));
+            }
+            $subscription->setCancelAtPeriodEnd($cancelAtPeriodEnd);
 
             $this->entityManager->flush();
-            $this->logger->info('Abonnement mis à jour: ' . $subscription->getId() . ' statut: ' . $stripeSubscription->status);
+            $this->logger->info('Abonnement mis à jour: ' . $subscription->getId() . ' statut: ' . $stripeSubscription->status . ' cancelAtPeriodEnd: ' . ($cancelAtPeriodEnd ? 'oui' : 'non'));
+
+            // Email admin si résiliation programmée
+            if ($cancelAtPeriodEnd) {
+                try {
+                    $this->emailService->sendSubscriptionNotificationAdmin('résiliation programmée', $subscription);
+                } catch (\Exception $e) {
+                    $this->logger->error('Erreur email admin résiliation: ' . $e->getMessage());
+                }
+            }
         }
+
+        // Notification Aqualize si c'est le produit Aqualize Premium
+        if (empty($this->aqualizeStripeProductId)) {
+            return;
+        }
+
+        $productId = $item->price->product ?? null;
+        if ($productId !== $this->aqualizeStripeProductId) {
+            return;
+        }
+
+        $email = $subscription?->getClient()?->getEmail();
+        if (!$email) {
+            $this->logger->warning('handleSubscriptionUpdated Aqualize: email introuvable', ['stripe_sub' => $stripeSubscription->id]);
+            return;
+        }
+
+        $stripeCustomerId = is_string($stripeSubscription->customer)
+            ? $stripeSubscription->customer
+            : ($stripeSubscription->customer->id ?? '');
+
+        $plan = in_array($stripeSubscription->status, ['active', 'trialing'], true) ? 'PREMIUM' : 'FREE';
+
+        // Date de fin : cancel_at (date fixe) ou current_period_end (cancel_at_period_end)
+        $cancelAt = null;
+        if ($cancelAtPeriodEnd) {
+            $endTs = $cancelAtTimestamp ?? $periodEnd;
+            if ($endTs) {
+                $cancelAt = (new \DateTime())->setTimestamp($endTs);
+            }
+        }
+
+        $this->aqualizeNotifier->notifyPlanUpdate($email, $plan, $stripeCustomerId, $cancelAt);
+        $this->logger->info('Aqualize notifié via subscription update', ['email' => $email, 'plan' => $plan, 'cancelAt' => $cancelAt?->format('Y-m-d')]);
     }
 }
