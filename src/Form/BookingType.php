@@ -10,6 +10,7 @@ use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Validator\Constraints\Blank;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\CallbackTransformer;
@@ -19,6 +20,17 @@ class BookingType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
+            ->add('website', TextType::class, [
+                'label' => false,
+                'mapped' => false,
+                'required' => false,
+                'attr' => ['autocomplete' => 'off', 'tabindex' => '-1'],
+                'constraints' => [new Blank()],
+            ])
+            ->add('_submitted_at', HiddenType::class, [
+                'mapped' => false,
+                'data' => (string) time(),
+            ])
             ->add('firstName', TextType::class, [
                 'label' => 'Prénom',
                 'mapped' => false,

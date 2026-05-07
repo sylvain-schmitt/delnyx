@@ -367,6 +367,47 @@ class DashboardService
     }
 
     /**
+     * Retourne l'historique des factures payées mois par mois sur 12 mois
+     *
+     * @return array<int, array{label: string, month: string, count: int, total: float}>
+     */
+    public function getMonthlyPaidHistory(): array
+    {
+        $history = [];
+
+        for ($i = 11; $i >= 0; $i--) {
+            $date = new \DateTime("-{$i} months");
+            $start = (clone $date)->modify('first day of this month')->setTime(0, 0, 0);
+            $end = (clone $date)->modify('last day of this month')->setTime(23, 59, 59);
+
+            $invoices = $this->invoiceRepository->createQueryBuilder('i')
+                ->where('i.datePaiement BETWEEN :start AND :end')
+                ->andWhere('i.statut = :statut')
+                ->setParameter('start', $start)
+                ->setParameter('end', $end)
+                ->setParameter('statut', InvoiceStatus::PAID->value)
+                ->getQuery()
+                ->getResult();
+
+            $total = 0.0;
+            foreach ($invoices as $invoice) {
+                $total += (float) $invoice->getMontantTTC();
+            }
+
+            $fmt = new \IntlDateFormatter('fr_FR', \IntlDateFormatter::NONE, \IntlDateFormatter::NONE, null, null, 'MMMM yyyy');
+
+            $history[] = [
+                'label' => ucfirst($fmt->format($date)),
+                'month' => $date->format('Y-m'),
+                'count' => count($invoices),
+                'total' => $total,
+            ];
+        }
+
+        return $history;
+    }
+
+    /**
      * Récupère toutes les statistiques du dashboard
      *
      * @return array<string, mixed>

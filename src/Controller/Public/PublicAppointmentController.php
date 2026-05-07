@@ -15,6 +15,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Annotation\Route;
 
 class PublicAppointmentController extends AbstractController
@@ -24,7 +25,8 @@ class PublicAppointmentController extends AbstractController
         private readonly CompanySettingsRepository $companySettingsRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly ClientRepository $clientRepository,
-        private readonly EmailService $emailService
+        private readonly EmailService $emailService,
+        private readonly RateLimiterFactory $bookingByIpLimiter,
     ) {}
 
     #[Route('/booking', name: 'public_booking')]
@@ -93,6 +95,24 @@ class PublicAppointmentController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Rate limiting par IP
+            $limiter = $this->bookingByIpLimiter->create($request->getClientIp());
+            if (!$limiter->consume(1)->isAccepted()) {
+                $this->addFlash('error', 'Trop de tentatives. Veuillez réessayer dans une heure.');
+                return $this->redirectToRoute('public_booking');
+            }
+
+            // Honeypot : le champ website doit être vide
+            if ($form->get('website')->getData() !== null && $form->get('website')->getData() !== '') {
+                return $this->redirectToRoute('public_booking');
+            }
+
+            // Vérification du temps minimum (< 4 secondes = bot)
+            $submittedAt = (int) $form->get('_submitted_at')->getData();
+            if ($submittedAt > 0 && (time() - $submittedAt) < 4) {
+                return $this->redirectToRoute('public_booking');
+            }
+
             $email = $form->get('email')->getData();
 
             // Trouver ou créer le client

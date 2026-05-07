@@ -62,6 +62,7 @@ class DashboardController extends AbstractController
         // Nouvelles statistiques avancées
         $advancedStats = $this->dashboardService->getAllStats();
         $revenueChart = $this->dashboardService->createMonthlyRevenueChart();
+        $monthlyPaidHistory = $this->dashboardService->getMonthlyPaidHistory();
 
         // Événements Google Calendar
         $googleEvents = [];
@@ -84,6 +85,7 @@ class DashboardController extends AbstractController
             'recent_invoices' => $recent_invoices,
             'advanced_stats' => $advancedStats,
             'revenue_chart' => $revenueChart,
+            'monthly_paid_history' => $monthlyPaidHistory,
             'google_events' => $googleEvents,
         ]);
     }
