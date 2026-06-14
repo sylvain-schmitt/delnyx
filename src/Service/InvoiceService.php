@@ -106,6 +106,12 @@ class InvoiceService
             // On continue quand même l'émission, le PDF pourra être régénéré plus tard
         }
 
+        // Déterminer le mode de facturation électronique depuis la catégorie du client
+        if ($invoice->getEInvoicingMode() === null && $invoice->getClient() !== null) {
+            $mode = $invoice->getClient()->isB2B() ? 'b2b_einvoicing' : 'b2c_ereporting';
+            $invoice->setEInvoicingMode($mode);
+        }
+
         // Effectuer la transition
         $oldStatus = $statutEnum;
         $invoice->setStatutEnum(InvoiceStatus::ISSUED);

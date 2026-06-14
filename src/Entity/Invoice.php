@@ -181,6 +181,17 @@ class Invoice
     #[Groups(['invoice:read'])]
     private ?string $stripeInvoiceId = null;
 
+    // ===== FACTURATION ÉLECTRONIQUE =====
+
+    /**
+     * Mode déterminé à l'émission depuis la catégorie du client :
+     * 'b2b_einvoicing' → envoi facture par facture via PA (Super PDP)
+     * 'b2c_ereporting' → déclaration agrégée mensuelle via PA
+     */
+    #[ORM\Column(type: Types::STRING, length: 30, nullable: true)]
+    #[Groups(['invoice:read'])]
+    private ?string $eInvoicingMode = null;
+
     // ===== CHAMPS PDP (Plateforme de Dématérialisation Partenaire) =====
 
     #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
@@ -324,8 +335,13 @@ class Invoice
                 'sentAt',
                 'sentCount',
                 'dateModification',
-                'pdfFilename',  // Métadonnée PDF
-                'pdfHash'       // Métadonnée PDF
+                'pdfFilename',
+                'pdfHash',
+                'eInvoicingMode', // Fixé à l'émission
+                'pdpStatus',
+                'pdpProvider',
+                'pdpTransmissionDate',
+                'pdpResponse',
             ];
 
             $unauthorizedChanges = array_diff($changedFields, $allowedFields);
@@ -597,6 +613,27 @@ class Invoice
     {
         $this->pdfHash = $pdfHash;
         return $this;
+    }
+
+    public function getEInvoicingMode(): ?string
+    {
+        return $this->eInvoicingMode;
+    }
+
+    public function setEInvoicingMode(?string $eInvoicingMode): self
+    {
+        $this->eInvoicingMode = $eInvoicingMode;
+        return $this;
+    }
+
+    public function isB2BEInvoicing(): bool
+    {
+        return $this->eInvoicingMode === 'b2b_einvoicing';
+    }
+
+    public function isB2CEReporting(): bool
+    {
+        return $this->eInvoicingMode === 'b2c_ereporting';
     }
 
     public function getPdpStatus(): ?string

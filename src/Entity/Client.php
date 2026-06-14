@@ -136,6 +136,13 @@ class Client
     #[Groups(['client:read', 'client:write'])]
     private ?string $siret = null;
 
+    /**
+     * Catégorie du client : particulier (B2C → e-reporting) ou professionnel (B2B → e-invoicing via PA)
+     */
+    #[ORM\Column(type: Types::STRING, length: 20, enumType: ClientCategory::class, options: ['default' => 'particulier'])]
+    #[Groups(['client:read', 'client:write'])]
+    private ClientCategory $category = ClientCategory::PARTICULIER;
+
     #[ORM\Column(type: Types::STRING, length: 20, nullable: true)]
     #[Assert\Length(
         max: 20,
@@ -560,6 +567,27 @@ class Client
     public function getStatutValue(): string
     {
         return $this->statut->value;
+    }
+
+    public function getCategory(): ClientCategory
+    {
+        return $this->category;
+    }
+
+    public function setCategory(ClientCategory $category): static
+    {
+        $this->category = $category;
+        return $this;
+    }
+
+    public function isB2B(): bool
+    {
+        return $this->category->isB2B();
+    }
+
+    public function isB2C(): bool
+    {
+        return $this->category->isB2C();
     }
 
     /**

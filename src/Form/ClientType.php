@@ -10,6 +10,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use App\Entity\ClientStatus;
+use App\Entity\ClientCategory;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -31,6 +32,14 @@ class ClientType extends AbstractType
                     'class' => 'form-input',
                     'placeholder' => 'Prénom du client'
                 ]
+            ])
+            ->add('category', EnumType::class, [
+                'label' => 'Type de client',
+                'class' => ClientCategory::class,
+                'choice_label' => fn(ClientCategory $cat) => $cat->getLabel(),
+                'expanded' => true,
+                'attr' => ['class' => 'flex gap-4'],
+                'help' => 'Professionnel (entreprise avec SIRET) → e-invoicing. Particulier → e-reporting.',
             ])
             ->add('companyName', TextType::class, [
                 'label' => 'Raison sociale',

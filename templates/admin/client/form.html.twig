@@ -77,6 +77,22 @@
 					Informations professionnelles
 				</h3>
 
+				{# Type de client B2B/B2C — détermine e-invoicing ou e-reporting #}
+				<div class="form-group">
+					{{ form_label(form.category, null, {label_attr: {class: 'form-label'}}) }}
+					<div class="flex gap-6 mt-2">
+						{% for choice in form.category %}
+							<label class="flex items-center gap-2 text-white cursor-pointer">
+								{{ form_widget(choice) }}
+								<span>{{ choice.vars.label }}</span>
+							</label>
+						{% endfor %}
+					</div>
+					{{ form_help(form.category, {help_attr: {class: 'text-white/60 text-sm mt-1'}}) }}
+					{{ form_errors(form.category) }}
+					{% do form.category.setRendered() %}
+				</div>
+
 				{{ form_macros.simple_field(form, 'companyName') }}
 				{{ form_macros.simple_field(form, 'siret') }}
 			</div>
