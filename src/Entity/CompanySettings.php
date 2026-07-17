@@ -66,13 +66,31 @@ class CompanySettings
     #[Groups(['company_settings:read', 'company_settings:write'])]
     private ?string $pdpProvider = null;
 
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?string $pdpClientId = null;
+
+    /** client_secret OAuth Super PDP */
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['company_settings:write'])] // Pas en read pour sécurité
     private ?string $pdpApiKey = null;
 
+    /** ID numérique interne Super PDP de l'entreprise (champ company_id de l'API) */
+    #[ORM\Column(type: Types::INTEGER, nullable: true)]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?int $pdpCompanyId = null;
+
     #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
     #[Groups(['company_settings:read'])]
     private ?string $pdpStatus = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['company_settings:read', 'company_settings:write'])]
+    private ?string $pdpApiEndpoint = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['company_settings:write'])] // Pas en read pour sécurité
+    private ?string $pdpWebhookSecret = null;
 
     // ===== INFORMATIONS ENTREPRISE =====
 
@@ -310,6 +328,30 @@ class CompanySettings
         return $this;
     }
 
+    public function getPdpClientId(): ?string
+    {
+        return $this->pdpClientId;
+    }
+
+    public function setPdpClientId(?string $pdpClientId): static
+    {
+        $this->pdpClientId = $pdpClientId;
+
+        return $this;
+    }
+
+    public function getPdpCompanyId(): ?int
+    {
+        return $this->pdpCompanyId;
+    }
+
+    public function setPdpCompanyId(?int $pdpCompanyId): static
+    {
+        $this->pdpCompanyId = $pdpCompanyId;
+
+        return $this;
+    }
+
     public function getPdpApiKey(): ?string
     {
         return $this->pdpApiKey;
@@ -330,6 +372,30 @@ class CompanySettings
     public function setPdpStatus(?string $pdpStatus): static
     {
         $this->pdpStatus = $pdpStatus;
+
+        return $this;
+    }
+
+    public function getPdpApiEndpoint(): ?string
+    {
+        return $this->pdpApiEndpoint;
+    }
+
+    public function setPdpApiEndpoint(?string $pdpApiEndpoint): static
+    {
+        $this->pdpApiEndpoint = $pdpApiEndpoint;
+
+        return $this;
+    }
+
+    public function getPdpWebhookSecret(): ?string
+    {
+        return $this->pdpWebhookSecret;
+    }
+
+    public function setPdpWebhookSecret(?string $pdpWebhookSecret): static
+    {
+        $this->pdpWebhookSecret = $pdpWebhookSecret;
 
         return $this;
     }

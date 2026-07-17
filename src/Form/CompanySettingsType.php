@@ -181,16 +181,39 @@ class CompanySettingsType extends AbstractType
             ->add('pdpProvider', TextType::class, [
                 'label' => 'Provider PDP',
                 'required' => false,
-                'attr' => ['class' => 'form-input'],
-                'help' => 'Ex: Jefacture, DPii, Pennylane...',
+                'attr' => ['class' => 'form-input', 'placeholder' => 'superpdp'],
+                'help' => 'Identifiant de la plateforme (ex : superpdp)',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('pdpClientId', TextType::class, [
+                'label' => 'Client ID (OAuth)',
+                'required' => false,
+                'attr' => ['class' => 'form-input', 'placeholder' => 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'],
+                'help' => 'Identifiant de l\'application OAuth Super PDP',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
             ->add('pdpApiKey', PasswordType::class, [
-                'label' => 'Clé API PDP',
+                'label' => 'Client Secret (OAuth)',
                 'required' => false,
                 'mapped' => false,
                 'attr' => ['class' => 'form-input', 'autocomplete' => 'new-password'],
-                'help' => 'Clé API pour l\'intégration avec la plateforme PDP',
+                'help' => 'Secret de l\'application OAuth (affiché une seule fois à la création)',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('pdpCompanyId', NumberType::class, [
+                'label' => 'Company ID Super PDP',
+                'required' => false,
+                'scale' => 0,
+                'attr' => ['class' => 'form-input'],
+                'help' => 'ID numérique interne Super PDP (auto-découvert au premier envoi si vide)',
+                'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
+            ])
+            ->add('pdpWebhookSecret', PasswordType::class, [
+                'label' => 'Secret Webhook PA',
+                'required' => false,
+                'mapped' => false,
+                'attr' => ['class' => 'form-input', 'autocomplete' => 'new-password'],
+                'help' => 'Utilisé pour valider les callbacks de statut envoyés par Super PDP',
                 'help_attr' => ['class' => 'text-white/90 text-sm mt-1']
             ])
 

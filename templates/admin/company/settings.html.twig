@@ -122,14 +122,92 @@
 
 			{# Configuration PDP #}
 			<div class="space-y-4 pt-6 border-t border-white/20">
-				<h3 class="text-lg font-semibold text-white/90 border-b border-white/20 pb-2">Facturation Électronique (PDP)</h3>
+				<div class="flex items-center justify-between pb-2 border-b border-white/20">
+					<h3 class="text-lg font-semibold text-white/90">Facturation Électronique (PA)</h3>
+					<a href="https://app.superpdp.tech" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+						{{ ux_icon('lucide:external-link', {class: 'w-3 h-3'}) }}
+						Dashboard Super PDP
+					</a>
+				</div>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					{{ form_macros.simple_field(form, 'pdpMode', 'select') }}
 					{{ form_macros.simple_field(form, 'pdpProvider') }}
 				</div>
 
-				{{ form_macros.simple_field(form, 'pdpApiKey') }}
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{# Client ID #}
+					<div class="form-group">
+						{{ form_label(form.pdpClientId, null, {'label_attr': {'class': 'form-label'}}) }}
+						{{ form_widget(form.pdpClientId, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+						{% if companySettings.pdpClientId %}
+							<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
+								{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+								Configuré ({{ companySettings.pdpClientId[:8] }}...)
+							</p>
+						{% else %}
+							<p class="text-amber-400 text-xs mt-1 flex items-center gap-1">
+								{{ ux_icon('lucide:alert-circle', {class: 'w-3 h-3'}) }}
+								Non configuré
+							</p>
+						{% endif %}
+						{{ form_help(form.pdpClientId) }}
+						{{ form_errors(form.pdpClientId) }}
+					</div>
+
+					{# Client Secret #}
+					<div class="form-group">
+						{{ form_label(form.pdpApiKey, null, {'label_attr': {'class': 'form-label'}}) }}
+						{{ form_widget(form.pdpApiKey, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+						{% if companySettings.pdpApiKey %}
+							<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
+								{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+								Configuré (***...{{ companySettings.pdpApiKey[-4:] }})
+							</p>
+						{% else %}
+							<p class="text-amber-400 text-xs mt-1 flex items-center gap-1">
+								{{ ux_icon('lucide:alert-circle', {class: 'w-3 h-3'}) }}
+								Non configuré
+							</p>
+						{% endif %}
+						{{ form_help(form.pdpApiKey) }}
+						{{ form_errors(form.pdpApiKey) }}
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{# Company ID #}
+					<div class="form-group">
+						{{ form_label(form.pdpCompanyId, null, {'label_attr': {'class': 'form-label'}}) }}
+						{{ form_widget(form.pdpCompanyId, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+						{% if companySettings.pdpCompanyId %}
+							<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
+								{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+								ID : {{ companySettings.pdpCompanyId }}
+							</p>
+						{% else %}
+							<p class="text-white/40 text-xs mt-1">Sera rempli automatiquement au premier envoi</p>
+						{% endif %}
+						{{ form_help(form.pdpCompanyId) }}
+						{{ form_errors(form.pdpCompanyId) }}
+					</div>
+
+					{# Webhook Secret #}
+					<div class="form-group">
+						{{ form_label(form.pdpWebhookSecret, null, {'label_attr': {'class': 'form-label'}}) }}
+						{{ form_widget(form.pdpWebhookSecret, {'attr': {'class': 'form-input', 'data-admin-form-target': 'field'}}) }}
+						{% if companySettings.pdpWebhookSecret %}
+							<p class="text-green-400 text-xs mt-1 flex items-center gap-1">
+								{{ ux_icon('lucide:check-circle', {class: 'w-3 h-3'}) }}
+								Secret configuré
+							</p>
+						{% else %}
+							<p class="text-white/40 text-xs mt-1">Optionnel — pour valider les webhooks de statut</p>
+						{% endif %}
+						{{ form_help(form.pdpWebhookSecret) }}
+						{{ form_errors(form.pdpWebhookSecret) }}
+					</div>
+				</div>
 			</div>
 
 			{# Configuration Signature #}

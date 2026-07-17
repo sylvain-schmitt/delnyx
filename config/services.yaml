@@ -53,6 +53,11 @@ services:
         arguments:
             $aqualizeStripeProductId: '%env(default:app.empty_string:AQUALIZE_STRIPE_PRODUCT_ID)%'
 
+    # Endpoint entrant appelé par Aqualize (crédit "1 mois offert" du concours Bac du mois)
+    App\Controller\Public\AqualizeContestRewardController:
+        arguments:
+            $aqualizeApiSecret: '%env(AQUALIZE_API_SECRET)%'
+
     App\Controller\Public\AqualizeCheckoutController:
         arguments:
             $aqualizeStripeProductId: '%env(default:app.empty_string:AQUALIZE_STRIPE_PRODUCT_ID)%'

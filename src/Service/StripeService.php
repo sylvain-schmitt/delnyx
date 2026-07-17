@@ -979,4 +979,58 @@ class StripeService
             $this->logger->error("Erreur envoi email échec: " . $e->getMessage());
         }
     }
+
+    /**
+     * Récompense concours "Bac du mois" d'Aqualize : crédite le compte Stripe du client
+     * de la valeur d'1 mois. Stripe impute automatiquement ce crédit sur la prochaine facture.
+     * Montant = prix mensuel, ou prix annuel / 12 pour un abonnement annuel.
+     *
+     * Échec métier (pas d'abo, montant invalide, Stripe non configuré) → array success=false.
+     * Erreur API Stripe transitoire → exception propagée (le contrôleur renverra 500 pour retry).
+     *
+     * @return array{success:bool,reason?:string,amount?:int}
+     */
+    public function grantOneMonthCredit(string $stripeCustomerId, string $month): array
+    {
+        $stripe = $this->getStripeClient();
+        if ($stripe === null) {
+            return ['success' => false, 'reason' => 'stripe_not_configured'];
+        }
+
+        $subs = $stripe->subscriptions->all([
+            'customer' => $stripeCustomerId,
+            'status'   => 'active',
+            'limit'    => 1,
+            'expand'   => ['data.items.data.price'],
+        ]);
+        $sub = $subs->data[0] ?? null;
+        if ($sub === null) {
+            return ['success' => false, 'reason' => 'no_active_subscription'];
+        }
+
+        $price = $sub->items->data[0]->price;
+        $unit  = (int) $price->unit_amount; // centimes
+        $monthly = (($price->recurring->interval ?? 'month') === 'year')
+            ? intdiv($unit, 12)   // annuel → 1/12
+            : $unit;              // mensuel
+
+        if ($monthly <= 0) {
+            return ['success' => false, 'reason' => 'invalid_amount'];
+        }
+
+        // Négatif = crédit. Idempotence par (customer, mois du concours) : pas de double crédit.
+        $stripe->customers->createBalanceTransaction(
+            $stripeCustomerId,
+            [
+                'amount'      => -$monthly,
+                'currency'    => strtolower((string) $price->currency),
+                'description' => 'Aqualize — Bac du mois : 1 mois offert (' . $month . ')',
+            ],
+            ['idempotency_key' => 'contest_reward_' . $stripeCustomerId . '_' . $month]
+        );
+
+        $this->logger->info("Aqualize contest reward: {$monthly} centimes crédités à {$stripeCustomerId}");
+
+        return ['success' => true, 'amount' => $monthly];
+    }
 }

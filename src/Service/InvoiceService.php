@@ -9,7 +9,9 @@ use App\Entity\InvoiceStatus;
 use App\Entity\Quote;
 use App\Entity\QuoteStatus;
 use App\Entity\User;
+use App\Message\TransmitInvoiceToPAMessage;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -39,6 +41,7 @@ class InvoiceService
         private readonly EmailService $emailService,
         private readonly PdfGeneratorService $pdfGeneratorService,
         private readonly CreditNoteService $creditNoteService,
+        private readonly MessageBusInterface $messageBus,
     ) {}
 
     /**
@@ -191,15 +194,21 @@ class InvoiceService
             $channels[] = 'email';
         }
 
-        // Envoi via PDP (si activé et demandé)
+        // Envoi via PDP (e-invoicing B2B uniquement — le B2C passe par l'e-reporting mensuel)
         if ($channel === 'pdp' || $channel === 'both') {
-            // TODO: Implémenter l'envoi via PDP
-            // Pour l'instant, on log juste
-            $this->logger->info('Envoi PDP demandé (non implémenté)', [
-                'invoice_id' => $invoice->getId(),
-            ]);
-            // $this->sendByPDP($invoice);
-            // $channels[] = 'pdp';
+            if ($invoice->isB2BEInvoicing()) {
+                $this->messageBus->dispatch(new TransmitInvoiceToPAMessage($invoice->getId()));
+                $channels[] = 'pdp';
+                $this->logger->info('TransmitInvoiceToPAMessage dispatched', [
+                    'invoice_id' => $invoice->getId(),
+                    'invoice_numero' => $invoice->getNumero(),
+                ]);
+            } else {
+                $this->logger->info('Envoi PDP ignoré : facture B2C (e-reporting mensuel)', [
+                    'invoice_id' => $invoice->getId(),
+                    'mode' => $invoice->getEInvoicingMode(),
+                ]);
+            }
         }
 
         // Déterminer le canal de livraison

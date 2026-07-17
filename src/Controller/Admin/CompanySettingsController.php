@@ -84,7 +84,8 @@ class CompanySettingsController extends AbstractController
                     'googleApiKey' => 'setGoogleApiKey',
                     'googleClientSecret' => 'setGoogleClientSecret',
                     'signatureApiKey' => 'setSignatureApiKey',
-                    'pdpApiKey' => 'setPdpApiKey'
+                    'pdpApiKey' => 'setPdpApiKey',
+                    'pdpWebhookSecret' => 'setPdpWebhookSecret',
                 ];
 
                 foreach ($secretFields as $fieldName => $setter) {

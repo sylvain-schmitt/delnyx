@@ -5,7 +5,7 @@ import { Controller } from "@hotwired/stimulus"
  * Permet de personnaliser le message avant envoi
  */
 export default class extends Controller {
-    static targets = ["modal", "overlay", "form", "recipient", "message", "title", "fileInput", "fileList"]
+    static targets = ["modal", "overlay", "form", "recipient", "message", "title", "fileInput", "fileList", "channelSection", "channelInput"]
     static values = {
         actionUrl: String,
         csrfToken: String,
@@ -76,6 +76,22 @@ export default class extends Controller {
         // Réinitialiser le message personnalisé
         if (this.hasMessageTarget) {
             this.messageTarget.value = ''
+        }
+
+        // Afficher le sélecteur de canal uniquement pour les factures
+        if (this.hasChannelSectionTarget) {
+            if (documentType === 'invoice') {
+                this.channelSectionTarget.classList.remove('hidden')
+            } else {
+                this.channelSectionTarget.classList.add('hidden')
+            }
+        }
+
+        // Réinitialiser le canal sur 'email' à chaque ouverture
+        if (this.hasChannelInputTarget) {
+            this.channelInputTargets.forEach(input => {
+                input.checked = input.value === 'email'
+            })
         }
 
         // Réinitialiser les fichiers
