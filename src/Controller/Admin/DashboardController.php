@@ -6,12 +6,14 @@ use App\Entity\Client;
 use App\Entity\Quote;
 use App\Entity\Invoice;
 use App\Repository\ClientRepository;
+use App\Repository\PurchaseInvoiceRepository;
 use App\Repository\QuoteRepository;
 use App\Repository\InvoiceRepository;
 use App\Service\DashboardService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Uid\Uuid;
 
 #[Route('/admin', name: 'admin_')]
 class DashboardController extends AbstractController
@@ -20,6 +22,7 @@ class DashboardController extends AbstractController
         private ClientRepository $clientRepository,
         private QuoteRepository $quoteRepository,
         private InvoiceRepository $invoiceRepository,
+        private PurchaseInvoiceRepository $purchaseInvoiceRepository,
         private DashboardService $dashboardService,
         private \App\Repository\CompanySettingsRepository $companySettingsRepository,
         private \App\Service\Google\GoogleCalendarService $googleCalendarService,
@@ -64,6 +67,19 @@ class DashboardController extends AbstractController
         $revenueChart = $this->dashboardService->createMonthlyRevenueChart();
         $monthlyPaidHistory = $this->dashboardService->getMonthlyPaidHistory();
 
+        // Statistiques factures d'achats
+        $user = $this->getUser();
+        $companyId = null;
+        if ($user && method_exists($user, 'getEmail')) {
+            $namespace = Uuid::fromString('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+            $companyId = Uuid::v5($namespace, $user->getEmail())->toString();
+        }
+        $purchaseStats = [
+            'total'          => $companyId ? $this->purchaseInvoiceRepository->countForCompany($companyId) : 0,
+            'monthly_total'  => $companyId ? $this->purchaseInvoiceRepository->sumTotalTTCForCompanyThisMonth($companyId) : 0.0,
+            'pending'        => $companyId ? $this->purchaseInvoiceRepository->countPendingForCompany($companyId) : 0,
+        ];
+
         // Événements Google Calendar
         $googleEvents = [];
         $settings = $this->companySettingsRepository->findOneBy([]);
@@ -87,6 +103,7 @@ class DashboardController extends AbstractController
             'revenue_chart' => $revenueChart,
             'monthly_paid_history' => $monthlyPaidHistory,
             'google_events' => $googleEvents,
+            'purchase_stats' => $purchaseStats,
         ]);
     }
 }

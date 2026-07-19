@@ -4,68 +4,65 @@ declare(strict_types=1);
 
 namespace App\MessageHandler;
 
-use App\Message\TransmitInvoiceToPAMessage;
+use App\Message\TransmitCreditNoteToPAMessage;
 use App\Repository\CompanySettingsRepository;
-use App\Repository\InvoiceRepository;
+use App\Repository\CreditNoteRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
-class TransmitInvoiceToPAHandler
+class TransmitCreditNoteToPAHandler
 {
-    // Super PDP sandbox / production ont le même domaine, seul pdpMode change côté dashboard
     private const SUPERPDP_BASE_URL = 'https://api.superpdp.tech';
 
     public function __construct(
-        private InvoiceRepository $invoiceRepository,
+        private CreditNoteRepository $creditNoteRepository,
         private CompanySettingsRepository $companySettingsRepository,
         private EntityManagerInterface $entityManager,
         private LoggerInterface $logger,
     ) {}
 
-    public function __invoke(TransmitInvoiceToPAMessage $message): void
+    public function __invoke(TransmitCreditNoteToPAMessage $message): void
     {
-        $invoice = $this->invoiceRepository->find($message->getInvoiceId());
+        $creditNote = $this->creditNoteRepository->find($message->getCreditNoteId());
 
-        if (!$invoice) {
-            $this->logger->warning('TransmitInvoiceToPAHandler: invoice not found', [
-                'invoiceId' => $message->getInvoiceId(),
+        if (!$creditNote) {
+            $this->logger->warning('TransmitCreditNoteToPAHandler: credit note not found', [
+                'creditNoteId' => $message->getCreditNoteId(),
             ]);
             return;
         }
 
-        if (!$invoice->isB2BEInvoicing()) {
-            $this->logger->info('TransmitInvoiceToPAHandler: invoice is not B2B e-invoicing, skipped', [
-                'invoiceId' => $invoice->getId(),
-                'mode' => $invoice->getEInvoicingMode(),
+        if (!$creditNote->isB2BEInvoicing()) {
+            $this->logger->info('TransmitCreditNoteToPAHandler: credit note is not B2B e-invoicing, skipped', [
+                'creditNoteId' => $creditNote->getId(),
             ]);
             return;
         }
 
-        // Si déjà transmise avec succès, ignorer les doublons (ex. retries manuels)
-        if (in_array($invoice->getPdpStatus(), ['PENDING', 'DEPOSITED', 'ACCEPTED'], true)) {
-            $this->logger->info('TransmitInvoiceToPAHandler: invoice already submitted, skipping', [
-                'invoiceId' => $invoice->getId(),
-                'pdpStatus' => $invoice->getPdpStatus(),
+        if (in_array($creditNote->getPdpStatus(), ['PENDING', 'DEPOSITED', 'ACCEPTED'], true)) {
+            $this->logger->info('TransmitCreditNoteToPAHandler: credit note already submitted, skipping', [
+                'creditNoteId' => $creditNote->getId(),
+                'pdpStatus'    => $creditNote->getPdpStatus(),
             ]);
             return;
         }
 
         $settings = null;
-        if ($invoice->getCompanyId()) {
-            $settings = $this->companySettingsRepository->findByCompanyId($invoice->getCompanyId());
+        if ($creditNote->getCompanyId()) {
+            $settings = $this->companySettingsRepository->findByCompanyId($creditNote->getCompanyId());
         }
         if (!$settings) {
             $settings = $this->companySettingsRepository->findOneBy([]);
         }
 
         if (!$settings || !$settings->getPdpClientId() || !$settings->getPdpApiKey()) {
-            $this->logger->error('TransmitInvoiceToPAHandler: PDP credentials not configured', [
-                'invoiceId' => $invoice->getId(),
+            $this->logger->error('TransmitCreditNoteToPAHandler: PDP credentials not configured', [
+                'creditNoteId' => $creditNote->getId(),
             ]);
-            $invoice->setPdpStatus('ERROR');
-            $invoice->setPdpResponse('Configuration PA manquante : client_id ou client_secret non renseignés.');
+            $creditNote->setPdpStatus('ERROR');
+            $creditNote->setPdpResponse('Configuration PA manquante : client_id ou client_secret non renseignés.');
             $this->entityManager->flush();
             return;
         }
@@ -76,17 +73,16 @@ class TransmitInvoiceToPAHandler
                 trim($settings->getPdpApiKey())
             );
         } catch (\Exception $e) {
-            $this->logger->error('TransmitInvoiceToPAHandler: OAuth token error', [
-                'invoiceId' => $invoice->getId(),
-                'error' => $e->getMessage(),
+            $this->logger->error('TransmitCreditNoteToPAHandler: OAuth token error', [
+                'creditNoteId' => $creditNote->getId(),
+                'error'        => $e->getMessage(),
             ]);
-            $invoice->setPdpStatus('ERROR');
-            $invoice->setPdpResponse('Erreur OAuth : ' . $e->getMessage());
+            $creditNote->setPdpStatus('ERROR');
+            $creditNote->setPdpResponse('Erreur OAuth : ' . $e->getMessage());
             $this->entityManager->flush();
             throw $e;
         }
 
-        // Résoudre le company_id Super PDP : en config ou auto-découverte
         $pdpCompanyId = $settings->getPdpCompanyId();
         $pdpCompanySiren = null;
         if (!$pdpCompanyId) {
@@ -95,39 +91,37 @@ class TransmitInvoiceToPAHandler
                 $settings->setPdpCompanyId($pdpCompanyId);
                 $this->entityManager->flush();
             } catch (\Exception $e) {
-                $this->logger->error('TransmitInvoiceToPAHandler: company ID discovery failed', [
-                    'invoiceId' => $invoice->getId(),
-                    'error' => $e->getMessage(),
+                $this->logger->error('TransmitCreditNoteToPAHandler: company ID discovery failed', [
+                    'creditNoteId' => $creditNote->getId(),
+                    'error'        => $e->getMessage(),
                 ]);
-                $invoice->setPdpStatus('ERROR');
-                $invoice->setPdpResponse('Erreur récupération company_id Super PDP : ' . $e->getMessage());
+                $creditNote->setPdpStatus('ERROR');
+                $creditNote->setPdpResponse('Erreur récupération company_id Super PDP : ' . $e->getMessage());
                 $this->entityManager->flush();
                 return;
             }
         }
 
-        $externalId = substr($invoice->getNumero() ?? (string) $invoice->getId(), 0, 36);
-
-        // Si pas encore de siren PDP, on le récupère à la volée
         if ($pdpCompanySiren === null) {
             try {
                 [, $pdpCompanySiren] = $this->fetchCompanyInfo($accessToken);
             } catch (\Exception $e) {
-                $pdpCompanySiren = $settings->getSiren(); // fallback
+                $pdpCompanySiren = $settings->getSiren();
             }
         }
 
-        try {
-            $ciiXml = $this->buildCiiXml($invoice, $settings, $pdpCompanyId, $pdpCompanySiren);
+        $externalId = substr($creditNote->getNumber() ?? (string) $creditNote->getId(), 0, 36);
 
-            // Étape 2 : soumettre le CII XML à la PA (disable_pre_check en sandbox)
+        try {
+            $ciiXml = $this->buildCiiXml($creditNote, $settings, $pdpCompanyId, $pdpCompanySiren);
+
             $queryParams = ['external_id' => $externalId];
             if ($settings->getPdpMode() === 'sandbox') {
                 $queryParams['disable_pre_check'] = 'true';
             }
             $ch = curl_init(self::SUPERPDP_BASE_URL . '/v1.beta/invoices?' . http_build_query($queryParams));
             curl_setopt_array($ch, [
-                CURLOPT_POST => true,
+                CURLOPT_POST           => true,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_HTTPHEADER => [
                     'Authorization: Bearer ' . $accessToken,
@@ -137,58 +131,59 @@ class TransmitInvoiceToPAHandler
                 CURLOPT_POSTFIELDS => $ciiXml,
             ]);
             $responseBody = curl_exec($ch);
-            $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $statusCode   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
 
             if ($statusCode >= 200 && $statusCode < 300) {
-                $invoice->setPdpStatus('PENDING');
-                $invoice->setPdpProvider('superpdp');
-                $invoice->setPdpTransmissionDate(new \DateTime());
-                $invoice->setPdpResponse($responseBody);
+                $creditNote->setPdpStatus('PENDING');
+                $creditNote->setPdpProvider('superpdp');
+                $creditNote->setPdpTransmissionDate(new \DateTime());
+                $creditNote->setPdpResponse($responseBody);
 
-                $this->logger->info('TransmitInvoiceToPAHandler: invoice transmitted to Super PDP', [
-                    'invoiceId' => $invoice->getId(),
-                    'invoiceNumero' => $invoice->getNumero(),
-                    'statusCode' => $statusCode,
+                $this->logger->info('TransmitCreditNoteToPAHandler: credit note transmitted to Super PDP', [
+                    'creditNoteId' => $creditNote->getId(),
+                    'number'       => $creditNote->getNumber(),
+                    'statusCode'   => $statusCode,
                 ]);
             } else {
-                $invoice->setPdpStatus('ERROR');
-                $invoice->setPdpResponse($responseBody);
+                $creditNote->setPdpStatus('ERROR');
+                $creditNote->setPdpResponse($responseBody);
 
-                $this->logger->error('TransmitInvoiceToPAHandler: Super PDP returned error', [
-                    'invoiceId' => $invoice->getId(),
-                    'statusCode' => $statusCode,
-                    'response' => $responseBody,
+                $this->logger->error('TransmitCreditNoteToPAHandler: Super PDP returned error', [
+                    'creditNoteId' => $creditNote->getId(),
+                    'statusCode'   => $statusCode,
+                    'response'     => $responseBody,
                 ]);
             }
         } catch (\Exception $e) {
-            $invoice->setPdpStatus('ERROR');
-            $invoice->setPdpResponse($e->getMessage());
-            $this->logger->error('TransmitInvoiceToPAHandler: exception during PA transmission', [
-                'invoiceId' => $invoice->getId(),
-                'exception' => $e->getMessage(),
+            $creditNote->setPdpStatus('ERROR');
+            $creditNote->setPdpResponse($e->getMessage());
+            $this->logger->error('TransmitCreditNoteToPAHandler: exception during PA transmission', [
+                'creditNoteId' => $creditNote->getId(),
+                'exception'    => $e->getMessage(),
             ]);
-            throw $e; // Messenger retry
+            throw $e;
         }
 
         $this->entityManager->flush();
     }
 
-    private function buildCiiXml(\App\Entity\Invoice $invoice, \App\Entity\CompanySettings $settings, int $pdpCompanyId, string $pdpCompanySiren): string
+    private function buildCiiXml(\App\Entity\CreditNote $creditNote, \App\Entity\CompanySettings $settings, int $pdpCompanyId, string $pdpCompanySiren): string
     {
-        $client = $invoice->getClient();
-        $totalHT = number_format((float) $invoice->getMontantHT(), 2, '.', '');
-        $totalTTC = number_format((float) $invoice->getMontantTTC(), 2, '.', '');
-        $issueDate = $invoice->getDateCreation()?->format('Ymd') ?? date('Ymd');
-        $dueDate = $invoice->getDateEcheance()?->format('Ymd');
+        $invoice = $creditNote->getInvoice();
+        $client  = $invoice?->getClient();
+
+        $totalHT  = number_format((float) $creditNote->getMontantHT(), 2, '.', '');
+        $totalTTC = number_format((float) $creditNote->getMontantTTC(), 2, '.', '');
+        $issueDate = ($creditNote->getDateEmission() ?? new \DateTime())->format('Ymd');
 
         $linesXml = '';
-        foreach ($invoice->getLines() as $index => $line) {
-            $lineId = str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);
-            $lineHt = number_format((float) ($line->getTotalHt() ?? 0), 2, '.', '');
+        foreach ($creditNote->getLines() as $index => $line) {
+            $lineId    = str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);
+            $lineHt    = number_format((float) ($line->getTotalHt() ?? 0), 2, '.', '');
             $unitPrice = number_format((float) ($line->getUnitPrice() ?? 0), 2, '.', '');
-            $qty = number_format((float) ($line->getQuantity() ?? 1), 3, '.', '');
-            $desc = htmlspecialchars($line->getDescription() ?? '', ENT_XML1);
+            $qty       = number_format((float) ($line->getQuantity() ?? 1), 3, '.', '');
+            $desc      = htmlspecialchars($line->getDescription() ?? '', ENT_XML1);
             $linesXml .= <<<XML
 
     <IncludedSupplyChainTradeLineItem xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
@@ -220,38 +215,19 @@ class TransmitInvoiceToPAHandler
 XML;
         }
 
-        $sellerName = htmlspecialchars($settings->getRaisonSociale() ?? '', ENT_XML1);
-        $sellerAddr = htmlspecialchars($settings->getAdresse() ?? '', ENT_XML1);
-        $sellerCity = htmlspecialchars($settings->getVille() ?? '', ENT_XML1);
-        $sellerPostal = htmlspecialchars($settings->getCodePostal() ?? '', ENT_XML1);
-        // Le SIREN vendeur dans le CII DOIT correspondre au compte PDP OAuth
-        $sellerSiren = htmlspecialchars($pdpCompanySiren ?: ($settings->getSiren() ?? ''), ENT_XML1);
-        // BT-34 : adresse électronique du vendeur (SIREN_pdpCompanyId en schème 0225)
+        $sellerName        = htmlspecialchars($settings->getRaisonSociale() ?? '', ENT_XML1);
+        $sellerAddr        = htmlspecialchars($settings->getAdresse() ?? '', ENT_XML1);
+        $sellerCity        = htmlspecialchars($settings->getVille() ?? '', ENT_XML1);
+        $sellerPostal      = htmlspecialchars($settings->getCodePostal() ?? '', ENT_XML1);
+        $sellerSiren       = htmlspecialchars($pdpCompanySiren ?: ($settings->getSiren() ?? ''), ENT_XML1);
         $sellerElecAddress = $sellerSiren . '_' . $pdpCompanyId;
 
-        $buyerName = htmlspecialchars($client?->getCompanyName() ?? $client?->getNomComplet() ?? '', ENT_XML1);
-        $buyerAddr = htmlspecialchars($client?->getAdresse() ?? '', ENT_XML1);
-        $buyerCity = htmlspecialchars($client?->getVille() ?? '', ENT_XML1);
-        $buyerPostal = htmlspecialchars($client?->getCodePostal() ?? '', ENT_XML1);
-        $buyerSiren = htmlspecialchars($client?->getSiren() ?? '', ENT_XML1);
+        $buyerName    = htmlspecialchars($client?->getCompanyName() ?? $client?->getNomComplet() ?? '', ENT_XML1);
+        $buyerAddr    = htmlspecialchars($client?->getAdresse() ?? '', ENT_XML1);
+        $buyerCity    = htmlspecialchars($client?->getVille() ?? '', ENT_XML1);
+        $buyerPostal  = htmlspecialchars($client?->getCodePostal() ?? '', ENT_XML1);
+        $buyerSiren   = htmlspecialchars($client?->getSiren() ?? '', ENT_XML1);
 
-        $invoiceNumber = htmlspecialchars($invoice->getNumero() ?? '', ENT_XML1);
-
-        // BR-FR-08 : mode de facturation (M1 = mixte, valeur standard pour facture service)
-        $processCode = 'M1';
-
-        $dueDateXml = $dueDate ? <<<XML
-
-      <SpecifiedTradePaymentTerms xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
-        <DueDateDateTime xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
-          <DateTimeString xmlns="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100" format="102">{$dueDate}</DateTimeString>
-        </DueDateDateTime>
-      </SpecifiedTradePaymentTerms>
-XML : '';
-
-        // BR-FR-12 : adresse électronique acheteur
-        // Si le client a une adresse PDP enregistrée (format schemeID:valeur), on l'utilise pour le routage.
-        // Sinon on utilise le SIREN avec schemeID 0002 (routage PPF par défaut).
         $rawPdpAddr = $client?->getPdpElectronicAddress();
         if ($rawPdpAddr && str_contains($rawPdpAddr, ':')) {
             [$buyerElecScheme, $buyerElecValue] = explode(':', $rawPdpAddr, 2);
@@ -262,23 +238,32 @@ XML : '';
             $buyerElecValue  = $buyerSiren;
         }
 
+        $creditNoteNumber = htmlspecialchars($creditNote->getNumber() ?? '', ENT_XML1);
+
+        // Référence à la facture d'origine (BT-25 / BT-26)
+        $invoiceNumber = htmlspecialchars($invoice?->getNumero() ?? '', ENT_XML1);
+        $invoiceDate   = ($invoice?->getDateCreation() ?? new \DateTime())->format('Ymd');
+
         return <<<XML
 <?xml version="1.0" encoding="UTF-8"?>
 <CrossIndustryInvoice xmlns="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100">
   <ExchangedDocumentContext xmlns="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100">
     <BusinessProcessSpecifiedDocumentContextParameter xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
-      <ID xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">{$processCode}</ID>
+      <ID xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">M1</ID>
     </BusinessProcessSpecifiedDocumentContextParameter>
     <GuidelineSpecifiedDocumentContextParameter xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
       <ID xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">urn:cen.eu:en16931:2017</ID>
     </GuidelineSpecifiedDocumentContextParameter>
   </ExchangedDocumentContext>
   <ExchangedDocument xmlns="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100">
-    <ID xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">{$invoiceNumber}</ID>
-    <TypeCode xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">380</TypeCode>
+    <ID xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">{$creditNoteNumber}</ID>
+    <TypeCode xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">381</TypeCode>
     <IssueDateTime xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
       <DateTimeString xmlns="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100" format="102">{$issueDate}</DateTimeString>
     </IssueDateTime>
+    <IncludedNote xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
+      <Content xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">{$creditNote->getReason()}</Content>
+    </IncludedNote>
     <IncludedNote xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
       <Content xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">L&#39;indemnit&#233; forfaitaire l&#233;gale pour frais de recouvrement est de 40 &#8364;.</Content>
       <SubjectCode xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">PMT</SubjectCode>
@@ -344,7 +329,7 @@ XML : '';
         <BasisAmount xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">{$totalHT}</BasisAmount>
         <CategoryCode xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">E</CategoryCode>
         <RateApplicablePercent xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">0</RateApplicablePercent>
-      </ApplicableTradeTax>{$dueDateXml}
+      </ApplicableTradeTax>
       <SpecifiedTradeSettlementHeaderMonetarySummation xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
         <LineTotalAmount xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">{$totalHT}</LineTotalAmount>
         <TaxBasisTotalAmount xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">{$totalHT}</TaxBasisTotalAmount>
@@ -352,6 +337,12 @@ XML : '';
         <GrandTotalAmount xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">{$totalTTC}</GrandTotalAmount>
         <DuePayableAmount xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">{$totalTTC}</DuePayableAmount>
       </SpecifiedTradeSettlementHeaderMonetarySummation>
+      <InvoiceReferencedDocument xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
+        <IssuerAssignedID xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">{$invoiceNumber}</IssuerAssignedID>
+        <FormattedIssueDateTime xmlns="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
+          <DateTimeString xmlns="urn:un:unece:uncefact:data:standard:QualifiedDataType:100" format="102">{$invoiceDate}</DateTimeString>
+        </FormattedIssueDateTime>
+      </InvoiceReferencedDocument>
     </ApplicableHeaderTradeSettlement>
   </SupplyChainTradeTransaction>
 </CrossIndustryInvoice>
@@ -362,25 +353,21 @@ XML;
     {
         $ch = curl_init(self::SUPERPDP_BASE_URL . '/oauth2/token');
         curl_setopt_array($ch, [
-            CURLOPT_POST => true,
+            CURLOPT_POST           => true,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/x-www-form-urlencoded'],
-            CURLOPT_POSTFIELDS => http_build_query([
-                'grant_type' => 'client_credentials',
-                'client_id' => $clientId,
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/x-www-form-urlencoded'],
+            CURLOPT_POSTFIELDS     => http_build_query([
+                'grant_type'    => 'client_credentials',
+                'client_id'     => $clientId,
                 'client_secret' => $clientSecret,
             ]),
         ]);
-        $result = curl_exec($ch);
+        $result   = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($httpCode !== 200) {
-            throw new \RuntimeException(sprintf(
-                'OAuth token request failed (HTTP %d): %s',
-                $httpCode,
-                $result
-            ));
+            throw new \RuntimeException(sprintf('OAuth token request failed (HTTP %d): %s', $httpCode, $result));
         }
 
         $data = json_decode($result, true);
@@ -396,21 +383,17 @@ XML;
         $ch = curl_init(self::SUPERPDP_BASE_URL . '/v1.beta/companies/me');
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
+            CURLOPT_HTTPHEADER     => [
                 'Authorization: Bearer ' . $accessToken,
                 'Accept: application/json',
             ],
         ]);
-        $result = curl_exec($ch);
+        $result   = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($httpCode !== 200) {
-            throw new \RuntimeException(sprintf(
-                'GET /companies/me failed (HTTP %d): %s',
-                $httpCode,
-                $result
-            ));
+            throw new \RuntimeException(sprintf('GET /companies/me failed (HTTP %d): %s', $httpCode, $result));
         }
 
         $data = json_decode($result, true);
@@ -420,5 +403,4 @@ XML;
 
         return [(int) $data['id'], (string) ($data['number'] ?? '')];
     }
-
 }

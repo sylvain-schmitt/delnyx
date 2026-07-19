@@ -5,7 +5,7 @@ import { Controller } from "@hotwired/stimulus"
  * Permet de personnaliser le message avant envoi
  */
 export default class extends Controller {
-    static targets = ["modal", "overlay", "form", "recipient", "message", "title", "fileInput", "fileList", "channelSection", "channelInput"]
+    static targets = ["modal", "overlay", "form", "recipient", "message", "title", "fileInput", "fileList", "channelSection", "channelInput", "channelLabel"]
     static values = {
         actionUrl: String,
         csrfToken: String,
@@ -78,9 +78,9 @@ export default class extends Controller {
             this.messageTarget.value = ''
         }
 
-        // Afficher le sélecteur de canal uniquement pour les factures
+        // Afficher le sélecteur de canal pour les factures et les avoirs
         if (this.hasChannelSectionTarget) {
-            if (documentType === 'invoice') {
+            if (documentType === 'invoice' || documentType === 'credit_note') {
                 this.channelSectionTarget.classList.remove('hidden')
             } else {
                 this.channelSectionTarget.classList.add('hidden')
@@ -92,6 +92,7 @@ export default class extends Controller {
             this.channelInputTargets.forEach(input => {
                 input.checked = input.value === 'email'
             })
+            this.updateChannelLabels('email')
         }
 
         // Réinitialiser les fichiers
@@ -304,6 +305,29 @@ export default class extends Controller {
             'credit_note': 'l\'avoir'
         }
         return labels[type] || 'le document'
+    }
+
+    /**
+     * Met à jour visuellement le label sélectionné dans le sélecteur de canal
+     */
+    selectChannel(event) {
+        this.updateChannelLabels(event.target.value)
+    }
+
+    updateChannelLabels(selectedValue) {
+        if (!this.hasChannelLabelTarget) return
+        this.channelLabelTargets.forEach(label => {
+            const isActive = label.dataset.channelValue === selectedValue
+            const activeClasses = label.dataset.activeClass.split(' ')
+            const inactiveClasses = label.dataset.inactiveClass.split(' ')
+            if (isActive) {
+                label.classList.remove(...inactiveClasses)
+                label.classList.add(...activeClasses)
+            } else {
+                label.classList.remove(...activeClasses)
+                label.classList.add(...inactiveClasses)
+            }
+        })
     }
 
     disconnect() {

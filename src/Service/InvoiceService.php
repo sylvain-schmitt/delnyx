@@ -9,6 +9,7 @@ use App\Entity\InvoiceStatus;
 use App\Entity\Quote;
 use App\Entity\QuoteStatus;
 use App\Entity\User;
+use App\Message\NotifyPdpPaymentMessage;
 use App\Message\TransmitInvoiceToPAMessage;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -180,15 +181,14 @@ class InvoiceService
         }
 
         // Vérifier que le client a une adresse email
-        if (!$invoice->getClient() || !$invoice->getClient()->getEmail()) {
-            throw new \RuntimeException('Le client doit avoir une adresse email pour envoyer la facture.');
-        }
-
         $channels = [];
         $deliveryChannel = null;
 
         // Envoi par email (toujours disponible)
         if ($channel === 'email' || $channel === 'both') {
+            if (!$invoice->getClient() || !$invoice->getClient()->getEmail()) {
+                throw new \RuntimeException('Le client doit avoir une adresse email pour envoyer la facture.');
+            }
             // L'envoi de l'email est géré par le contrôleur via EmailService
             // Ici on note juste que le canal choisi est l'email
             $channels[] = 'email';
@@ -351,6 +351,11 @@ class InvoiceService
                     $deposit->setStatus(\App\Entity\DepositStatus::PAID);
                     $deposit->setPaidAt(new \DateTimeImmutable());
                 }
+            }
+
+            // Notifier Super PDP que la facture est encaissée (fr:212)
+            if ($invoice->getPdpProvider() === 'superpdp' && $invoice->getPdpResponse()) {
+                $this->messageBus->dispatch(new NotifyPdpPaymentMessage($invoice->getId()));
             }
         }
         // TODO: Gérer les paiements partiels avec une entité Payment

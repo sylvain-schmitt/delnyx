@@ -25,7 +25,7 @@
 					{{ company.adresse }}<br>
 					{{ company.codePostal }}
 					{{ company.ville }}<br>
-					{% if company.siret %}SIRET:
+					{% if company.siret %}{{ company.siret|length == 9 ? 'SIREN' : 'SIRET' }}:
 						{{ company.siret }}<br>
 					{% endif %}
 					{% if company.email %}Email:
@@ -75,7 +75,7 @@
 						{{ client.codePostal }}
 						{{ client.ville }}
 					{% endif %}
-					{% if client.siret %}<br>SIRET:
+					{% if client.siret %}<br>{{ client.siret|length == 9 ? 'SIREN' : 'SIRET' }}:
 						{{ client.siret }}
 					{% endif %}
 				</div>
@@ -175,7 +175,7 @@
 			{% if company %}
 				{{ company.raisonSociale }} - {{ company.formeJuridique ?? 'Micro-entrepreneur' }}
 				{% if company.codeAPE %}(APE: {{ company.codeAPE }}){% endif %}
-				{% if company.siret %}- SIRET: {{ company.siret }}{% endif %}<br>
+				{% if company.siret %}- {{ company.siret|length == 9 ? 'SIREN' : 'SIRET' }}: {{ company.siret }}{% endif %}<br>
 			{% endif %}
 			<strong>Pénalités:</strong> 10%/an ou 3x taux légal. <strong>Escompte:</strong> Aucun.<br>
 			{% if company and not company.isTvaEnabled() %}

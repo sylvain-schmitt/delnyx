@@ -112,6 +112,30 @@
 							</div>
 						{% endif %}
 
+						{% if creditNote.pdpStatus %}
+							<div>
+								<p class="text-sm text-white/60 mb-1">E-facturation ({{ creditNote.pdpProvider ?? 'PA' }})</p>
+								<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium
+									{% if creditNote.pdpStatus == 'PENDING' %}bg-yellow-500/20 text-yellow-300
+									{% elseif creditNote.pdpStatus == 'DEPOSITED' %}bg-blue-400/20 text-blue-200
+									{% elseif creditNote.pdpStatus == 'ACCEPTED' %}bg-emerald-500/20 text-emerald-300
+									{% elseif creditNote.pdpStatus == 'REJECTED' %}bg-red-500/20 text-red-300
+									{% elseif creditNote.pdpStatus == 'ERROR' %}bg-red-900/20 text-red-400
+									{% else %}bg-gray-500/20 text-gray-300{% endif %}">
+									{{ ux_icon('lucide:zap', {class: 'w-3 h-3'}) }}
+									{% if creditNote.pdpStatus == 'PENDING' %}En transit
+									{% elseif creditNote.pdpStatus == 'DEPOSITED' %}Transmis
+									{% elseif creditNote.pdpStatus == 'ACCEPTED' %}Accusé de réception
+									{% elseif creditNote.pdpStatus == 'REJECTED' %}Rejeté par la PA
+									{% elseif creditNote.pdpStatus == 'ERROR' %}Erreur PA
+									{% else %}{{ creditNote.pdpStatus }}{% endif %}
+								</span>
+								{% if creditNote.pdpTransmissionDate %}
+									<p class="text-xs text-white/40 mt-1">Transmis le {{ creditNote.pdpTransmissionDate|date('d/m/Y à H:i') }}</p>
+								{% endif %}
+							</div>
+						{% endif %}
+
 						<div class="md:col-span-2">
 							<p class="text-sm text-white/60 mb-2">Motif</p>
 							<p class="text-white whitespace-pre-line">{{ creditNote.reason }}</p>

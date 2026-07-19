@@ -128,13 +128,17 @@ class Client
     private string $pays = 'France';
 
     #[ORM\Column(type: Types::STRING, length: 14, nullable: true)]
-    #[Assert\Length(
-        min: 14,
-        max: 14,
-        exactMessage: 'Le SIRET doit contenir exactement {{ limit }} caractères.'
+    #[Assert\Regex(
+        pattern: '/^\d{9}(\d{5})?$/',
+        message: 'Le SIREN doit contenir 9 chiffres ou le SIRET 14 chiffres.'
     )]
     #[Groups(['client:read', 'client:write'])]
     private ?string $siret = null;
+
+    /** Adresse électronique PDP au format schemeID:valeur (ex: 0225:315143296_29713) */
+    #[ORM\Column(type: Types::STRING, length: 100, nullable: true)]
+    #[Groups(['client:read', 'client:write'])]
+    private ?string $pdpElectronicAddress = null;
 
     /**
      * Catégorie du client : particulier (B2C → e-reporting) ou professionnel (B2B → e-invoicing via PA)
@@ -316,6 +320,17 @@ class Client
     public function setSiret(?string $siret): static
     {
         $this->siret = $siret;
+        return $this;
+    }
+
+    public function getPdpElectronicAddress(): ?string
+    {
+        return $this->pdpElectronicAddress;
+    }
+
+    public function setPdpElectronicAddress(?string $pdpElectronicAddress): static
+    {
+        $this->pdpElectronicAddress = $pdpElectronicAddress;
         return $this;
     }
 

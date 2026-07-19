@@ -512,12 +512,9 @@ export default class extends Controller {
                 break
 
             case fieldName.includes('siret'):
-                if (value && value.length !== 14) {
+                if (value && !/^\d{9}(\d{5})?$/.test(value)) {
                     isValid = false
-                    errorMessage = 'Le SIRET doit contenir exactement 14 caractères'
-                } else if (value && !/^[0-9]{14}$/.test(value)) {
-                    isValid = false
-                    errorMessage = 'Le SIRET ne peut contenir que des chiffres'
+                    errorMessage = 'Le SIREN doit contenir 9 chiffres ou le SIRET 14 chiffres'
                 }
                 break
 

@@ -25,7 +25,7 @@
 					{{ company.adresse }}<br>
 					{{ company.codePostal }}
 					{{ company.ville }}<br>
-					{% if company.siret %}SIRET:
+					{% if company.siret %}{{ company.siret|length == 9 ? 'SIREN' : 'SIRET' }}:
 						{{ company.siret }}<br>
 					{% endif %}
 					{% if company.email %}Email:
@@ -79,7 +79,7 @@
 							{{ credit_note.invoice.client.ville }}
 						{% endif %}
 					{% endif %}
-					{% if credit_note.invoice.client.siret %}<br>SIRET:
+					{% if credit_note.invoice.client.siret %}<br>{{ credit_note.invoice.client.siret|length == 9 ? 'SIREN' : 'SIRET' }}:
 						{{ credit_note.invoice.client.siret }}
 					{% endif %}
 				</div>
@@ -195,7 +195,7 @@
 					{{ company.codeAPE }})
 				{% endif %}
 				{% if company.siret %}
-					- SIRET:
+					- {{ company.siret|length == 9 ? 'SIREN' : 'SIRET' }}:
 					{{ company.siret }}
 				{% endif %}<br>
 				{% if company.assuranceRCPro %}

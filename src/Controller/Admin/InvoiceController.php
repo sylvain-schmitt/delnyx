@@ -747,15 +747,22 @@ class InvoiceController extends AbstractController
             $channel = $request->request->get('channel', 'email');
             $this->invoiceService->issueAndSend($invoice, $channel);
 
-            // Envoyer l'email après émission et envoi
-            $client = $invoice->getClient();
-            if ($client && $client->getEmail()) {
-                $customMessage = $request->request->get('custom_message');
-                $uploadedFiles = $request->files->get('attachments', []);
-                $this->emailService->sendInvoice($invoice, $customMessage, $uploadedFiles);
+            // Envoyer l'email uniquement si le canal le prévoit
+            if ($channel === 'email' || $channel === 'both') {
+                $client = $invoice->getClient();
+                if ($client && $client->getEmail()) {
+                    $customMessage = $request->request->get('custom_message');
+                    $uploadedFiles = $request->files->get('attachments', []);
+                    $this->emailService->sendInvoice($invoice, $customMessage, $uploadedFiles);
+                }
             }
 
-            $this->addFlash('success', sprintf('Facture %s émise et envoyée avec succès.', $invoice->getNumero() ?? 'N/A'));
+            if ($channel === 'pdp' || $channel === 'both') {
+                $pdpPart = 'transmission PA en cours — statut mis à jour dans quelques instants';
+                $this->addFlash('success', sprintf('Facture %s émise. %s', $invoice->getNumero() ?? 'N/A', $pdpPart));
+            } else {
+                $this->addFlash('success', sprintf('Facture %s émise et envoyée.', $invoice->getNumero() ?? 'N/A'));
+            }
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
             $this->addFlash('error', $e->getMessage());
         } catch (\RuntimeException $e) {
@@ -778,15 +785,22 @@ class InvoiceController extends AbstractController
             $channel = $request->request->get('channel', 'email');
             $this->invoiceService->send($invoice, $channel);
 
-            // Envoyer l'email après envoi
-            $client = $invoice->getClient();
-            if ($client && $client->getEmail()) {
-                $customMessage = $request->request->get('custom_message');
-                $uploadedFiles = $request->files->get('attachments', []);
-                $this->emailService->sendInvoice($invoice, $customMessage, $uploadedFiles);
+            // Envoyer l'email uniquement si le canal le prévoit
+            if ($channel === 'email' || $channel === 'both') {
+                $client = $invoice->getClient();
+                if ($client && $client->getEmail()) {
+                    $customMessage = $request->request->get('custom_message');
+                    $uploadedFiles = $request->files->get('attachments', []);
+                    $this->emailService->sendInvoice($invoice, $customMessage, $uploadedFiles);
+                }
             }
 
-            $this->addFlash('success', sprintf('Facture %s envoyée avec succès.', $invoice->getNumero() ?? 'N/A'));
+            if ($channel === 'pdp' || $channel === 'both') {
+                $pdpPart = 'transmission PA en cours — statut mis à jour dans quelques instants';
+                $this->addFlash('success', sprintf('Facture %s envoyée. %s', $invoice->getNumero() ?? 'N/A', $pdpPart));
+            } else {
+                $this->addFlash('success', sprintf('Facture %s envoyée.', $invoice->getNumero() ?? 'N/A'));
+            }
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
             $this->addFlash('error', $e->getMessage());
         } catch (\RuntimeException $e) {

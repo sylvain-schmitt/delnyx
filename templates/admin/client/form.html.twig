@@ -95,6 +95,15 @@
 
 				{{ form_macros.simple_field(form, 'companyName') }}
 				{{ form_macros.simple_field(form, 'siret') }}
+
+				{# E-facturation B2B #}
+				<div class="space-y-2">
+					<h4 class="text-sm font-semibold text-white/80 flex items-center gap-2">
+						{{ ux_icon('lucide:zap', {class: 'w-4 h-4 text-purple-400'}) }}
+						E-facturation B2B
+					</h4>
+					{{ form_macros.simple_field(form, 'pdpElectronicAddress') }}
+				</div>
 			</div>
 
 			{# Statut et notes #}

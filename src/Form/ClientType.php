@@ -74,12 +74,21 @@ class ClientType extends AbstractType
                 ]
             ])
             ->add('siret', TextType::class, [
-                'label' => 'SIRET',
+                'label' => 'SIREN / SIRET',
                 'required' => false,
                 'attr' => [
                     'class' => 'form-input',
-                    'placeholder' => '12345678901234'
+                    'placeholder' => '123456789 ou 12345678901234'
                 ]
+            ])
+            ->add('pdpElectronicAddress', TextType::class, [
+                'label' => 'Adresse e-facturation (PDP)',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-input',
+                    'placeholder' => 'ex: 0225:315143296_29713'
+                ],
+                'help' => 'Format schemeID:valeur — visible dans le portail PDP de votre client. Laisser vide si inconnu.',
             ])
             ->add('adresse', TextareaType::class, [
                 'label' => 'Adresse',

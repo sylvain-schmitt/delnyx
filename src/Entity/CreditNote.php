@@ -94,6 +94,26 @@ class CreditNote
     #[Groups(['credit_note:read'])]
     private ?string $deliveryChannel = null; // 'email', 'pdp', 'both'
 
+    #[ORM\Column(type: Types::STRING, length: 30, nullable: true)]
+    #[Groups(['credit_note:read'])]
+    private ?string $eInvoicingMode = null;
+
+    #[ORM\Column(type: Types::STRING, length: 20, nullable: true)]
+    #[Groups(['credit_note:read'])]
+    private ?string $pdpStatus = null;
+
+    #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
+    #[Groups(['credit_note:read'])]
+    private ?string $pdpProvider = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['credit_note:read'])]
+    private ?\DateTimeInterface $pdpTransmissionDate = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['credit_note:read'])]
+    private ?string $pdpResponse = null;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Groups(['credit_note:read'])]
     private ?\DateTimeInterface $dateModification = null;
@@ -640,6 +660,68 @@ class CreditNote
     public function setRefundStatus(?string $refundStatus): self
     {
         $this->refundStatus = $refundStatus;
+        return $this;
+    }
+
+    // ===== PDP / E-FACTURATION =====
+
+    public function getEInvoicingMode(): ?string
+    {
+        return $this->eInvoicingMode;
+    }
+
+    public function setEInvoicingMode(?string $eInvoicingMode): static
+    {
+        $this->eInvoicingMode = $eInvoicingMode;
+        return $this;
+    }
+
+    public function isB2BEInvoicing(): bool
+    {
+        return $this->eInvoicingMode === 'b2b_einvoicing';
+    }
+
+    public function getPdpStatus(): ?string
+    {
+        return $this->pdpStatus;
+    }
+
+    public function setPdpStatus(?string $pdpStatus): static
+    {
+        $this->pdpStatus = $pdpStatus;
+        return $this;
+    }
+
+    public function getPdpProvider(): ?string
+    {
+        return $this->pdpProvider;
+    }
+
+    public function setPdpProvider(?string $pdpProvider): static
+    {
+        $this->pdpProvider = $pdpProvider;
+        return $this;
+    }
+
+    public function getPdpTransmissionDate(): ?\DateTimeInterface
+    {
+        return $this->pdpTransmissionDate;
+    }
+
+    public function setPdpTransmissionDate(?\DateTimeInterface $pdpTransmissionDate): static
+    {
+        $this->pdpTransmissionDate = $pdpTransmissionDate;
+        return $this;
+    }
+
+    public function getPdpResponse(): ?string
+    {
+        return $this->pdpResponse;
+    }
+
+    public function setPdpResponse(?string $pdpResponse): static
+    {
+        $this->pdpResponse = $pdpResponse;
         return $this;
     }
 

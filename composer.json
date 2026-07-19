@@ -13,6 +13,7 @@
         "doctrine/doctrine-migrations-bundle": "^3.4",
         "doctrine/orm": "^3.5",
         "dompdf/dompdf": "*",
+        "dragonmantank/cron-expression": "^3.6",
         "google/apiclient": "^2.0",
         "stripe/stripe-php": "^19.0",
         "symfony/asset": "7.3.*",

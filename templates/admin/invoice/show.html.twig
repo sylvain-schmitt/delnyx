@@ -106,6 +106,29 @@
 																																													                            {% else %}bg-gray-500/20 text-gray-300{% endif %}">
 								{{ status.label }}
 							</span>
+							{% if invoice.pdpStatus %}
+								<div class="mt-2">
+									<p class="text-xs text-white/50 mb-1">E-facturation ({{ invoice.pdpProvider ?? 'PA' }})</p>
+									<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium
+										{% if invoice.pdpStatus == 'PENDING' %}bg-yellow-500/20 text-yellow-300
+										{% elseif invoice.pdpStatus == 'DEPOSITED' %}bg-blue-400/20 text-blue-200
+										{% elseif invoice.pdpStatus == 'ACCEPTED' %}bg-emerald-500/20 text-emerald-300
+										{% elseif invoice.pdpStatus == 'REJECTED' %}bg-red-500/20 text-red-300
+										{% elseif invoice.pdpStatus == 'ERROR' %}bg-red-900/20 text-red-400
+										{% else %}bg-gray-500/20 text-gray-300{% endif %}">
+										{{ ux_icon('lucide:zap', {class: 'w-3 h-3'}) }}
+										{% if invoice.pdpStatus == 'PENDING' %}En transit
+										{% elseif invoice.pdpStatus == 'DEPOSITED' %}Transmise
+										{% elseif invoice.pdpStatus == 'ACCEPTED' %}Accusé de réception
+										{% elseif invoice.pdpStatus == 'REJECTED' %}Rejetée par la PA
+										{% elseif invoice.pdpStatus == 'ERROR' %}Erreur PA
+										{% else %}{{ invoice.pdpStatus }}{% endif %}
+									</span>
+									{% if invoice.pdpTransmissionDate %}
+										<p class="text-xs text-white/40 mt-1">Transmise le {{ invoice.pdpTransmissionDate|date('d/m/Y à H:i') }}</p>
+									{% endif %}
+								</div>
+							{% endif %}
 						</div>
 
 						<div>

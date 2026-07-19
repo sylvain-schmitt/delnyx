@@ -46,7 +46,8 @@ RUN chown -R www-data:www-data public/uploads
 RUN echo "opcache.enable=1\n\
     opcache.memory_consumption=128\n\
     opcache.max_accelerated_files=10000\n\
-    opcache.validate_timestamps=0" > /usr/local/etc/php/conf.d/opcache.ini
+    opcache.validate_timestamps=1\n\
+    opcache.revalidate_freq=0" > /usr/local/etc/php/conf.d/opcache.ini
 
 # Configuration de la timezone PHP
 RUN echo "date.timezone = Europe/Paris" > /usr/local/etc/php/conf.d/timezone.ini

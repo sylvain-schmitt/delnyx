@@ -13,6 +13,8 @@ use App\Repository\CreditNoteRepository;
 use App\Repository\InvoiceRepository;
 use App\Repository\CompanySettingsRepository;
 use App\Repository\TariffRepository;
+use App\Message\NotifyPdpCreditNoteReimbursedMessage;
+use App\Message\TransmitCreditNoteToPAMessage;
 use App\Service\CreditNoteService;
 use App\Service\EmailService;
 use App\Service\PaymentService;
@@ -21,6 +23,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
@@ -39,7 +42,8 @@ class CreditNoteController extends AbstractController
         private CreditNoteService $creditNoteService,
         private PdfGeneratorService $pdfGeneratorService,
         private EmailService $emailService,
-        private PaymentService $paymentService
+        private PaymentService $paymentService,
+        private MessageBusInterface $messageBus,
     ) {}
 
     #[Route('/api/invoice/{id}', name: 'api_invoice_info', requirements: ['id' => '\d+'], methods: ['GET'])]
@@ -731,16 +735,29 @@ class CreditNoteController extends AbstractController
             return $this->redirectToRoute('admin_credit_note_index');
         }
 
+        $channel = $request->request->get('channel', 'email');
+
         try {
             $this->creditNoteService->issueAndSend($creditNote);
 
-            // FIX: Envoyer l'email réellement via EmailService
             $invoice = $creditNote->getInvoice();
-            $client = $invoice ? $invoice->getClient() : null;
-            if ($client && $client->getEmail()) {
+            $client  = $invoice ? $invoice->getClient() : null;
+
+            // Transmission email
+            if (($channel === 'email' || $channel === 'both') && $client && $client->getEmail()) {
                 $customMessage = $request->request->get('custom_message');
                 $uploadedFiles = $request->files->get('attachments', []);
                 $this->emailService->sendCreditNote($creditNote, $customMessage, $uploadedFiles);
+            }
+
+            // Transmission vers la PA (Super PDP)
+            if ($channel === 'pdp' || $channel === 'both') {
+                $invoiceEInvoicingMode = $invoice?->getEInvoicingMode();
+                $creditNote->setEInvoicingMode($invoiceEInvoicingMode ?? 'b2b_einvoicing');
+                $creditNote->setDeliveryChannel($channel);
+                $this->entityManager->flush();
+
+                $this->messageBus->dispatch(new TransmitCreditNoteToPAMessage($creditNote->getId()));
             }
 
             // Vérifier si la facture doit être annulée (avoir total)
@@ -751,6 +768,8 @@ class CreditNoteController extends AbstractController
                         'Avoir émis et envoyé avec succès. La facture %s a été automatiquement annulée car le total des avoirs émis annule complètement la facture.',
                         $invoice->getNumero()
                     ));
+                } elseif ($channel === 'pdp' || $channel === 'both') {
+                    $this->addFlash('success', sprintf('Avoir %s émis. Transmission PA en cours — statut mis à jour dans quelques instants.', $creditNote->getNumber() ?? 'N/A'));
                 } else {
                     $this->addFlash('success', 'Avoir émis et envoyé avec succès');
                 }
@@ -886,7 +905,13 @@ class CreditNoteController extends AbstractController
 
         try {
             $this->creditNoteService->apply($creditNote);
-            $this->addFlash('success', 'Avoir appliqué avec succès');
+
+            if ($creditNote->getPdpProvider() === 'superpdp' && $creditNote->getPdpResponse()) {
+                $this->messageBus->dispatch(new NotifyPdpCreditNoteReimbursedMessage($creditNote->getId()));
+                $this->addFlash('success', 'Avoir remboursé — notification PA en cours.');
+            } else {
+                $this->addFlash('success', 'Avoir appliqué avec succès');
+            }
         } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
             $this->addFlash('error', $e->getMessage());
         } catch (\RuntimeException $e) {
@@ -998,21 +1023,31 @@ class CreditNoteController extends AbstractController
             return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);
         }
 
-        try {
-            $customMessage = $request->request->get('custom_message');
+        $channel = $request->request->get('channel', 'email');
 
-            // Récupérer les fichiers uploadés
-            $uploadedFiles = $request->files->get('attachments', []);
+        if ($channel === 'email' || $channel === 'both') {
+            try {
+                $customMessage = $request->request->get('custom_message');
+                $uploadedFiles = $request->files->get('attachments', []);
+                $emailLog = $this->emailService->sendCreditNote($creditNote, $customMessage, $uploadedFiles);
 
-            $emailLog = $this->emailService->sendCreditNote($creditNote, $customMessage, $uploadedFiles);
-
-            if ($emailLog->getStatus() === 'sent') {
-                $this->addFlash('success', sprintf('Avoir envoyé avec succès à %s', $client->getEmail()));
-            } else {
-                $this->addFlash('error', sprintf('Erreur lors de l\'envoi : %s', $emailLog->getErrorMessage()));
+                if ($emailLog->getStatus() !== 'sent') {
+                    $this->addFlash('error', sprintf('Erreur lors de l\'envoi : %s', $emailLog->getErrorMessage()));
+                }
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erreur lors de l\'envoi de l\'email : ' . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            $this->addFlash('error', 'Erreur lors de l\'envoi de l\'email : ' . $e->getMessage());
+        }
+
+        if ($channel === 'pdp' || $channel === 'both') {
+            $invoice = $creditNote->getInvoice();
+            $creditNote->setEInvoicingMode($invoice?->getEInvoicingMode() ?? 'b2b_einvoicing');
+            $creditNote->setPdpStatus(null);
+            $this->entityManager->flush();
+            $this->messageBus->dispatch(new TransmitCreditNoteToPAMessage($creditNote->getId()));
+            $this->addFlash('success', sprintf('Avoir %s — transmission PA en cours.', $creditNote->getNumber() ?? 'N/A'));
+        } elseif ($channel === 'email') {
+            $this->addFlash('success', sprintf('Avoir envoyé avec succès à %s', $client->getEmail()));
         }
 
         return $this->redirectToRoute('admin_credit_note_show', ['id' => $creditNote->getId()]);

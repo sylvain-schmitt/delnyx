@@ -17,6 +17,18 @@ framework:
             # Route les messages de régénération PDF vers le transport asynchrone
             'App\Message\RegeneratePdfMessage': async
             'App\Message\RenewManualSubscriptionMessage': async
+            # Transmission factures B2B vers la Plateforme Agréée (Super PDP)
+            'App\Message\TransmitInvoiceToPAMessage': async
+            # Notification paiement encaissé vers Super PDP (fr:212)
+            'App\Message\NotifyPdpPaymentMessage': async
+            # Synchro périodique des statuts PDP
+            'App\Message\SyncPdpStatusMessage': async
+            # Transmission avoirs (credit notes) B2B vers la PA (TypeCode 381)
+            'App\Message\TransmitCreditNoteToPAMessage': async
+            # Synchro des factures d'achats reçues depuis la PA
+            'App\Message\SyncPurchaseInvoicesMessage': async
+            # Notification remboursement avoir vers Super PDP (fr:212)
+            'App\Message\NotifyPdpCreditNoteReimbursedMessage': async
 
 # when@test:
 #    framework:

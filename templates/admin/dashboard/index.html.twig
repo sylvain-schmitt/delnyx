@@ -108,6 +108,62 @@
 			</div>
 		</div>
 
+		{# Factures d'achats reçues (PA) #}
+		{% if purchase_stats is defined and (purchase_stats.total > 0 or purchase_stats.pending > 0) %}
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-white/60 text-sm font-medium">Factures reçues</p>
+						<p class="text-3xl font-bold text-white">{{ purchase_stats.total|default(0) }}</p>
+					</div>
+					<div class="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
+						{{ ux_icon('lucide:shopping-cart', {class: 'w-6 h-6 text-orange-400'}) }}
+					</div>
+				</div>
+				<div class="mt-4">
+					<a href="{{ path('admin_purchase_invoice_index') }}" class="text-orange-400 text-sm font-medium hover:text-orange-300 transition-colors">
+						Voir les achats →
+					</a>
+				</div>
+			</div>
+			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate animate-delay-100">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-white/60 text-sm font-medium">Dépenses du mois</p>
+						<p class="text-3xl font-bold text-white">{{ purchase_stats.monthly_total|default(0)|number_format(2, ',', ' ') }} €</p>
+					</div>
+					<div class="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center">
+						{{ ux_icon('lucide:trending-down', {class: 'w-6 h-6 text-red-400'}) }}
+					</div>
+				</div>
+				<div class="mt-4">
+					<span class="text-white/60 text-sm">Achats reçus ce mois</span>
+				</div>
+			</div>
+			<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all duration-300 scroll-animate animate-delay-200">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-white/60 text-sm font-medium">En attente de traitement</p>
+						<p class="text-3xl font-bold text-white">{{ purchase_stats.pending|default(0) }}</p>
+					</div>
+					<div class="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+						{{ ux_icon('lucide:clock', {class: 'w-6 h-6 text-yellow-400'}) }}
+					</div>
+				</div>
+				<div class="mt-4">
+					{% if purchase_stats.pending > 0 %}
+						<a href="{{ path('admin_purchase_invoice_index') }}" class="text-yellow-400 text-sm font-medium hover:text-yellow-300 transition-colors">
+							Traiter les factures →
+						</a>
+					{% else %}
+						<span class="text-green-400 text-sm font-medium">Tout est à jour</span>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+		{% endif %}
+
 		{# Graphique CA Mensuel #}
 		<div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 scroll-animate">
 			<h2 class="text-xl font-semibold text-white mb-6">Évolution du Chiffre d'Affaires</h2>

@@ -1,0 +1,143 @@
+{% extends 'admin/layout/base.html.twig' %}
+
+{% block title %}Factures d'achat - Administration Delnyx{% endblock %}
+{% block page_title %}Factures d'achat{% endblock %}
+
+{% block body %}
+<div class="space-y-6">
+
+    {# Header #}
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 scroll-animate">
+        <div>
+            <h1 class="text-2xl font-bold text-white">Factures reçues (Achats)</h1>
+            <p class="text-white/60 text-sm mt-1">Factures entrant via la Plateforme Agréée (Super PDP)</p>
+        </div>
+        <form method="post" action="{{ path('admin_purchase_invoice_sync') }}" class="flex items-center gap-3">
+            <input type="hidden" name="_token" value="{{ csrf_token('purchase_invoice_sync') }}">
+            <button type="submit" class="btn-secondary flex items-center gap-2">
+                {{ ux_icon('lucide:refresh-cw', {class: 'w-4 h-4'}) }}
+                Synchroniser
+            </button>
+        </form>
+    </div>
+
+    {# Flash messages #}
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="rounded-lg px-4 py-3 text-sm font-medium
+                {{ type == 'success' ? 'bg-green-500/20 text-green-300 border border-green-500/30' : '' }}
+                {{ type == 'error' ? 'bg-red-500/20 text-red-300 border border-red-500/30' : '' }}
+                {{ type == 'info' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : '' }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    {# Table #}
+    <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl scroll-animate animate-delay-100">
+        {% if invoices|length > 0 %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-white/20">
+                        <th class="text-left px-6 py-4 text-white/60 text-sm font-semibold">Fournisseur</th>
+                        <th class="text-left px-6 py-4 text-white/60 text-sm font-semibold">SIREN</th>
+                        <th class="text-right px-6 py-4 text-white/60 text-sm font-semibold">Montant TTC</th>
+                        <th class="text-left px-6 py-4 text-white/60 text-sm font-semibold">Date</th>
+                        <th class="text-left px-6 py-4 text-white/60 text-sm font-semibold">Statut PA</th>
+                        <th class="text-left px-6 py-4 text-white/60 text-sm font-semibold">Traitement</th>
+                        <th class="text-left px-6 py-4 text-white/60 text-sm font-semibold">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/10">
+                    {% for inv in invoices %}
+                    <tr class="hover:bg-white/5 transition-colors duration-150">
+                        <td class="px-6 py-4 text-white font-medium">
+                            {{ inv.sellerName ?? '—' }}
+                        </td>
+                        <td class="px-6 py-4 text-white/70 font-mono text-sm">
+                            {{ inv.sellerSiren ?? '—' }}
+                        </td>
+                        <td class="px-6 py-4 text-right text-white font-semibold">
+                            {% if inv.totalTTC %}
+                                {{ inv.totalTTC|number_format(2, ',', ' ') }} €
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-white/70 text-sm">
+                            {% if inv.issueDate %}
+                                {{ inv.issueDate|date('d/m/Y') }}
+                            {% else %}
+                                {{ inv.createdAt|date('d/m/Y') }}
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% set color = inv.pdpStatusColor %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                bg-{{ color }}-500/20 text-{{ color }}-300 border border-{{ color }}-500/30">
+                                {{ inv.pdpStatusLabel }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if inv.localStatus == 'paid' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                    {{ ux_icon('lucide:circle-dollar-sign', {class: 'w-3 h-3 mr-1'}) }} Payée
+                                </span>
+                            {% elseif inv.localStatus == 'acknowledged' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-300 border border-green-500/30">
+                                    {{ ux_icon('lucide:check', {class: 'w-3 h-3 mr-1'}) }} Acceptée
+                                </span>
+                            {% elseif inv.localStatus == 'rejected' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-300 border border-red-500/30">
+                                    {{ ux_icon('lucide:x', {class: 'w-3 h-3 mr-1'}) }} Rejetée
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
+                                    {{ ux_icon('lucide:clock', {class: 'w-3 h-3 mr-1'}) }} En attente
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <a href="{{ path('admin_purchase_invoice_show', {id: inv.id}) }}"
+                               class="text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium">
+                                Voir
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# Pagination #}
+        {% if total_pages > 1 %}
+        <div class="flex items-center justify-between px-6 py-4 border-t border-white/20">
+            <p class="text-white/60 text-sm">{{ total }} facture{{ total > 1 ? 's' : '' }} reçue{{ total > 1 ? 's' : '' }}</p>
+            <div class="flex items-center gap-2">
+                {% if current_page > 1 %}
+                    <a href="{{ path('admin_purchase_invoice_index', {page: current_page - 1}) }}" class="btn-secondary text-sm px-3 py-1">
+                        {{ ux_icon('lucide:chevron-left', {class: 'w-4 h-4'}) }}
+                    </a>
+                {% endif %}
+                <span class="text-white text-sm">{{ current_page }} / {{ total_pages }}</span>
+                {% if current_page < total_pages %}
+                    <a href="{{ path('admin_purchase_invoice_index', {page: current_page + 1}) }}" class="btn-secondary text-sm px-3 py-1">
+                        {{ ux_icon('lucide:chevron-right', {class: 'w-4 h-4'}) }}
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="flex flex-col items-center justify-center py-16 text-center">
+            {{ ux_icon('lucide:inbox', {class: 'w-12 h-12 text-white/30 mb-4'}) }}
+            <p class="text-white/60 text-lg font-medium">Aucune facture reçue</p>
+            <p class="text-white/40 text-sm mt-1">Lancez une synchronisation pour récupérer les factures depuis la PA.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

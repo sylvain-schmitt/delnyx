@@ -96,19 +96,19 @@
 		{% endif %}
 
 		{# Bouton Envoyer (ISSUED uniquement) #}
-		{% if is_granted('INVOICE_SEND', entity) and entity.statutEnum.value == 'issued' and hasEmail %}
-			<button type="button" class="{{ buttonClass }}" title="Envoyer par email" data-controller="email-trigger" data-email-trigger-url-value="{{ path('admin_invoice_send_email', {id: entity.id}) }}" data-email-trigger-csrf-token-value="{{ csrf_token('invoice_send_email_' ~ entity.id) }}" data-email-trigger-recipient-value="{{ recipientEmail }}" data-email-trigger-document-type-value="{{ type }}" data-email-trigger-document-number-value="{{ entity.numero }}" data-action="click->email-trigger#open">
-				{{ ux_icon('lucide:mail', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
+		{% if is_granted('INVOICE_SEND', entity) and entity.statutEnum.value == 'issued' %}
+			<button type="button" class="{{ buttonClass }}" title="Envoyer la facture" data-controller="email-trigger" data-email-trigger-url-value="{{ path('admin_invoice_send', {id: entity.id}) }}" data-email-trigger-csrf-token-value="{{ csrf_token('invoice_send_' ~ entity.id) }}" data-email-trigger-recipient-value="{{ recipientEmail }}" data-email-trigger-document-type-value="{{ type }}" data-email-trigger-document-number-value="{{ entity.numero }}" data-action="click->email-trigger#open">
+				{{ ux_icon('lucide:send', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
 				{% if showText %}Envoyer la facture
 				{% endif %}
 			</button>
 		{% endif %}
 
 		{# Bouton Relancer (SENT uniquement) #}
-		{% if entity.statutEnum.value == 'sent' and hasEmail %}
-			<button type="button" class="{{ layout == 'inline' ? buttonClass : secondaryButtonClass }}" title="Relancer le client" data-controller="email-trigger" data-email-trigger-url-value="{{ path('admin_invoice_send_email', {id: entity.id}) }}" data-email-trigger-csrf-token-value="{{ csrf_token('invoice_send_email_' ~ entity.id) }}" data-email-trigger-recipient-value="{{ recipientEmail }}" data-email-trigger-document-type-value="{{ type }}" data-email-trigger-document-number-value="{{ entity.numero }}" data-email-trigger-is-reminder-value="true" data-action="click->email-trigger#open">
+		{% if entity.statutEnum.value == 'sent' %}
+			<button type="button" class="{{ layout == 'inline' ? buttonClass : secondaryButtonClass }}" title="Relancer / renvoyer" data-controller="email-trigger" data-email-trigger-url-value="{{ path('admin_invoice_send', {id: entity.id}) }}" data-email-trigger-csrf-token-value="{{ csrf_token('invoice_send_' ~ entity.id) }}" data-email-trigger-recipient-value="{{ recipientEmail }}" data-email-trigger-document-type-value="{{ type }}" data-email-trigger-document-number-value="{{ entity.numero }}" data-action="click->email-trigger#open">
 				{{ ux_icon('lucide:bell', {class: layout == 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'}) }}
-				{% if showText %}Relancer le client
+				{% if showText %}Relancer / renvoyer
 				{% endif %}
 			</button>
 		{% endif %}

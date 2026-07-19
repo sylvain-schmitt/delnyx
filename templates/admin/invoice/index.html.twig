@@ -91,6 +91,7 @@
                                     <div class="text-sm font-medium text-white">{{ invoice.montantTTCFormate }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex flex-col gap-1">
                                     {% set status = invoice.statutEnum %}
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                         {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
@@ -101,6 +102,25 @@
                                         {% else %}bg-gray-500/20 text-gray-300{% endif %}">
                                         {{ status.label }}
                                     </span>
+                                    {% if invoice.pdpStatus %}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                            {% if invoice.pdpStatus == 'PENDING' %}bg-yellow-500/20 text-yellow-300
+                                            {% elseif invoice.pdpStatus == 'DEPOSITED' %}bg-blue-400/20 text-blue-200
+                                            {% elseif invoice.pdpStatus == 'ACCEPTED' %}bg-emerald-500/20 text-emerald-300
+                                            {% elseif invoice.pdpStatus == 'REJECTED' %}bg-red-500/20 text-red-300
+                                            {% elseif invoice.pdpStatus == 'ERROR' %}bg-red-900/20 text-red-400
+                                            {% else %}bg-gray-500/20 text-gray-300{% endif %}"
+                                            title="Statut e-facturation">
+                                            {{ ux_icon('lucide:zap', {class: 'w-3 h-3'}) }}
+                                            {% if invoice.pdpStatus == 'PENDING' %}En transit
+                                            {% elseif invoice.pdpStatus == 'DEPOSITED' %}Transmise
+                                            {% elseif invoice.pdpStatus == 'ACCEPTED' %}Accusé reçu
+                                            {% elseif invoice.pdpStatus == 'REJECTED' %}Rejetée PA
+                                            {% elseif invoice.pdpStatus == 'ERROR' %}Erreur PA
+                                            {% else %}{{ invoice.pdpStatus }}{% endif %}
+                                        </span>
+                                    {% endif %}
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
@@ -179,6 +199,7 @@
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-white/60">Statut</span>
+                            <div class="flex flex-col items-end gap-1">
                             {% set status = invoice.statutEnum %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                 {% if status.value == 'draft' %}bg-gray-500/20 text-gray-300
@@ -189,6 +210,25 @@
                                 {% else %}bg-gray-500/20 text-gray-300{% endif %}">
                                 {{ status.label }}
                             </span>
+                            {% if invoice.pdpStatus %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                    {% if invoice.pdpStatus == 'PENDING' %}bg-yellow-500/20 text-yellow-300
+                                    {% elseif invoice.pdpStatus == 'DEPOSITED' %}bg-blue-400/20 text-blue-200
+                                    {% elseif invoice.pdpStatus == 'ACCEPTED' %}bg-emerald-500/20 text-emerald-300
+                                    {% elseif invoice.pdpStatus == 'REJECTED' %}bg-red-500/20 text-red-300
+                                    {% elseif invoice.pdpStatus == 'ERROR' %}bg-red-900/20 text-red-400
+                                    {% else %}bg-gray-500/20 text-gray-300{% endif %}"
+                                    title="Statut e-facturation">
+                                    {{ ux_icon('lucide:zap', {class: 'w-3 h-3'}) }}
+                                    {% if invoice.pdpStatus == 'PENDING' %}En transit
+                                    {% elseif invoice.pdpStatus == 'DEPOSITED' %}Transmise
+                                    {% elseif invoice.pdpStatus == 'ACCEPTED' %}Accusé reçu
+                                    {% elseif invoice.pdpStatus == 'REJECTED' %}Rejetée PA
+                                    {% elseif invoice.pdpStatus == 'ERROR' %}Erreur PA
+                                    {% else %}{{ invoice.pdpStatus }}{% endif %}
+                                </span>
+                            {% endif %}
+                            </div>
                         </div>
                     </div>
 
