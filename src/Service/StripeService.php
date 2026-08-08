@@ -661,10 +661,7 @@ class StripeService
 
             $this->logger->info("Syncing dates for sub {$subscription->getId()} from invoice: start={$periodStart->format('Y-m-d')}, end={$periodEnd->format('Y-m-d')}");
 
-            // Récupérer le companyId depuis la dernière facture du client ou par défaut '1'
-            $lastInvoice = $this->entityManager->getRepository(Invoice::class)->findOneBy(['client' => $subscription->getClient()], ['id' => 'DESC']);
-            $companyId = $lastInvoice ? $lastInvoice->getCompanyId() : '1';
-            $invoice->setCompanyId($companyId);
+            $invoice->setCompanyId($this->resoudreCompanyId($subscription->getClient()));
 
             $invoice->setStatutEnum(InvoiceStatus::DRAFT);
 
@@ -776,8 +773,7 @@ class StripeService
                 $periodStart = $debutTs !== null ? (new \DateTime())->setTimestamp($debutTs) : new \DateTime();
                 $periodEnd   = $finTs   !== null ? (new \DateTime())->setTimestamp($finTs)   : (new \DateTime())->modify('+1 month');
 
-                $lastInvoice = $this->entityManager->getRepository(Invoice::class)->findOneBy(['client' => $subscription->getClient()], ['id' => 'DESC']);
-                $invoice->setCompanyId($lastInvoice ? $lastInvoice->getCompanyId() : '1');
+                $invoice->setCompanyId($this->resoudreCompanyId($subscription->getClient()));
                 $invoice->setStatutEnum(InvoiceStatus::DRAFT);
 
                 $stripeInvoiceDate = isset($stripeInvoice->created) ? (new \DateTime())->setTimestamp($stripeInvoice->created) : new \DateTime();
@@ -1013,6 +1009,55 @@ class StripeService
      *
      * @return array{success:bool,reason?:string,amount?:int}
      */
+    /**
+     * Détermine le companyId d'une facture créée par un webhook.
+     *
+     * Le cloisonnement multi-tenant compare `invoice.companyId` à un UUID v5 dérivé de
+     * l'e-mail de l'administrateur connecté. Un webhook n'ayant pas d'utilisateur, le code
+     * se rabattait sur la chaîne '1' quand le client n'avait aucune facture antérieure.
+     * Or '1' n'est jamais un UUID valide : ces factures devenaient invisibles à leur
+     * propriétaire, qui se voyait répondre « Vous n'avez pas accès à cette facture » en
+     * tentant d'émettre un avoir. Constaté sur la facture du gagnant du concours.
+     *
+     * On remonte donc au companyId d'une facture existante — celle du client si elle
+     * existe, sinon la plus récente toutes factures confondues, qui porte forcément
+     * l'UUID réel dans une installation mono-société. Le repli '1' n'est conservé que
+     * pour une base entièrement vide, et il est journalisé.
+     */
+    private function resoudreCompanyId(?Client $client): string
+    {
+        $repo = $this->entityManager->getRepository(Invoice::class);
+
+        if ($client !== null) {
+            $derniere = $repo->findOneBy(['client' => $client], ['id' => 'DESC']);
+            if ($derniere !== null && $derniere->getCompanyId() !== null && $derniere->getCompanyId() !== '1') {
+                return $derniere->getCompanyId();
+            }
+        }
+
+        // Aucune facture pour ce client (cas du tout premier abonnement) : on prend
+        // l'UUID de la facture la plus récente, en écartant les '1' déjà écrits par
+        // l'ancien comportement pour ne pas propager l'erreur.
+        $reference = $repo->createQueryBuilder('i')
+            ->where('i.companyId IS NOT NULL')
+            ->andWhere("i.companyId != '1'")
+            ->orderBy('i.id', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($reference !== null) {
+            return $reference->getCompanyId();
+        }
+
+        $this->logger->warning(
+            'Aucune facture de référence pour déterminer le companyId : repli sur "1", '
+            . 'la facture sera inaccessible depuis l\'administration.'
+        );
+
+        return '1';
+    }
+
     /**
      * Reporte sur la facture locale le crédit de solde client consommé par Stripe.
      *
