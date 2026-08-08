@@ -154,19 +154,36 @@ class DashboardService
         $statuts = [InvoiceStatus::ISSUED->value, InvoiceStatus::SENT->value];
 
         $invoices = $this->invoiceRepository->createQueryBuilder('i')
+            ->leftJoin('i.creditNotes', 'a')
+            ->addSelect('a')
             ->where('i.statut IN (:statuts)')
             ->setParameter('statuts', $statuts)
             ->getQuery()
             ->getResult();
 
         $total = 0.0;
+        $count = 0;
+
         foreach ($invoices as $invoice) {
-            $total += (float) $invoice->getMontantTTC();
+            // getBalanceDue() déduit les avoirs ÉMIS et les accomptes ; getMontantTTC()
+            // ignorait les deux. Une facture intégralement annulée par un avoir restait
+            // donc comptée comme impayée — cas de la facture du gagnant du concours,
+            // créditée de son montant exact et pourtant affichée comme créance.
+            $restantDu = $invoice->getBalanceDue();
+
+            // Le centime de tolérance absorbe les arrondis : un solde de 0,004 € n'est
+            // pas une créance à recouvrer.
+            if ($restantDu <= 0.01) {
+                continue;
+            }
+
+            $total += $restantDu;
+            $count++;
         }
 
         return [
             'total' => $total,
-            'count' => count($invoices),
+            'count' => $count,
         ];
     }
 
