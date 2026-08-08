@@ -635,9 +635,24 @@ class StripeService
             $invoice->setSubscription($subscription);
             $invoice->setStripeInvoiceId($stripeInvoice->id);
 
-            // Formatage de la période
-            $periodStart = (new \DateTime())->setTimestamp($stripeInvoice->period_start);
-            $periodEnd = (new \DateTime())->setTimestamp($stripeInvoice->period_end);
+            // Période de SERVICE, lue sur la ligne et non sur la facture.
+            //
+            // Sur une facture d'abonnement, invoice.period_start / period_end désignent la
+            // période ÉCOULÉE : la documentation Stripe précise que ces champs « regardent
+            // une période en arrière ». Les utiliser produisait une facture annonçant
+            // « du 06/07 au 06/08 » là où Stripe facturait en réalité le 06/08 au 06/09 —
+            // un décalage d'un mois entier sur le document remis au client.
+            //
+            // La période réellement facturée est portée par la ligne. Repli sur les champs
+            // de la facture si elle n'est pas exploitable, pour ne jamais rester sans date.
+            $lignePeriode = $stripeInvoice->lines->data[0]->period ?? null;
+
+            $periodStart = (new \DateTime())->setTimestamp(
+                $lignePeriode->start ?? $stripeInvoice->period_start
+            );
+            $periodEnd = (new \DateTime())->setTimestamp(
+                $lignePeriode->end ?? $stripeInvoice->period_end
+            );
 
             // Mise à jour immédiate des dates pour assurer la cohérence
             $subscription->setCurrentPeriodStart($periodStart);
@@ -752,8 +767,14 @@ class StripeService
                 $invoice->setClient($subscription->getClient());
                 $invoice->setSubscription($subscription);
 
-                $periodStart = isset($stripeInvoice->period_start) ? (new \DateTime())->setTimestamp($stripeInvoice->period_start) : new \DateTime();
-                $periodEnd   = isset($stripeInvoice->period_end)   ? (new \DateTime())->setTimestamp($stripeInvoice->period_end)   : (new \DateTime())->modify('+1 month');
+                // Période lue sur la ligne, comme au renouvellement : les champs de la
+                // facture désignent la période écoulée sur les factures d'abonnement.
+                $lignePeriode = $stripeInvoice->lines->data[0]->period ?? null;
+                $debutTs = $lignePeriode->start ?? $stripeInvoice->period_start ?? null;
+                $finTs   = $lignePeriode->end   ?? $stripeInvoice->period_end   ?? null;
+
+                $periodStart = $debutTs !== null ? (new \DateTime())->setTimestamp($debutTs) : new \DateTime();
+                $periodEnd   = $finTs   !== null ? (new \DateTime())->setTimestamp($finTs)   : (new \DateTime())->modify('+1 month');
 
                 $lastInvoice = $this->entityManager->getRepository(Invoice::class)->findOneBy(['client' => $subscription->getClient()], ['id' => 'DESC']);
                 $invoice->setCompanyId($lastInvoice ? $lastInvoice->getCompanyId() : '1');
