@@ -684,6 +684,7 @@ class StripeService
             }
 
             $invoice->addLine($line);
+            $this->appliquerCreditStripe($invoice, $line, $stripeInvoice);
             $invoice->recalculateTotalsFromLines();
 
             $this->entityManager->persist($invoice);
@@ -772,6 +773,7 @@ class StripeService
                 $line->recalculateTotalHt();
                 $line->setTvaRate('0.00');
                 $invoice->addLine($line);
+                $this->appliquerCreditStripe($invoice, $line, $stripeInvoice);
                 $invoice->recalculateTotalsFromLines();
                 $this->entityManager->persist($invoice);
                 $this->entityManager->flush();
@@ -990,6 +992,58 @@ class StripeService
      *
      * @return array{success:bool,reason?:string,amount?:int}
      */
+    /**
+     * Reporte sur la facture locale le crédit de solde client consommé par Stripe.
+     *
+     * Les lignes de facture reprennent le montant NOMINAL de l'abonnement, alors que
+     * Stripe peut n'avoir rien encaissé si un crédit couvrait l'échéance — c'est le cas
+     * du « 1 mois offert » du concours Bac du mois d'Aqualize, accordé via
+     * grantOneMonthCredit() plus bas.
+     *
+     * Sans cette remise, la facture affiche le plein tarif pour un encaissement nul.
+     * Deux conséquences, fâcheuses l'une comme l'autre en auto-entreprise où l'on déclare
+     * les recettes ENCAISSÉES : un chiffre d'affaires surévalué, et une facture qui reste
+     * éternellement impayée, puisque markPaidByExternalPayment() n'accorde le statut PAID
+     * que si le versement couvre le solde dû — ce que 0 € ne fera jamais sur 4,99 €.
+     *
+     * @param InvoiceLine $ligneBase ligne d'abonnement, dont on reprend le taux de TVA
+     * @param \Stripe\Invoice|object $stripeInvoice
+     */
+    private function appliquerCreditStripe(Invoice $invoice, InvoiceLine $ligneBase, object $stripeInvoice): void
+    {
+        // Les soldes sont NÉGATIFS quand du crédit est disponible ; leur différence donne
+        // le montant réellement consommé sur cette facture, en centimes. Un crédit plus
+        // gros que la facture n'est donc consommé qu'à hauteur du dû, le reste demeurant
+        // au solde du client pour les échéances suivantes.
+        $soldeAvant = (int) ($stripeInvoice->starting_balance ?? 0);
+        $soldeApres = (int) ($stripeInvoice->ending_balance ?? 0);
+        $creditCentimes = $soldeApres - $soldeAvant;
+
+        if ($creditCentimes <= 0) {
+            return;
+        }
+
+        $creditTtc = $creditCentimes / 100;
+
+        // Le crédit Stripe porte sur le TTC, la ligne de facture se saisit en HT :
+        // sans retirer la TVA, la remise serait trop forte.
+        $tauxTva  = (float) $ligneBase->getTvaRate();
+        $creditHt = $tauxTva > 0 ? $creditTtc / (1 + $tauxTva / 100) : $creditTtc;
+
+        $remise = new InvoiceLine();
+        $remise->setDescription('Remise — crédit client appliqué');
+        $remise->setQuantity(1);
+        $remise->setUnitPrice(number_format(-$creditHt, 2, '.', ''));
+        $remise->setTvaRate($ligneBase->getTvaRate());
+        $remise->recalculateTotalHt();
+        $invoice->addLine($remise);
+
+        $this->logger->info(
+            'Crédit Stripe de {c} centimes reporté en remise sur la facture locale (stripe invoice {i})',
+            ['c' => $creditCentimes, 'i' => $stripeInvoice->id ?? '?']
+        );
+    }
+
     public function grantOneMonthCredit(string $stripeCustomerId, string $month): array
     {
         $stripe = $this->getStripeClient();
