@@ -39,6 +39,10 @@ class DashboardController extends AbstractController
             'quotes' => $cardStats['quotes']['count'],
             'invoices' => $cardStats['invoices']['count'],
             'ca_mensuel' => $cardStats['ca']['total'],
+            // Avoirs émis ce mois-ci : montant déduit du chiffre d'affaires, et nombre
+            // de documents. Un CA net sans mention des avoirs qui l'ont réduit se lit mal.
+            'avoirs_mensuel' => $cardStats['credit_notes']['total'],
+            'avoirs_count'   => $cardStats['credit_notes']['count'],
         ];
 
         $growth = [

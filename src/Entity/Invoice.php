@@ -774,7 +774,13 @@ class Invoice
         // puis on soustraira ce total du montant de la facture
         foreach ($this->creditNotes as $creditNote) {
             $statutEnum = $creditNote->getStatutEnum();
-            if ($statutEnum && $statutEnum === \App\Entity\CreditNoteStatus::ISSUED) {
+
+            // isEmitted() et non « === ISSUED » : un avoir émis PUIS envoyé passe en SENT,
+            // et en REFUNDED s'il donne lieu à un remboursement. La comparaison stricte
+            // l'ignorait alors, si bien qu'envoyer un avoir au client le faisait
+            // « disparaître » du solde — la facture redevenait due de son montant plein.
+            // C'est précisément ce qui arrivait après un « Émettre & Envoyer ».
+            if ($statutEnum && $statutEnum->isEmitted()) {
                 // On prend la valeur absolue par sécurité, mais normalement stocké en positif
                 $totalAvoirsEmis += abs((float) $creditNote->getMontantTTC());
             }

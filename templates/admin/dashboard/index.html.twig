@@ -105,6 +105,23 @@
 					{% endif %}
 					<span class="text-white/60 text-sm ml-2">vs mois dernier</span>
 				</div>
+				{# Le CA affiché est NET des avoirs. Sans cette mention, un mois où l'on a
+				   crédité un client donne un chiffre inexpliqué : on cherche l'erreur là
+				   où il n'y en a pas. Masquée quand il n'y a aucun avoir, pour ne pas
+				   encombrer le cas courant. #}
+				{% if stats.avoirs_mensuel|default(0) > 0 %}
+					<div class="mt-3 pt-3 border-t border-white/10">
+						<a href="{{ path('admin_credit_note_index') }}" class="flex items-center gap-2 text-white/60 hover:text-white text-sm transition-colors">
+							{{ ux_icon('lucide:file-minus', {class: 'w-4 h-4 shrink-0'}) }}
+							<span>
+								net de
+								<span class="text-orange-300 font-medium">{{ stats.avoirs_mensuel|number_format(2, ',', ' ') }} €</span>
+								d'avoir{{ stats.avoirs_count > 1 ? 's' : '' }}
+								({{ stats.avoirs_count }})
+							</span>
+						</a>
+					</div>
+				{% endif %}
 			</div>
 		</div>
 

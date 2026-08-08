@@ -20,7 +20,45 @@ class DashboardService
         private InvoiceRepository $invoiceRepository,
         private QuoteRepository $quoteRepository,
         private ChartBuilderInterface $chartBuilder,
+        private \App\Repository\CreditNoteRepository $creditNoteRepository,
     ) {}
+
+    /**
+     * Avoirs émis sur la période, et leur montant total.
+     *
+     * Les avoirs n'apparaissaient nulle part sur le tableau de bord : un document
+     * comptable qui annule une recette méritait mieux que l'invisibilité. Seuls les
+     * avoirs ÉMIS sont comptés — un brouillon n'a aucune valeur comptable.
+     *
+     * @return array{total: float, count: int}
+     */
+    public function getCreditNotesBetween(\DateTime $start, \DateTime $end): array
+    {
+        // Les trois statuts qu'isEmitted() reconnaît : un avoir envoyé, ou remboursé,
+        // reste un avoir émis. Ne retenir que ISSUED le ferait disparaître des
+        // statistiques dès qu'on l'envoie au client.
+        $avoirs = $this->creditNoteRepository->createQueryBuilder('a')
+            ->where('a.dateEmission BETWEEN :start AND :end')
+            ->andWhere('a.statut IN (:statuts)')
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->setParameter('statuts', [
+                \App\Entity\CreditNoteStatus::ISSUED,
+                \App\Entity\CreditNoteStatus::SENT,
+                \App\Entity\CreditNoteStatus::REFUNDED,
+            ])
+            ->getQuery()
+            ->getResult();
+
+        $total = 0.0;
+        foreach ($avoirs as $avoir) {
+            // Stockés en valeur absolue, mais abs() par sécurité : un signe inversé
+            // ferait grimper le total au lieu de le refléter.
+            $total += abs((float) $avoir->getMontantTTC());
+        }
+
+        return ['total' => $total, 'count' => count($avoirs)];
+    }
 
     /**
      * Récupère le CA par mois sur les 12 derniers mois
@@ -345,6 +383,8 @@ class DashboardService
     private function getRevenueBetween(\DateTime $start, \DateTime $end): float
     {
         $invoices = $this->invoiceRepository->createQueryBuilder('i')
+            ->leftJoin('i.creditNotes', 'a')
+            ->addSelect('a')
             ->where('i.datePaiement BETWEEN :start AND :end')
             ->andWhere('i.statut = :statut')
             ->setParameter('start', $start)
@@ -355,7 +395,15 @@ class DashboardService
 
         $total = 0.0;
         foreach ($invoices as $invoice) {
-            $total += (float) $invoice->getMontantTTC();
+            // getSoldeFinal() = montant TTC moins les avoirs ÉMIS. Sommer getMontantTTC()
+            // laissait le chiffre d'affaires surévalué dès qu'une facture encaissée était
+            // ensuite créditée : la recette n'a pourtant pas été conservée.
+            //
+            // L'avoir est imputé au mois de SA FACTURE et non à sa propre date d'émission.
+            // C'est un choix : rattacher la correction à l'opération qu'elle corrige donne
+            // un historique stable, là où l'imputer à sa date ferait bouger un mois déjà
+            // clos et pourrait produire des mois négatifs.
+            $total += (float) $invoice->getSoldeFinal();
         }
 
         return $total;
@@ -379,7 +427,11 @@ class DashboardService
             'ca' => [
                 'total' => $this->getRevenueBetween(new \DateTime('first day of this month 00:00:00'), new \DateTime('last day of this month 23:59:59')),
                 'growth' => $this->getCAGrowth()
-            ]
+            ],
+            'credit_notes' => $this->getCreditNotesBetween(
+                new \DateTime('first day of this month 00:00:00'),
+                new \DateTime('last day of this month 23:59:59')
+            ),
         ];
     }
 
