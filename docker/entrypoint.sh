@@ -19,9 +19,17 @@ mkdir -p /var/log/supervisor
 #
 # Pourquoi ce fichier compte : Edge demande /favicon.ico EN DIRECT pour les favoris,
 # l'historique et les vignettes du nouvel onglet, sans lire les balises de la page.
-if [ -f /var/www/html/assets/images/favicon/favicon.ico ]; then
-    cp -f /var/www/html/assets/images/favicon/favicon.ico /var/www/html/public/favicon.ico || true
-fi
+# ⚠️ Chemins ABSOLUS et sans empreinte, à la racine du site.
+#
+# AssetMapper renomme les fichiers (favicon-NvfwGBX.ico) : un manifeste ne peut donc
+# pas y référencer ses icônes, il ne connaît pas l'empreinte. Et /favicon.ico est de
+# toute façon demandé en dur par les navigateurs. Ces quatre-là vivent donc à la
+# racine, comme le veut l'usage.
+for f in favicon.ico site.webmanifest web-app-manifest-192x192.png web-app-manifest-512x512.png; do
+    if [ -f "/var/www/html/assets/images/favicon/$f" ]; then
+        cp -f "/var/www/html/assets/images/favicon/$f" "/var/www/html/public/$f" || true
+    fi
+done
 
 # Configurer les permissions
 chown -R www-data:www-data /var/www/html/public/uploads || true

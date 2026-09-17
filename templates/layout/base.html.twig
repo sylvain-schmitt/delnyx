@@ -58,7 +58,9 @@
 		<link rel="shortcut icon" href="{{ asset('images/favicon/favicon.ico') }}"/>
 		<link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/favicon/apple-touch-icon.png') }}"/>
 		<meta name="apple-mobile-web-app-title" content="Delnyx"/>
-		<link rel="manifest" href="{{ asset('images/favicon/site.webmanifest') }}"/>
+		{# Racine, pas asset() : le manifeste référence ses icônes par chemin absolu,
+		   et AssetMapper leur donnerait une empreinte qu'il ne peut pas connaître. #}
+		<link rel="manifest" href="/site.webmanifest"/>
 
 		{% block stylesheets %}
 			<link rel="stylesheet" href="{{ asset('styles/app.css') }}">
