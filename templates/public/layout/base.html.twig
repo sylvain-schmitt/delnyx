@@ -8,11 +8,20 @@
 			{% endblock %}
 		</title>
 
-		{# Favicon #}
+		{# Favicon
+		   ⚠️ Le SVG a été RETIRÉ. Ce n'était pas un vecteur : un PNG de 512×512 encodé en
+		   base64 dans une balise <image>, 442 Ko, zéro tracé. Edge et Chrome préfèrent
+		   image/svg+xml quand il est déclaré — ils téléchargeaient donc 442 Ko à chaque
+		   page pour rastériser une bitmap, et Edge n'affichait rien du tout.
+		   Le PNG 96×96 fait le même travail en 23 Ko.
+
+		   Le .ico est AUSSI copié à la racine (public/favicon.ico) : Edge demande
+		   /favicon.ico en direct pour les favoris, l'historique et les vignettes du
+		   nouvel onglet, sans lire les balises de la page. Il renvoyait 404. #}
 		<link rel="icon" type="image/png" href="{{ asset('images/favicon/favicon-96x96.png') }}" sizes="96x96"/>
-		<link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon/favicon.svg') }}"/>
-		<link
-		rel="shortcut icon" href="{{ asset('images/favicon/favicon.ico') }}"/>
+		<link rel="shortcut icon" href="{{ asset('images/favicon/favicon.ico') }}"/>
+		<link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/favicon/apple-touch-icon.png') }}"/>
+		<link rel="manifest" href="{{ asset('images/favicon/site.webmanifest') }}"/>
 
 		{# Stylesheets #}
 		{% block stylesheets %}

@@ -14,8 +14,14 @@
 		name="robots" content="noindex, nofollow">
 
 		{# Favicon #}
+		{# ⚠️ Pas de <link rel="icon" type="image/svg+xml"> : le fichier favicon.svg n'est
+		   PAS un vecteur — c'est un PNG 512×512 encodé en base64 dans une balise <image>,
+		   442 Ko, zéro tracé. Edge et Chrome préfèrent image/svg+xml quand il est déclaré :
+		   ils téléchargeaient 442 Ko par page pour rastériser une bitmap, et Edge
+		   n'affichait rien. Le PNG 96×96 fait le même travail en 23 Ko.
+		   Le .ico est aussi copié à la racine (public/favicon.ico) : Edge demande
+		   /favicon.ico en direct pour les favoris et l'historique, sans lire les balises. #}
 		<link rel="icon" type="image/png" href="{{ asset('images/favicon/favicon-96x96.png') }}" sizes="96x96"/>
-		<link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon/favicon.svg') }}"/>
 		<link
 		rel="shortcut icon" href="{{ asset('images/favicon/favicon.ico') }}"/>
 
