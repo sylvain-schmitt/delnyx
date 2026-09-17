@@ -58,6 +58,10 @@ services:
         arguments:
             $aqualizeApiSecret: '%env(AQUALIZE_API_SECRET)%'
 
+    App\Controller\Public\PriceSimulatorController:
+        arguments:
+            $aqualizeStripeProductId: '%env(default:app.empty_string:AQUALIZE_STRIPE_PRODUCT_ID)%'
+
     App\Controller\Public\AqualizeCheckoutController:
         arguments:
             $aqualizeStripeProductId: '%env(default:app.empty_string:AQUALIZE_STRIPE_PRODUCT_ID)%'
