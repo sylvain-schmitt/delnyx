@@ -966,7 +966,36 @@ class StripeService
             $params['customer_email'] = $customerEmail;
         }
 
-        return $this->getStripeClient()->checkout->sessions->create($params);
+        try {
+            return $this->getStripeClient()->checkout->sessions->create($params);
+        } catch (\Stripe\Exception\InvalidRequestException $e) {
+            // ── Identifiant client périmé : on repart de l'e-mail ────────────────
+            //
+            // L'identifiant est stocké côté Aqualize et transmis dans l'URL de
+            // checkout. Il peut ne plus correspondre à rien : client supprimé chez
+            // Stripe, bascule entre clés de test et de production, changement de
+            // compte. Rencontré le 02/10/2026 en développement.
+            //
+            // Sans ce repli, l'utilisateur reçoit une erreur 500 en cliquant sur
+            // « Passer à Premium ». C'est une vente perdue, et perdue EN SILENCE :
+            // il n'a aucune raison de signaler ce qu'il prend pour une panne
+            // passagère, et rien côté serveur ne distingue ce cas d'un autre 500.
+            if ($stripeCustomerId === null || !str_contains($e->getMessage(), 'No such customer')) {
+                throw $e;
+            }
+
+            $this->logger->warning('Stripe : client inconnu, repli sur l\'e-mail pour le checkout', [
+                'stripeCustomerId' => $stripeCustomerId,
+                'email'            => $customerEmail,
+            ]);
+
+            unset($params['customer']);
+            if ($customerEmail) {
+                $params['customer_email'] = $customerEmail;
+            }
+
+            return $this->getStripeClient()->checkout->sessions->create($params);
+        }
     }
 
     /**
