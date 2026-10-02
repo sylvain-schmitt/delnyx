@@ -15,7 +15,7 @@ use Symfony\Component\Routing\Annotation\Route;
  * Endpoint public — génère une Stripe Billing Portal Session pour la gestion d'abonnement.
  * Accessible sans authentification Delnyx (appelé depuis aqualize).
  */
-#[Route('/public/subscription/portal', name: 'subscription_portal_aqualize', methods: ['GET'])]
+#[Route('/public/subscription/portal', name: 'subscription_portal_aqualize', methods: ['GET', 'POST'])]
 class AqualizePortalController extends AbstractController
 {
     public function __construct(
@@ -25,7 +25,11 @@ class AqualizePortalController extends AbstractController
 
     public function __invoke(Request $request): Response
     {
-        $stripeCustomerId = $request->query->get('stripeCustomerId');
+        // POST d'abord, query en repli — même raison que le checkout : l'identifiant
+        // client ne doit pas s'inscrire dans les journaux ni dans l'historique. Le repli
+        // garde les anciens liens vivants le temps du déploiement manuel de Delnyx.
+        $stripeCustomerId = $request->request->get('stripeCustomerId')
+            ?: $request->query->get('stripeCustomerId');
 
         if (empty($stripeCustomerId)) {
             throw $this->createNotFoundException('stripeCustomerId manquant.');

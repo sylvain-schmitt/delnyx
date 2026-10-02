@@ -16,7 +16,7 @@ use Symfony\Component\Routing\Annotation\Route;
  * Endpoint public — crée une Stripe Checkout Session pour l'abonnement Aqualize Premium.
  * Accessible sans authentification Delnyx (appelé depuis aqualize.local).
  */
-#[Route('/public/checkout/aqualize/premium/{interval}', name: 'checkout_aqualize_premium', methods: ['GET'])]
+#[Route('/public/checkout/aqualize/premium/{interval}', name: 'checkout_aqualize_premium', methods: ['GET', 'POST'])]
 class AqualizeCheckoutController extends AbstractController
 {
     public function __construct(
@@ -53,8 +53,21 @@ class AqualizeCheckoutController extends AbstractController
             ));
         }
 
-        $stripeCustomerId = $request->query->get('stripeCustomerId') ?: null;
-        $email            = $request->query->get('email') ?: null;
+        // ⚠️ POST d'abord, query en REPLI.
+        //
+        // Aqualize envoyait l'e-mail et l'identifiant client dans l'URL : ils finissaient
+        // donc dans les journaux du serveur, l'historique du navigateur et l'en-tête
+        // `Referer`. Ils arrivent maintenant dans le corps d'un POST, qui ne va dans aucun
+        // des trois.
+        //
+        // Le repli sur la query string n'est pas de la complaisance : il garde les anciens
+        // liens fonctionnels le temps du déploiement — et surtout, Delnyx se déploie à la
+        // main. Si Aqualize passait au POST avant que cette version-ci ne soit en ligne,
+        // tous les achats tomberaient. À retirer une fois les deux déployés.
+        $stripeCustomerId = $request->request->get('stripeCustomerId')
+            ?: ($request->query->get('stripeCustomerId') ?: null);
+        $email            = $request->request->get('email')
+            ?: ($request->query->get('email') ?: null);
 
         $session = $this->stripeService->createCheckoutSession(
             priceId: $priceId,
