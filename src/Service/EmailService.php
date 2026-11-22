@@ -935,6 +935,46 @@ class EmailService
     }
 
     /**
+     * Prévient l'administrateur qu'une facture d'ACHAT est arrivée par le réseau PDP.
+     *
+     * ⚠️ Pourquoi cet e-mail existe : ces factures tombent toutes seules, toutes les
+     * 15 minutes, et certaines sont réglées par PRÉLÈVEMENT SEPA automatique. Sans
+     * avertissement, de l'argent quitte le compte et rien ne le signale — constaté le
+     * 22/11/2026 sur deux factures Super PDP que personne n'avait vues passer. Le PDF
+     * est joint pour que l'e-mail se suffise, sans ouvrir l'administration.
+     */
+    public function sendPurchaseInvoiceReceivedAdmin(
+        \App\Entity\PurchaseInvoice $invoice,
+        ?string $pdfContent = null,
+        ?string $pdfFilename = null,
+    ): void {
+        $senderInfo = $this->getSenderInfo();
+
+        $emetteur = $invoice->getSellerName() ?: 'émetteur inconnu';
+        $numero   = $invoice->getInvoiceNumber() ?: ('#' . $invoice->getPdpInvoiceId());
+        $subject  = sprintf('[Achat] Facture reçue de %s — %s', $emetteur, $numero);
+
+        $html = $this->twig->render('emails/notification/purchase_invoice_admin.html.twig', [
+            'invoice'         => $invoice,
+            'subject'         => $subject,
+            'companySettings' => $senderInfo['settings'],
+        ]);
+
+        $this->send(
+            recipient: $senderInfo['email'],
+            subject: $subject,
+            html: $html,
+            entityType: 'PurchaseInvoice',
+            entityId: $invoice->getId() ?? 0,
+            type: 'purchase_invoice_received',
+            senderEmail: $senderInfo['email'],
+            senderName: 'Delnyx System',
+            pdfContent: $pdfContent,
+            pdfFilename: $pdfFilename,
+        );
+    }
+
+    /**
      * Les huit motifs du portail client Stripe, en français lisible.
      *
      * Repli sur la valeur BRUTE quand Stripe en ajoute un : afficher `nouveau_motif` est

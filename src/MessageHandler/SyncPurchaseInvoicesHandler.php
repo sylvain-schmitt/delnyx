@@ -8,6 +8,7 @@ use App\Entity\PurchaseInvoice;
 use App\Message\SyncPurchaseInvoicesMessage;
 use App\Repository\CompanySettingsRepository;
 use App\Repository\PurchaseInvoiceRepository;
+use App\Service\EmailService;
 use App\Service\PdfGeneratorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -19,11 +20,22 @@ class SyncPurchaseInvoicesHandler
 {
     private const SUPERPDP_BASE_URL = 'https://api.superpdp.tech';
 
+    /**
+     * Au-dela de ce delai, une facture decouverte pour la premiere fois n'alerte plus.
+     *
+     * ⚠️ Garde-fou contre le deluge : si la base est reinitialisee ou si l'API renvoie
+     * un jour tout l'historique, chaque ligne redevient « nouvelle » et partirait en
+     * e-mail. Cinquante messages d'un coup ne previennent de rien, ils enterrent. Les
+     * factures ecartees restent visibles dans l'administration et dans les journaux.
+     */
+    private const JOURS_ALERTE = 30;
+
     public function __construct(
         private PurchaseInvoiceRepository $purchaseInvoiceRepository,
         private CompanySettingsRepository $companySettingsRepository,
         private EntityManagerInterface $entityManager,
         private PdfGeneratorService $pdfGeneratorService,
+        private EmailService $emailService,
         private KernelInterface $kernel,
         private LoggerInterface $logger,
     ) {}
@@ -76,6 +88,9 @@ class SyncPurchaseInvoicesHandler
         $companyId = $message->getCompanyId() ?? $settings->getCompanyId() ?? '';
         $synced    = 0;
 
+        /** @var list<PurchaseInvoice> $nouvelles */
+        $nouvelles = [];
+
         foreach ($items as $item) {
             $pdpInvoiceId = (int) ($item['id'] ?? 0);
             if (!$pdpInvoiceId) {
@@ -108,15 +123,101 @@ class SyncPurchaseInvoicesHandler
                 $this->generatePdf($existing);
             }
 
+            if ($isNew) {
+                $nouvelles[] = $existing;
+            }
+
             $synced++;
         }
 
         $this->entityManager->flush();
 
+        // Apres le flush seulement : l'e-mail porte un lien vers la fiche, donc la ligne
+        // doit avoir son identifiant.
+        $this->prevenirAdmin($nouvelles);
+
         $this->logger->info('SyncPurchaseInvoicesHandler: sync complete', [
             'companyId' => $companyId,
             'synced'    => $synced,
         ]);
+    }
+
+    /**
+     * Previent l'administrateur des factures decouvertes a l'instant.
+     *
+     * ⚠️ Jusqu'au 22/11/2026 cette methode n'existait pas : une facture d'achat arrivait,
+     * son PDF etait genere, une ligne de journal etait ecrite, et RIEN d'autre. Deux
+     * factures Super PDP reglees par prelevement SEPA sont ainsi passees inapercues — de
+     * l'argent avait quitte le compte sans qu'aucun signal ne parte. Le `$isNew` existait
+     * deja dans la boucle, il ne servait qu'a decider s'il fallait fabriquer le PDF.
+     *
+     * Aucune erreur d'envoi ne fait echouer la synchronisation : la facture est deja
+     * enregistree, et la reperdre pour un probleme de SMTP serait pire que le silence.
+     *
+     * @param list<PurchaseInvoice> $nouvelles
+     */
+    private function prevenirAdmin(array $nouvelles): void
+    {
+        if ($nouvelles === []) {
+            return;
+        }
+
+        $limite = new \DateTimeImmutable('-' . self::JOURS_ALERTE . ' days');
+
+        foreach ($nouvelles as $invoice) {
+            $emise = $invoice->getIssueDate();
+            if ($emise !== null && $emise < $limite) {
+                $this->logger->info('SyncPurchaseInvoicesHandler: facture ancienne, pas d alerte', [
+                    'pdpId' => $invoice->getPdpInvoiceId(),
+                    'emise' => $emise->format('Y-m-d'),
+                ]);
+                continue;
+            }
+
+            try {
+                [$contenu, $nomFichier] = $this->lirePdf($invoice);
+                $this->emailService->sendPurchaseInvoiceReceivedAdmin($invoice, $contenu, $nomFichier);
+
+                $this->logger->info('SyncPurchaseInvoicesHandler: administrateur prevenu', [
+                    'pdpId'    => $invoice->getPdpInvoiceId(),
+                    'emetteur' => $invoice->getSellerName(),
+                    'ttc'      => $invoice->getTotalTTC(),
+                ]);
+            } catch (\Throwable $e) {
+                $this->logger->error('SyncPurchaseInvoicesHandler: alerte non envoyee', [
+                    'pdpId' => $invoice->getPdpInvoiceId(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Le PDF genere juste avant, s'il est lisible. Un PDF manquant ne doit pas retenir
+     * l'e-mail : mieux vaut une alerte sans piece jointe que pas d'alerte du tout.
+     *
+     * @return array{0: string|null, 1: string|null}
+     */
+    private function lirePdf(PurchaseInvoice $invoice): array
+    {
+        $nom = $invoice->getLocalPdfPath();
+        if (!$nom) {
+            return [null, null];
+        }
+
+        $chemin = $this->kernel->getProjectDir() . '/var/purchase_invoices/' . $nom;
+        if (!is_file($chemin) || !is_readable($chemin)) {
+            $this->logger->warning('SyncPurchaseInvoicesHandler: PDF introuvable pour l alerte', [
+                'pdpId'  => $invoice->getPdpInvoiceId(),
+                'chemin' => $chemin,
+            ]);
+
+            return [null, null];
+        }
+
+        $contenu = file_get_contents($chemin);
+
+        return [$contenu === false ? null : $contenu, $nom];
     }
 
     private function fetchInvoiceDetail(int $pdpInvoiceId, string $token): ?array

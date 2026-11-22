@@ -10,6 +10,26 @@ use App\Repository\PurchaseInvoiceRepository;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
+/**
+ * ⚠️ CODE MORT, ET IL DOIT LE RESTER EN L'ÉTAT. Ne pas le « réparer » en le branchant.
+ *
+ * Ce handler est complet et personne ne dispatche son message : `PurchaseInvoiceController`
+ * n'envoie rien, son bouton « marquer payé » n'écrit qu'un `localStatus` local. La tentation
+ * évidente, en le découvrant, est de relier les deux. C'est probablement une erreur.
+ *
+ * Il envoie `fr:212` « Encaissée » sur une facture d'ACHAT, c'est-à-dire une facture dont
+ * nous sommes le DESTINATAIRE. Or, dans la réforme française de la facturation électronique,
+ * « Encaissée » est le statut de l'ÉMETTEUR — c'est lui qui déclare avoir reçu l'argent, et
+ * c'est ce statut qui alimente le pré-remplissage de la TVA. Le déclarer à la place de notre
+ * fournisseur reviendrait à déposer une information fiscale qui ne nous appartient pas.
+ *
+ * Le pendant correct existe déjà et lui est bien branché : `InvoiceService` envoie `fr:212`
+ * pour NOS factures de vente, où nous sommes l'émetteur. Celui-là est à sa place.
+ *
+ * Avant toute décision contraire : vérifier auprès de Super PDP, qui fait autorité sur sa
+ * propre API, et pas auprès des blogs d'éditeurs — ils se contredisent sur la numérotation
+ * et sur qui déclare quoi. Constaté le 22/11/2026.
+ */
 #[AsMessageHandler]
 class NotifyPdpPurchaseInvoicePaidHandler
 {

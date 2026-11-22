@@ -1,0 +1,76 @@
+{% extends 'emails/layout/base.html.twig' %}
+
+{% block body %}
+	<h1>📥 Facture d'achat reçue</h1>
+
+	<p>Une facture vous a été adressée par le réseau de facturation électronique. Elle est déjà
+		enregistrée dans Delnyx, et le PDF est joint à ce message.</p>
+
+	<div class="info-box" style="background-color: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 20px 0;">
+		<p style="margin: 5px 0;">
+			<strong>🏢 Émetteur :</strong>
+			{{ invoice.sellerName|default('inconnu') }}{% if invoice.sellerSiren %}
+				({{ invoice.sellerSiren }}){% endif %}
+		</p>
+		<p style="margin: 5px 0;">
+			<strong>📄 Numéro :</strong>
+			{{ invoice.invoiceNumber|default('#' ~ invoice.pdpInvoiceId) }}</p>
+		{% if invoice.issueDate %}
+			<p style="margin: 5px 0;">
+				<strong>📅 Émise le :</strong>
+				{{ invoice.issueDate|date('d/m/Y') }}</p>
+		{% endif %}
+		<p style="margin: 5px 0;">
+			<strong>📊 Statut réseau :</strong>
+			{{ invoice.pdpStatusLabel }}</p>
+	</div>
+
+	{# Le montant à part et en gros : c'est la seule chose qui demande une décision. #}
+	<div style="background-color: {{ invoice.totalTTC is not null and invoice.totalTTC > 0 ? '#fff7ed' : '#f0fdf4' }}; padding: 20px; border-radius: 8px; border: 1px solid {{ invoice.totalTTC is not null and invoice.totalTTC > 0 ? '#fdba74' : '#86efac' }}; margin: 20px 0; text-align: center;">
+		<p style="margin: 0; font-size: 28px; font-weight: 700; color: #0f172a;">
+			{{ invoice.totalTTC|default('0') }}
+			{{ invoice.currency }}
+			TTC
+		</p>
+		{% if invoice.totalHT is not null %}
+			<p style="margin: 5px 0 0 0; color: #64748b; font-size: 13px;">
+				soit {{ invoice.totalHT }}
+				{{ invoice.currency }} HT
+			</p>
+		{% endif %}
+	</div>
+
+	{% if invoice.lines is not empty %}
+		<table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+			<thead>
+				<tr>
+					<th style="text-align: left; padding: 8px; border-bottom: 2px solid #e2e8f0; font-size: 13px; color: #64748b;">Ligne</th>
+					<th style="text-align: right; padding: 8px; border-bottom: 2px solid #e2e8f0; font-size: 13px; color: #64748b;">Montant HT</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for ligne in invoice.lines %}
+					<tr>
+						<td style="padding: 8px; border-bottom: 1px solid #f1f5f9; font-size: 14px;">
+							{{ ligne.name|default(ligne.description|default('—')) }}
+						</td>
+						<td style="padding: 8px; border-bottom: 1px solid #f1f5f9; font-size: 14px; text-align: right;">
+							{{ ligne.total_without_vat|default(ligne.net_price|default('—')) }}
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	{% endif %}
+
+	<p style="color: #7c2d12; font-size: 13px;">
+		⚠️ Vérifiez le mode de règlement sur le PDF : un prélèvement SEPA automatique part
+		sans autre action de votre part.
+	</p>
+
+	<div style="text-align: center; margin: 30px 0;">
+		<a href="{{ url('admin_purchase_invoice_show', {id: invoice.id}) }}" style="display: inline-block; padding: 12px 24px; background-color: #0f172a; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+			Ouvrir la facture
+		</a>
+	</div>
+{% endblock %}

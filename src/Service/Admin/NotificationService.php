@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Repository\AppointmentRepository;
 use App\Repository\InvoiceRepository;
 use App\Repository\NotificationReadRepository;
+use App\Repository\PurchaseInvoiceRepository;
 use App\Repository\QuoteRepository;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -24,6 +25,7 @@ class NotificationService
         private InvoiceRepository $invoiceRepository,
         private QuoteRepository $quoteRepository,
         private NotificationReadRepository $notificationReadRepository,
+        private PurchaseInvoiceRepository $purchaseInvoiceRepository,
         private Security $security,
         private UrlGeneratorInterface $urlGenerator
     ) {}
@@ -98,6 +100,49 @@ class NotificationService
                     'link' => $this->urlGenerator->generate('admin_dashboard'),
                     'is_priority' => false,
                     'is_read' => in_array('system_health', $readKeys, true)
+                ];
+            }
+
+            // Factures d'ACHAT non traitees.
+            //
+            // ⚠️ Elles arrivent toutes seules du reseau PDP, toutes les 15 minutes, et
+            // certaines sont reglees par prelevement SEPA automatique : jusqu'au
+            // 22/11/2026 rien ne les signalait, et deux d'entre elles sont passees
+            // inapercues. D'ou `is_priority` : de l'argent qui part merite le meme
+            // traitement qu'un rendez-vous, pas moins.
+            //
+            // Le critere est `localStatus` a NULL, c'est-a-dire « ni acceptee, ni payee,
+            // ni rejetee » : la notification disparait d'elle-meme des que la facture est
+            // traitee, sans qu'il faille la marquer lue.
+            $facturesAchat = $this->purchaseInvoiceRepository->findBy(
+                ['localStatus' => null],
+                ['createdAt' => 'DESC'],
+                $limit * 2
+            );
+
+            foreach ($facturesAchat as $achat) {
+                $key = 'purchase_invoice_' . $achat->getId();
+                if (in_array($key, $hiddenKeys, true)) continue;
+
+                $emetteur = $achat->getSellerName() ?: 'emetteur inconnu';
+                $numero   = $achat->getInvoiceNumber() ?: ('#' . $achat->getPdpInvoiceId());
+                $montant  = $achat->getTotalTTC();
+
+                $notifications[] = [
+                    'id' => $key,
+                    'type' => 'purchase',
+                    'title' => 'Facture d\'achat recue',
+                    'message' => sprintf(
+                        '%s - %s%s',
+                        $emetteur,
+                        $numero,
+                        $montant !== null ? ' - ' . $montant . ' ' . $achat->getCurrency() . ' TTC' : ''
+                    ),
+                    'icon' => 'lucide:file-down',
+                    'date' => $achat->getCreatedAt(),
+                    'link' => $this->urlGenerator->generate('admin_purchase_invoice_show', ['id' => $achat->getId()]),
+                    'is_priority' => true,
+                    'is_read' => in_array($key, $readKeys, true)
                 ];
             }
         }
