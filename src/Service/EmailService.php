@@ -896,8 +896,17 @@ class EmailService
     /**
      * Envoie une notification de changement d'abonnement (SaaS)
      */
-    public function sendSubscriptionNotificationAdmin(string $action, \App\Entity\Subscription $subscription): void
-    {
+    /**
+     * @param array{feedback?: string, comment?: string} $cancellation
+     *        Motif recueilli par le portail Stripe au clic sur « Annuler ». C'est la seule
+     *        information actionnable de cet e-mail : sans elle, on apprend qu'un abonné
+     *        part sans jamais savoir pourquoi.
+     */
+    public function sendSubscriptionNotificationAdmin(
+        string $action,
+        \App\Entity\Subscription $subscription,
+        array $cancellation = [],
+    ): void {
         $senderInfo = $this->getSenderInfo();
         $adminEmail = $senderInfo['email'];
 
@@ -909,6 +918,8 @@ class EmailService
             'client' => $subscription->getClient(),
             'subject' => $subject,
             'companySettings' => $senderInfo['settings'],
+            'motifResiliation' => self::libelleMotifStripe($cancellation['feedback'] ?? null),
+            'commentaireResiliation' => $cancellation['comment'] ?? null,
         ]);
 
         $this->send(
@@ -921,5 +932,29 @@ class EmailService
             senderEmail: $senderInfo['email'],
             senderName: 'Delnyx System'
         );
+    }
+
+    /**
+     * Les huit motifs du portail client Stripe, en français lisible.
+     *
+     * Repli sur la valeur BRUTE quand Stripe en ajoute un : afficher `nouveau_motif` est
+     * laid mais lisible, alors qu'un null effacerait la seule réponse qu'on avait.
+     */
+    private static function libelleMotifStripe(?string $feedback): ?string
+    {
+        if ($feedback === null || trim($feedback) === '') {
+            return null;
+        }
+
+        return [
+            'too_expensive'    => 'Le tarif est trop élevé',
+            'missing_features' => 'Il manque des fonctionnalités',
+            'switched_service' => 'Parti chez un autre',
+            'unused'           => "N'en avait plus besoin",
+            'customer_service' => 'Service client insuffisant',
+            'too_complex'      => 'Trop compliqué à utiliser',
+            'low_quality'      => 'Qualité insuffisante',
+            'other'            => 'Autre motif',
+        ][$feedback] ?? $feedback;
     }
 }

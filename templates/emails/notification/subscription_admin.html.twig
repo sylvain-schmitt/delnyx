@@ -27,6 +27,21 @@
 			{{ subscription.status|upper }}</p>
 	</div>
 
+	{# Motif de résiliation recueilli par le portail Stripe. Encadré à part et en évidence :
+	   c'est la seule ligne de cet e-mail sur laquelle on peut agir. #}
+	{% if motifResiliation is defined and motifResiliation %}
+		<div style="background-color: #fff7ed; padding: 20px; border-radius: 8px; border: 1px solid #fdba74; margin: 20px 0;">
+			<p style="margin: 5px 0;">
+				<strong>🚪 Motif donné à Stripe :</strong>
+				{{ motifResiliation }}</p>
+			{% if commentaireResiliation is defined and commentaireResiliation %}
+				<p style="margin: 10px 0 5px 0; font-style: italic; color: #7c2d12;">
+					« {{ commentaireResiliation }} »
+				</p>
+			{% endif %}
+		</div>
+	{% endif %}
+
 	<div style="text-align: center; margin: 30px 0;">
 		<a href="{{ url('admin_dashboard') }}" style="display: inline-block; padding: 12px 24px; background-color: #0f172a; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
 			Tableau de bord

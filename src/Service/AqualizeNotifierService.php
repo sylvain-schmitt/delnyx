@@ -20,8 +20,19 @@ class AqualizeNotifierService
      * Notifie Aqualize du changement de plan d'un utilisateur.
      * Best-effort : ne lève jamais d'exception pour ne pas bloquer le webhook.
      */
-    public function notifyPlanUpdate(string $email, string $plan, string $stripeCustomerId, ?\DateTimeInterface $cancelAt = null): void
-    {
+    /**
+     * @param array{feedback?: string, comment?: string} $cancellation
+     *        Motif de résiliation recueilli par le portail Stripe, quand il y en a un.
+     *        Aqualize le range dans son journal des résiliations — sans ce relais, la
+     *        réponse de l'abonné ne sortait jamais du tableau de bord Stripe.
+     */
+    public function notifyPlanUpdate(
+        string $email,
+        string $plan,
+        string $stripeCustomerId,
+        ?\DateTimeInterface $cancelAt = null,
+        array $cancellation = [],
+    ): void {
         if (empty($email) || empty($this->aqualizeApiUrl) || empty($this->aqualizeApiSecret)) {
             $this->logger->warning('AqualizeNotifier: configuration incomplète, notification ignorée', [
                 'email' => $email,
@@ -37,6 +48,9 @@ class AqualizeNotifierService
         ];
         if ($cancelAt !== null) {
             $payload['cancelAt'] = $cancelAt->format(\DateTimeInterface::ATOM);
+        }
+        if ($cancellation !== []) {
+            $payload['cancellation'] = $cancellation;
         }
 
         try {

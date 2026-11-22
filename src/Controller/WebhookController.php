@@ -125,6 +125,22 @@ class WebhookController extends AbstractController
         $cancelAtTimestamp  = $stripeSubscription->cancel_at ?? null;
         $cancelAtPeriodEnd  = (bool) ($stripeSubscription->cancel_at_period_end ?? false) || $cancelAtTimestamp !== null;
 
+        // Motif de résiliation recueilli par le portail client.
+        //
+        // Le réglage « Motif de l'annulation » (dashboard.stripe.com/settings/billing/portal,
+        // section Annulations) est ACTIF PAR DÉFAUT : l'abonné choisit un motif au clic sur
+        // « Annuler », plus un champ libre sur « Autre motif ». Stripe le range dans
+        // `cancellation_details`, que cette méthode recevait déjà sans le lire — la réponse
+        // restait dans le tableau de bord Stripe, où personne n'allait la chercher.
+        //
+        // `reason` n'est pas transmis : il dit COMMENT la résiliation est arrivée
+        // (cancellation_requested, payment_failed…), pas pourquoi l'abonné part.
+        $details = $stripeSubscription->cancellation_details ?? null;
+        $motifResiliation = array_filter([
+            'feedback' => $details->feedback ?? null,
+            'comment'  => $details->comment  ?? null,
+        ], static fn($v) => $v !== null && $v !== '');
+
         // current_period_start/end sont dans items.data[0] sur les nouveaux webhooks Stripe
         $item = $stripeSubscription->items->data[0] ?? null;
         $periodStart = $stripeSubscription->current_period_start ?? ($item->current_period_start ?? null);
@@ -144,10 +160,15 @@ class WebhookController extends AbstractController
             $this->entityManager->flush();
             $this->logger->info('Abonnement mis à jour: ' . $subscription->getId() . ' statut: ' . $stripeSubscription->status . ' cancelAtPeriodEnd: ' . ($cancelAtPeriodEnd ? 'oui' : 'non'));
 
-            // Email admin si résiliation programmée
+            // Email admin si résiliation programmée — avec le motif, qui est la seule
+            // chose exploitable dans cette notification.
             if ($cancelAtPeriodEnd) {
                 try {
-                    $this->emailService->sendSubscriptionNotificationAdmin('résiliation programmée', $subscription);
+                    $this->emailService->sendSubscriptionNotificationAdmin(
+                        'résiliation programmée',
+                        $subscription,
+                        $motifResiliation,
+                    );
                 } catch (\Exception $e) {
                     $this->logger->error('Erreur email admin résiliation: ' . $e->getMessage());
                 }
@@ -185,7 +206,12 @@ class WebhookController extends AbstractController
             }
         }
 
-        $this->aqualizeNotifier->notifyPlanUpdate($email, $plan, $stripeCustomerId, $cancelAt);
-        $this->logger->info('Aqualize notifié via subscription update', ['email' => $email, 'plan' => $plan, 'cancelAt' => $cancelAt?->format('Y-m-d')]);
+        $this->aqualizeNotifier->notifyPlanUpdate($email, $plan, $stripeCustomerId, $cancelAt, $motifResiliation);
+        $this->logger->info('Aqualize notifié via subscription update', [
+            'email'    => $email,
+            'plan'     => $plan,
+            'cancelAt' => $cancelAt?->format('Y-m-d'),
+            'motif'    => $motifResiliation['feedback'] ?? null,
+        ]);
     }
 }
